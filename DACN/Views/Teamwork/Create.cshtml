@@ -1,0 +1,181 @@
+@model DACN.Models.ViewModels.CreateMatchPostViewModel
+@using DACN.Models.Enums
+@{
+    ViewData["Title"] = "Đăng Kèo Thể Thao & Ghép Đội";
+}
+
+<div class="container py-4" style="max-width: 860px;">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-area="" asp-controller="Home" asp-action="Index" class="text-white-50 text-decoration-none">Trang chủ</a></li>
+            <li class="breadcrumb-item"><a asp-action="Index" class="text-white-50 text-decoration-none">Ghép đội &amp; Tìm kèo</a></li>
+            <li class="breadcrumb-item text-white active" aria-current="page">Đăng bài tìm kèo mới</li>
+        </ol>
+    </nav>
+
+    @if (Model.BookingId.HasValue)
+    {
+        <div class="alert alert-success d-flex align-items-center mb-4 shadow-sm" style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); color: #6ee7b7; border-radius: 12px;">
+            <i class="bi bi-link-45deg fs-2 me-3 text-success"></i>
+            <div>
+                <strong>Liên kết Đơn Đặt Sân thành công!</strong><br />
+                Hệ thống đã tự động điền Tên sân, Địa chỉ, Ngày giờ thi đấu và tính sẵn chi phí chia sẻ từ đơn đặt sân <strong>#BK-@Model.BookingId</strong> của bạn.
+            </div>
+        </div>
+    }
+
+    <div class="card shadow-lg border-0" style="background: #0f172a; border: 1px solid rgba(255, 255, 255, 0.1) !important; border-radius: 16px; overflow: hidden;">
+        <div class="py-3 px-4 border-bottom border-secondary border-opacity-25" style="background: linear-gradient(90deg, rgba(59, 130, 246, 0.2), rgba(16, 185, 129, 0.2));">
+            <h4 class="fw-bold mb-0 text-white d-flex align-items-center gap-2">
+                <i class="bi bi-plus-circle-fill text-info"></i> Đăng Tin Tìm Kèo &amp; Tuyển Đồng Đội
+            </h4>
+            <small class="text-white-50">Kết nối các cầu thủ và đồng đội thi đấu cùng sở thích</small>
+        </div>
+
+        <div class="card-body p-4 text-white">
+            <form asp-action="Create" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" asp-for="BookingId" />
+                <input type="hidden" asp-for="FacilityId" />
+
+                <!-- 1. Mục đích bài đăng -->
+                <h5 class="fw-bold text-white border-bottom border-secondary border-opacity-25 pb-2 mb-3">
+                    <span class="text-info me-1">1.</span> Mục Đích &amp; Bộ Môn
+                </h5>
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        <label asp-for="PostType" class="form-label fw-bold small text-white"></label>
+                        <select asp-for="PostType" class="form-select text-white" style="background: #0f172a; border-color: rgba(255,255,255,0.18);">
+                            <option value="@((int)MatchPostType.FindTeammates)" style="background: #0f172a;">🤝 Tuyển Đồng Đội / Ghép Slot Thiếu</option>
+                            <option value="@((int)MatchPostType.FindOpponent)" style="background: #0f172a;">⚔️ Tìm Đội Đối Thủ Giao Lưu Cọ Sát</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="SportTypeId" class="form-label fw-bold small text-white"></label>
+                        <select asp-for="SportTypeId" class="form-select text-white" style="background: #0f172a; border-color: rgba(255,255,255,0.18);" asp-items="ViewBag.SportTypes">
+                            <option value="" style="background: #0f172a;">-- Chọn môn thể thao --</option>
+                        </select>
+                        <span asp-validation-for="SportTypeId" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-12">
+                        <label asp-for="Title" class="form-label fw-bold small text-white"></label>
+                        <input asp-for="Title" class="form-control text-white" style="background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.18);" placeholder="VD: Kèo đá bóng sân 7 tối thứ 5 thiếu 2 chân cánh - Sân Chảo Lửa Cầu Giấy" />
+                        <span asp-validation-for="Title" class="text-danger small"></span>
+                    </div>
+                </div>
+
+                <!-- 2. Địa điểm & Thời gian -->
+                <h5 class="fw-bold text-white border-bottom border-secondary border-opacity-25 pb-2 mb-3">
+                    <span class="text-info me-1">2.</span> Địa Điểm &amp; Thời Gian Thi Đấu
+                </h5>
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        <label asp-for="VenueName" class="form-label fw-bold small text-white"></label>
+                        <input asp-for="VenueName" class="form-control text-white" style="background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.18);" placeholder="VD: Sân Bóng Chảo Lửa Cầu Giấy" />
+                        <span asp-validation-for="VenueName" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="VenueAddress" class="form-label fw-bold small text-white"></label>
+                        <input asp-for="VenueAddress" class="form-control text-white" style="background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.18);" placeholder="VD: 18 Hoàng Quán Chi, Cầu Giấy, Hà Nội" />
+                        <span asp-validation-for="VenueAddress" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label asp-for="MatchDate" class="form-label fw-bold small text-white"></label>
+                        <input asp-for="MatchDate" type="date" class="form-control text-white" style="background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.18);" value="@Model.MatchDate.ToString("yyyy-MM-dd")" />
+                        <span asp-validation-for="MatchDate" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label asp-for="StartTime" class="form-label fw-bold small text-white"></label>
+                        <input asp-for="StartTime" type="time" class="form-control text-white" style="background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.18);" />
+                        <span asp-validation-for="StartTime" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label asp-for="EndTime" class="form-label fw-bold small text-white"></label>
+                        <input asp-for="EndTime" type="time" class="form-control text-white" style="background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.18);" />
+                        <span asp-validation-for="EndTime" class="text-danger small"></span>
+                    </div>
+                </div>
+
+                <!-- 3. Thành viên & Trình độ -->
+                <h5 class="fw-bold text-white border-bottom border-secondary border-opacity-25 pb-2 mb-3">
+                    <span class="text-info me-1">3.</span> Thành Viên &amp; Trình Độ Kỹ Năng
+                </h5>
+                <div class="row g-3 mb-4">
+                    <div class="col-md-4">
+                        <label asp-for="TotalSlots" class="form-label fw-bold small text-white"></label>
+                        <input asp-for="TotalSlots" type="number" class="form-control text-white" style="background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.18);" min="2" max="50" />
+                        <small class="text-white-50">Tổng số người cần cho trận / đội</small>
+                        <span asp-validation-for="TotalSlots" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label asp-for="CurrentSlots" class="form-label fw-bold small text-white"></label>
+                        <input asp-for="CurrentSlots" type="number" class="form-control text-white" style="background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.18);" min="1" max="50" />
+                        <small class="text-white-50">Số người hiện tại bạn đang có</small>
+                        <span asp-validation-for="CurrentSlots" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label asp-for="SkillLevel" class="form-label fw-bold small text-white"></label>
+                        <select asp-for="SkillLevel" class="form-select text-white" style="background: #0f172a; border-color: rgba(255,255,255,0.18);">
+                            <option value="@((int)MatchSkillLevel.All)" style="background: #0f172a;">Mọi trình độ / Giao lưu vui vẻ</option>
+                            <option value="@((int)MatchSkillLevel.Beginner)" style="background: #0f172a;">Mới chơi / Tập làm quen</option>
+                            <option value="@((int)MatchSkillLevel.Intermediate)" style="background: #0f172a;">Trung bình / Đã biết chơi cơ bản</option>
+                            <option value="@((int)MatchSkillLevel.Advanced)" style="background: #0f172a;">Khá - Bán chuyên / Cọ sát nâng cao</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- 4. Chi phí & Liên hệ -->
+                <h5 class="fw-bold text-white border-bottom border-secondary border-opacity-25 pb-2 mb-3">
+                    <span class="text-info me-1">4.</span> Chi Phí &amp; Liên Hệ
+                </h5>
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        <label asp-for="CostPerPerson" class="form-label fw-bold small text-white"></label>
+                        <div class="input-group">
+                            <input asp-for="CostPerPerson" type="number" step="1000" class="form-control text-white" style="background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.18);" placeholder="VD: 50000" />
+                            <span class="input-group-text text-white" style="background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.18);">VNĐ</span>
+                        </div>
+                        <small class="text-white-50">Nhập 0 nếu miễn phí hoặc bao sân</small>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="CostSharingNote" class="form-label fw-bold small text-white"></label>
+                        <input asp-for="CostSharingNote" class="form-control text-white" style="background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.18);" placeholder="VD: Chia đều tiền sân + nước" />
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="ContactPhone" class="form-label fw-bold small text-white"></label>
+                        <input asp-for="ContactPhone" class="form-control text-white" style="background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.18);" placeholder="Số điện thoại hoặc Zalo liên hệ" />
+                        <span asp-validation-for="ContactPhone" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-12">
+                        <label asp-for="Description" class="form-label fw-bold small text-white"></label>
+                        <textarea asp-for="Description" class="form-control text-white" style="background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.18);" rows="4" placeholder="Mô tả cụ thể về nhóm, phong cách chơi (không chặt chém, dưỡng sinh...), trang phục áo đấu, yêu cầu riêng..."></textarea>
+                        <span asp-validation-for="Description" class="text-danger small"></span>
+                    </div>
+                </div>
+
+                <div class="d-flex gap-3 pt-3 border-top border-secondary border-opacity-25">
+                    <a asp-action="Index" class="btn btn-outline-light rounded-pill w-50 py-2">Hủy bỏ</a>
+                    <button type="submit" class="btn btn-sport-gradient rounded-pill w-50 py-2 fw-bold fs-6 text-white shadow-lg">
+                        <i class="bi bi-cloud-upload-fill me-1"></i> Đăng Kèo Lên Cộng Đồng
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

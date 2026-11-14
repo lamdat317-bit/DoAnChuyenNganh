@@ -1,0 +1,65 @@
+@{
+    ViewData["Title"] = "Chính Sách & Quy Định Đặt Sân - SanBong.vn";
+}
+
+<div class="container py-4" style="max-width: 900px;">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Trang chủ</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Chính sách & Quy định</li>
+        </ol>
+    </nav>
+
+    <div class="card shadow-sm border-0 bg-white p-4 p-md-5">
+        <div class="border-bottom pb-3 mb-4">
+            <span class="badge bg-success-subtle text-success px-3 py-1 rounded-pill fw-bold text-uppercase mb-2">Quy định & Bảo mật</span>
+            <h2 class="fw-bold text-dark mb-1">Chính Sách Hoạt Động & Điều Khoản Dịch Vụ</h2>
+            <p class="text-muted small mb-0">Cập nhật lần cuối: Tháng @DateTime.Now.Month/@DateTime.Now.Year • Áp dụng cho toàn bộ người chơi và đối tác chủ sân</p>
+        </div>
+
+        <div class="mb-4">
+            <h5 class="fw-bold text-dark d-flex align-items-center gap-2">
+                <i class="bi bi-shield-check text-primary"></i> 1. Cơ Chế Giữ Chỗ & Chống Trùng Lịch (Concurrency Control)
+            </h5>
+            <p class="text-secondary small" style="line-height: 1.8;">
+                SanBong.vn áp dụng công nghệ khóa phân đoạn với cấp độ cô lập <strong>Serializable Isolation</strong> trong hệ thống cơ sở dữ liệu. Khi bạn thực hiện đặt sân, hệ thống sẽ tạm giữ chỗ ngay lập tức trong vòng <strong>5 phút</strong> để bạn thanh toán. Bất kỳ người chơi nào khác truy cập cùng khung giờ đó sẽ nhận được cảnh báo slot đang được giữ chỗ, đảm bảo không bao giờ xảy ra tình trạng trùng lịch (Double Booking). Quá 5 phút nếu chưa thanh toán, hệ thống sẽ tự động hủy đơn giữ chỗ để nhường cho người khác.
+            </p>
+        </div>
+
+        <div class="mb-4">
+            <h5 class="fw-bold text-dark d-flex align-items-center gap-2">
+                <i class="bi bi-wallet2 text-success"></i> 2. Quy Định Thanh Toán & Xuất Vé Điện Tử
+            </h5>
+            <p class="text-secondary small" style="line-height: 1.8;">
+                Người chơi thực hiện thanh toán trực tuyến qua mã <strong>VietQR NAPAS 24/7</strong> (tự động nhận diện hóa đơn và quét mã từ mọi ngân hàng) và đính kèm ảnh minh chứng chuyển khoản. Để đảm bảo giữ chỗ chắc chắn và chống bùng sân, hệ thống không áp dụng hình thức trả tiền mặt sau. Sau khi xác nhận giữ chỗ thành công, hệ thống xuất mã <strong>Stadium Pass (Vé điện tử)</strong> chứa mã QR để bạn xuất trình tại cổng vào sân.
+            </p>
+        </div>
+
+        <div class="mb-4">
+            <h5 class="fw-bold text-dark d-flex align-items-center gap-2">
+                <i class="bi bi-arrow-repeat text-warning"></i> 3. Chính Sách Hoàn Hủy & Đổi Lịch Đặt
+            </h5>
+            <ul class="text-secondary small" style="line-height: 1.8;">
+                <li>Khách hàng được quyền hủy đặt sân miễn phí trước giờ thi đấu ít nhất <strong>6 tiếng</strong> trực tiếp tại mục "Vé sân của tôi".</li>
+                <li>Trường hợp thời tiết bất khả kháng (mưa bão ngập sân ngoài trời), ban quản lý cụm sân sẽ liên hệ hỗ trợ dời lịch sang ngày khác hoặc hoàn tiền cọc.</li>
+            </ul>
+        </div>
+
+        <div class="mb-4">
+            <h5 class="fw-bold text-dark d-flex align-items-center gap-2">
+                <i class="bi bi-people-fill text-info"></i> 4. Quy Ước Cộng Đồng Ghép Đội & Tìm Kèo (Fair-Play)
+            </h5>
+            <p class="text-secondary small" style="line-height: 1.8;">
+                Các thành viên tham gia cộng đồng Teamwork & Matchmaking cam kết tuân thủ tinh thần thể thao cao thượng, giao lưu lành mạnh, không có hành vi bạo lực sân cỏ hoặc gian lận chi phí chia sẻ tiền sân.
+            </p>
+        </div>
+
+        <div class="pt-3 border-top d-flex justify-content-between align-items-center">
+            <small class="text-muted">Tổng đài hỗ trợ 24/7: <strong>1900 8888</strong> • Email: hotro@sanbong.vn</small>
+            <a asp-controller="Home" asp-action="Index" class="btn btn-primary btn-sm">
+                <i class="bi bi-arrow-left me-1"></i> Về trang chủ
+            </a>
+        </div>
+    </div>
+</div>

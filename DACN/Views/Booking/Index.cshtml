@@ -1,0 +1,180 @@
+@model List<DACN.Models.ViewModels.FacilityCardDto>
+@{
+    ViewData["Title"] = "Tìm & Đặt Sân Thể Thao Trực Tuyến";
+    string? selectedSort = ViewBag.SelectedSortBy as string;
+}
+
+<div class="container py-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Trang chủ</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Tìm &amp; Đặt sân</li>
+        </ol>
+    </nav>
+
+    <!-- Page Title -->
+    <div class="mb-4">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <div>
+                <h2 class="fw-bold text-white mb-1">
+                    <i class="bi bi-search text-info me-2"></i> Hệ Thống Cụm Sân Thể Thao
+                </h2>
+                <p class="text-white-50 mb-0">Tìm kiếm sân bóng đá, pickleball, cầu lông, tennis gần bạn với bảng giá niêm yết và ma trận lịch trống</p>
+            </div>
+            <a asp-controller="Teamwork" asp-action="Index" class="btn btn-warning text-dark fw-bold btn-sm shadow-sm rounded-pill px-3">
+                <i class="bi bi-people-fill me-1"></i> Tìm Kèo Ghép Đội
+            </a>
+        </div>
+    </div>
+
+    <!-- Enhanced Multi-Filter Bar -->
+    <div class="card shadow-lg border-0 mb-4" style="background: #0f172a; border: 1px solid rgba(255, 255, 255, 0.1) !important;">
+        <div class="card-body p-3">
+            <form method="get" asp-action="Index" class="row g-2 align-items-center">
+                <div class="col-md-3">
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text bg-transparent border-end-0"><i class="bi bi-search text-info"></i></span>
+                        <input type="text" name="keyword" value="@ViewBag.Keyword" class="form-control border-start-0" placeholder="Tên sân, đường, quận..." />
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text bg-transparent border-end-0"><i class="bi bi-trophy text-warning"></i></span>
+                        <select name="sportTypeId" class="form-select border-start-0" asp-items="ViewBag.SportTypes">
+                            <option value="">-- Tất cả môn thể thao --</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="col-md-2">
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text bg-transparent border-end-0"><i class="bi bi-geo-alt text-danger"></i></span>
+                        <select name="cityId" class="form-select border-start-0" asp-items="ViewBag.Cities">
+                            <option value="">-- Tỉnh / Thành phố --</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="col-md-2">
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text bg-transparent border-end-0"><i class="bi bi-sort-down text-info"></i></span>
+                        <select name="sortBy" class="form-select border-start-0">
+                            <option value="">Mặc định</option>
+                            <option value="price_asc" selected="@(selectedSort == "price_asc" ? "selected" : null)">Giá: Thấp đến Cao</option>
+                            <option value="price_desc" selected="@(selectedSort == "price_desc" ? "selected" : null)">Giá: Cao đến Thấp</option>
+                            <option value="courts" selected="@(selectedSort == "courts" ? "selected" : null)">Nhiều sân con nhất</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="col-md-2 d-flex gap-2">
+                    <button type="submit" class="btn btn-sport-gradient btn-sm w-100 fw-bold rounded-pill">
+                        <i class="bi bi-funnel me-1"></i> Lọc
+                    </button>
+                    <a asp-action="Index" class="btn btn-outline-light btn-sm rounded-circle px-2" title="Đặt lại bộ lọc">
+                        <i class="bi bi-arrow-counterclockwise"></i>
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Results Header -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h6 class="fw-bold mb-0 text-white-50">
+            Tìm thấy <span class="text-info fs-5">@Model.Count</span> cơ sở thể thao sẵn sàng phục vụ
+        </h6>
+    </div>
+
+    <!-- Facility Cards Grid with High-Res Photography -->
+    <div class="row g-4">
+        @if (!Model.Any())
+        {
+            <div class="col-12 text-center py-5 rounded-3 shadow-sm" style="background: #0f172a; border: 1px dashed rgba(255,255,255,0.15);">
+                <i class="bi bi-emoji-frown display-1 text-white-50"></i>
+                <h5 class="mt-3 text-white">Không tìm thấy cụm sân nào phù hợp với điều kiện tìm kiếm.</h5>
+                <p class="text-white-50 small">Hãy thử tìm với từ khóa chung hơn hoặc chọn môn thể thao khác.</p>
+                <a asp-action="Index" class="btn btn-outline-info rounded-pill px-4 mt-2">Xem tất cả các sân</a>
+            </div>
+        }
+        else
+        {
+            @foreach (var facility in Model)
+            {
+                <div class="col-md-6 col-lg-4">
+                    <div class="card h-100 shadow-lg border-0 overflow-hidden card-hover" style="background: #0f172a; border: 1px solid rgba(255, 255, 255, 0.08) !important;">
+                        <!-- Stadium Image Cover -->
+                        <div class="position-relative overflow-hidden" style="height: 190px;">
+                            <img src="@(facility.ImageUrl ?? "https://images.unsplash.com/photo-1529900748604-07564a03e7a6?auto=format&fit=crop&w=800&q=80")"
+                                 alt="@facility.Name"
+                                 class="w-100 h-100 object-fit-cover transition-transform" />
+                            <div class="position-absolute top-0 start-0 w-100 h-100" 
+                                 style="background: linear-gradient(to top, rgba(15, 23, 42, 0.95) 0%, rgba(15, 23, 42, 0.2) 60%, transparent 100%);"></div>
+                            
+                            <!-- Badges on Image -->
+                            <div class="position-absolute top-0 start-0 p-3 d-flex gap-1">
+                                <span class="badge bg-success bg-opacity-90 px-3 py-1 fw-bold fs-6 shadow-sm">
+                                    <i class="@(facility.IconCss ?? "bi bi-tag") me-1"></i> @facility.SportTypeName
+                                </span>
+                            </div>
+
+                            @if (!string.IsNullOrEmpty(facility.CityName))
+                            {
+                                <div class="position-absolute top-0 end-0 p-3">
+                                    <span class="badge bg-dark bg-opacity-75 text-white px-2 py-1 shadow-sm border border-secondary border-opacity-50">
+                                        <i class="bi bi-geo-alt-fill text-danger me-1"></i> @facility.CityName
+                                    </span>
+                                </div>
+                            }
+
+                            <div class="position-absolute bottom-0 start-0 p-3 text-white">
+                                <span class="badge bg-dark bg-opacity-75 backdrop-blur text-white px-2 py-1 border border-secondary border-opacity-50">
+                                    <i class="bi bi-grid-3x3-gap-fill text-warning me-1"></i> @facility.CourtCount sân con
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="card-body p-4 d-flex flex-column text-white">
+                            <h5 class="fw-bold mb-2">
+                                <a asp-action="FacilityDetail" asp-route-id="@facility.Id" class="text-decoration-none text-white hover-primary">
+                                    @facility.Name
+                                </a>
+                            </h5>
+
+                            <p class="text-white-50 small mb-1 text-truncate" title="@facility.Address">
+                                <i class="bi bi-geo-alt-fill text-danger me-1"></i> @facility.Address
+                            </p>
+                            <div class="mb-2">
+                                <a href="https://www.google.com/maps/dir/?api=1&destination=@Uri.EscapeDataString(facility.Address)" target="_blank" rel="noopener noreferrer" class="small text-info text-decoration-none d-inline-flex align-items-center gap-1" title="Chỉ đường trên Google Maps">
+                                    <i class="bi bi-cursor-fill text-danger" style="font-size: 0.75rem;"></i> Chỉ đường Google Maps
+                                </a>
+                            </div>
+
+                            <p class="text-white-50 small mb-3">
+                                <i class="bi bi-clock-fill text-warning me-1"></i> Giờ hoạt động: <strong class="text-white">@facility.OpeningHours</strong>
+                            </p>
+
+                            <div class="mt-auto pt-3 border-top border-secondary border-opacity-25 d-flex justify-content-between align-items-center">
+                                <div>
+                                    <small class="text-white-50 d-block">Giá từ:</small>
+                                    <span class="text-danger fw-bold fs-5">@facility.MinPrice.ToString("N0") đ</span>
+                                    <small class="text-white-50">/h</small>
+                                </div>
+                                <div class="d-flex gap-2">
+                                    <a asp-action="FacilityDetail" asp-route-id="@facility.Id" class="btn btn-outline-light btn-sm rounded-pill px-3" title="Xem chi tiết cụm sân">
+                                        <i class="bi bi-info-circle"></i>
+                                    </a>
+                                    <a asp-action="Matrix" asp-route-courtId="@facility.FirstCourtId" class="btn btn-sport-gradient btn-sm fw-bold px-3 rounded-pill">
+                                        <i class="bi bi-calendar-event me-1"></i> Đặt lịch ngay
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+    </div>
+</div>

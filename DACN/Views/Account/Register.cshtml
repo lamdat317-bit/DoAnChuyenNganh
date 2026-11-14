@@ -1,0 +1,84 @@
+@model DACN.Models.ViewModels.RegisterViewModel
+@{
+    ViewData["Title"] = "Đăng Ký Tài Khoản Khách Hàng - SanBong.vn";
+}
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-7 col-md-9">
+            <div class="card shadow-xl border-0 p-4 p-md-5 text-white" style="background: #0f172a; border: 1px solid rgba(255, 255, 255, 0.1) !important; border-radius: 20px;">
+                <div class="text-center mb-4">
+                    <a asp-area="" asp-controller="Home" asp-action="Index" class="d-inline-flex align-items-center gap-2 text-decoration-none mb-3">
+                        <span class="brand-ball-icon">
+                            <i class="bi bi-dribbble"></i>
+                        </span>
+                        <span class="fs-3 fw-bold text-white">SanBong<span class="text-success">.vn</span></span>
+                    </a>
+                    <h3 class="fw-bold text-white mb-1">Đăng ký tài khoản Khách Hàng</h3>
+                    <p class="text-white-50 small mb-0">Dành cho người chơi thể thao: Tìm sân, đặt chỗ tức thì &amp; ghép đội giao lưu</p>
+                </div>
+
+                <!-- Info notice about Facility Managers -->
+                <div class="alert alert-dark border border-secondary border-opacity-25 d-flex align-items-center gap-2 small text-white-50 mb-4 p-3 rounded-3" style="background: rgba(255, 255, 255, 0.03);">
+                    <i class="bi bi-shield-lock-fill text-warning fs-5"></i>
+                    <div>
+                        <strong>Lưu ý:</strong> Đăng ký trực tuyến dành riêng cho <strong>Khách Hàng (Người chơi)</strong>. Tài khoản Quản lý cụm sân / Chủ sân do <strong>Quản Trị Viên Hệ Thống (Admin)</strong> trực tiếp khởi tạo và phân quyền.
+                    </div>
+                </div>
+
+                <form asp-action="Register" method="post">
+                    @Html.AntiForgeryToken()
+                    <div asp-validation-summary="ModelOnly" class="text-danger small mb-3"></div>
+
+                    <!-- Hidden default Role: Customer -->
+                    <input type="hidden" asp-for="Role" value="@((int)DACN.Models.Enums.UserRole.Customer)" />
+
+                    <div class="mb-3">
+                        <label asp-for="FullName" class="form-label fw-semibold small text-white"></label>
+                        <input asp-for="FullName" class="form-control text-white" style="background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.15);" placeholder="Nguyễn Văn A" />
+                        <span asp-validation-for="FullName" class="text-danger small"></span>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label asp-for="Email" class="form-label fw-semibold small text-white"></label>
+                            <input asp-for="Email" class="form-control text-white" style="background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.15);" placeholder="name@gmail.com" />
+                            <span asp-validation-for="Email" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="PhoneNumber" class="form-label fw-semibold small text-white"></label>
+                            <input asp-for="PhoneNumber" class="form-control text-white" style="background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.15);" placeholder="0901234567" />
+                            <span asp-validation-for="PhoneNumber" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label asp-for="Password" class="form-label fw-semibold small text-white"></label>
+                            <input asp-for="Password" class="form-control text-white" style="background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.15);" placeholder="Tối thiểu 6 ký tự" />
+                            <span asp-validation-for="Password" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="ConfirmPassword" class="form-label fw-semibold small text-white"></label>
+                            <input asp-for="ConfirmPassword" class="form-control text-white" style="background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.15);" placeholder="Nhập lại mật khẩu" />
+                            <span asp-validation-for="ConfirmPassword" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-sport-gradient w-100 py-2 fs-6 fw-bold mb-3 rounded-pill text-white shadow-lg">
+                        <i class="bi bi-check-circle me-1"></i> Hoàn Tất Đăng Ký Tài Khoản
+                    </button>
+
+                    <div class="text-center small text-white-50">
+                        Đã có tài khoản?
+                        <a asp-action="Login" class="fw-bold text-success text-decoration-none hover-cyan">Đăng nhập tại đây</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

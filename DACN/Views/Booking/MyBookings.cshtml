@@ -1,0 +1,264 @@
+@model List<DACN.Models.Booking>
+@using DACN.Models.Enums
+@{
+    ViewData["Title"] = "Vé Sân Của Tôi - Lịch Sử Đặt Sân";
+    var activeFilter = ViewBag.ActiveFilter as string ?? "all";
+    var today = DateOnly.FromDateTime(DateTime.Today);
+}
+
+<div class="container py-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Trang chủ</a></li>
+            <li class="breadcrumb-item"><a asp-controller="Booking" asp-action="Index">Đặt sân</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Vé sân của tôi</li>
+        </ol>
+    </nav>
+
+    <!-- Header Section -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <h2 class="fw-bold mb-1 text-dark">
+                <i class="bi bi-ticket-perforated-fill text-success me-2"></i> Vé Sân & Lịch Sử Đặt Của Tôi
+            </h2>
+            <p class="text-muted mb-0">Quản lý vé điện tử, kiểm tra thời gian thi đấu và tiến hành thanh toán hoặc tạo kèo ghép đội</p>
+        </div>
+        <a asp-controller="Booking" asp-action="Index" class="btn btn-sport-gradient shadow-sm">
+            <i class="bi bi-plus-circle me-1"></i> Đặt thêm sân mới
+        </a>
+    </div>
+
+    <!-- Filter Tabs -->
+    <div class="card border-0 shadow-sm mb-4 bg-white">
+        <div class="card-body p-2">
+            <div class="d-flex flex-wrap gap-2">
+                <a asp-action="MyBookings" asp-route-filter="all" 
+                   class="btn @(activeFilter == "all" ? "btn-primary fw-bold" : "btn-light text-secondary") btn-sm px-3 rounded-pill">
+                    Tất cả (@ViewBag.TotalCount)
+                </a>
+                <a asp-action="MyBookings" asp-route-filter="upcoming" 
+                   class="btn @(activeFilter == "upcoming" ? "btn-success fw-bold text-white" : "btn-light text-secondary") btn-sm px-3 rounded-pill">
+                    <i class="bi bi-calendar-check me-1"></i> Sắp diễn ra (@ViewBag.UpcomingCount)
+                </a>
+                <a asp-action="MyBookings" asp-route-filter="unpaid" 
+                   class="btn @(activeFilter == "unpaid" ? "btn-warning fw-bold text-dark" : "btn-light text-secondary") btn-sm px-3 rounded-pill">
+                    <i class="bi bi-clock-history me-1"></i> Chờ thanh toán (@ViewBag.UnpaidCount)
+                </a>
+                <a asp-action="MyBookings" asp-route-filter="completed" 
+                   class="btn @(activeFilter == "completed" ? "btn-secondary fw-bold" : "btn-light text-secondary") btn-sm px-3 rounded-pill">
+                    <i class="bi bi-check2-all me-1"></i> Đã hoàn thành (@ViewBag.CompletedCount)
+                </a>
+                <a asp-action="MyBookings" asp-route-filter="cancelled" 
+                   class="btn @(activeFilter == "cancelled" ? "btn-danger fw-bold" : "btn-light text-secondary") btn-sm px-3 rounded-pill">
+                    <i class="bi bi-x-circle me-1"></i> Đã hủy (@ViewBag.CancelledCount)
+                </a>
+            </div>
+        </div>
+    </div>
+
+    @if (!Model.Any())
+    {
+        <div class="card border-0 shadow-sm p-5 text-center bg-white my-4">
+            <div class="display-3 text-muted mb-3">
+                <i class="bi bi-ticket-detailed"></i>
+            </div>
+            <h4 class="fw-bold text-secondary mb-2">Chưa có vé đặt sân nào trong mục này</h4>
+            <p class="text-muted small mb-4">Bạn chưa có lịch thi đấu nào phù hợp với bộ lọc hiện tại. Khám phá các sân trống và đặt ngay!</p>
+            <div>
+                <a asp-controller="Booking" asp-action="Index" class="btn btn-primary px-4 py-2 fw-semibold">
+                    <i class="bi bi-search me-1"></i> Tìm & Đặt sân ngay
+                </a>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="row g-4">
+            @foreach (var booking in Model)
+            {
+                var isPast = booking.BookingDate < today;
+                var isCancelled = booking.Status == BookingStatus.Cancelled;
+                var isPaid = booking.PaymentStatus == PaymentStatus.Paid;
+
+                <div class="col-lg-6">
+                    <div class="card h-100 shadow-sm border-0 border-start border-4 @(isCancelled ? "border-danger bg-light" : (isPaid ? "border-success" : "border-warning")) bg-white">
+                        <div class="card-body p-4 d-flex flex-column">
+                            <!-- Card Top: ID & Badges -->
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <div>
+                                    <span class="badge bg-light text-dark border fw-bold me-1">#BK-@booking.Id</span>
+                                    <span class="badge bg-primary-subtle text-primary">
+                                        @(booking.Court?.Facility?.SportType?.Name ?? "Thể thao")
+                                    </span>
+                                </div>
+                                <div class="d-flex gap-1">
+                                    @if (isCancelled)
+                                    {
+                                        <span class="badge bg-danger">Đã hủy</span>
+                                    }
+                                    else if (isPaid)
+                                    {
+                                        <span class="badge bg-success"><i class="bi bi-check-circle-fill me-1"></i> Đã thanh toán</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-warning text-dark"><i class="bi bi-hourglass-split me-1"></i> Chờ thanh toán</span>
+                                    }
+
+                                    @if (!isCancelled)
+                                    {
+                                        <span class="badge @(booking.Status == BookingStatus.Confirmed ? "bg-primary" : "bg-secondary")">
+                                            @booking.Status
+                                        </span>
+                                    }
+                                </div>
+                            </div>
+
+                            <!-- Court & Facility Info -->
+                            <h5 class="fw-bold text-dark mb-1">
+                                @(booking.Court?.Name ?? "Sân con") - @(booking.Court?.Facility?.Name ?? "Cụm sân")
+                            </h5>
+                            <p class="text-muted small mb-3">
+                                <i class="bi bi-geo-alt-fill text-danger me-1"></i>
+                                @(booking.Court?.Facility?.Address ?? "Địa chỉ sân")
+                            </p>
+
+                            <!-- Time & Date Box -->
+                            <div class="p-3 bg-light rounded-3 mb-2 d-flex justify-content-between align-items-center">
+                                <div>
+                                    <div class="small text-muted mb-1"><i class="bi bi-calendar3 text-primary me-1"></i> Ngày thi đấu:</div>
+                                    <div class="fw-bold fs-6 text-dark">
+                                        @booking.BookingDate.ToString("dddd, dd/MM/yyyy")
+                                    </div>
+                                </div>
+                                <div class="text-end">
+                                    <div class="small text-muted mb-1"><i class="bi bi-clock-history text-success me-1"></i> Khung giờ:</div>
+                                    <div class="badge bg-success-subtle text-success fs-6 fw-bold px-3 py-2">
+                                        @booking.StartTime.ToString(@"hh\:mm") - @booking.EndTime.ToString(@"hh\:mm")
+                                    </div>
+                                </div>
+                            </div>
+
+                            @if (booking.ServiceDetails != null && booking.ServiceDetails.Any())
+                            {
+                                <div class="mb-2 small text-muted p-2 rounded bg-light border">
+                                    <i class="bi bi-bag-check-fill text-primary me-1"></i> <strong>Dịch vụ kèm:</strong>
+                                    @string.Join(", ", booking.ServiceDetails.Select(sd => $"{sd.FacilityService?.Name ?? "Dịch vụ"} (x{sd.Quantity})"))
+                                </div>
+                            }
+
+                            <!-- Price Summary -->
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <span class="text-muted small">Tổng tiền thanh toán:</span>
+                                <span class="fs-5 fw-bold text-danger">@booking.TotalAmount.ToString("N0") VNĐ</span>
+                            </div>
+
+                            <!-- Card Action Buttons -->
+                            <div class="mt-auto pt-3 border-top d-flex flex-wrap gap-2 justify-content-between align-items-center">
+                                <div class="d-flex gap-2">
+                                    <a asp-action="Confirmation" asp-route-bookingId="@booking.Id" class="btn btn-outline-primary btn-sm fw-semibold" title="Xem & In Vé Điện Tử">
+                                        <i class="bi bi-qr-code me-1"></i> Vé điện tử
+                                    </a>
+
+                                    @if (!string.IsNullOrEmpty(booking.PaymentProofImage))
+                                    {
+                                        <button type="button" class="btn btn-outline-info btn-sm fw-semibold" onclick="viewProofModal('@booking.PaymentProofImage', '#BK-@booking.Id')">
+                                            <i class="bi bi-image me-1"></i> Minh chứng
+                                        </button>
+                                    }
+
+                                    @if (!isCancelled && (booking.Status == BookingStatus.Confirmed || isPaid))
+                                    {
+                                        <a asp-controller="Teamwork" asp-action="Create" asp-route-bookingId="@booking.Id" 
+                                           class="btn btn-outline-warning text-dark btn-sm fw-semibold" title="Đăng bài tìm đồng đội hoặc tìm đối thủ cho trận này">
+                                            <i class="bi bi-people-fill me-1"></i> Tạo kèo ghép
+                                        </a>
+                                    }
+                                </div>
+
+                                <div class="d-flex gap-2">
+                                    @if (!isCancelled && !isPaid)
+                                    {
+                                        <a asp-action="Checkout" asp-route-bookingId="@booking.Id" class="btn btn-warning btn-sm fw-bold text-dark">
+                                            <i class="bi bi-credit-card me-1"></i> Thanh toán
+                                        </a>
+                                    }
+
+                                    @if (!isCancelled && !isPast)
+                                    {
+                                        <button type="button" class="btn btn-outline-danger btn-sm" 
+                                                data-bs-toggle="modal" data-bs-target="#cancelModal-@booking.Id">
+                                            <i class="bi bi-trash"></i> Hủy
+                                        </button>
+
+                                        <!-- Cancel Confirmation Modal -->
+                                        <div class="modal fade" id="cancelModal-@booking.Id" tabindex="-1" aria-hidden="true">
+                                            <div class="modal-dialog modal-dialog-centered">
+                                                <div class="modal-content border-0 shadow">
+                                                    <div class="modal-header bg-danger text-white">
+                                                        <h5 class="modal-title fw-bold">
+                                                            <i class="bi bi-exclamation-triangle-fill me-2"></i> Xác nhận hủy đơn đặt sân
+                                                        </h5>
+                                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                                    </div>
+                                                    <div class="modal-body p-4">
+                                                        <p class="mb-2">Bạn có chắc chắn muốn hủy đơn đặt sân <strong>#BK-@booking.Id</strong>?</p>
+                                                        <div class="p-3 bg-light rounded-3 small text-muted mb-3">
+                                                            <div><strong>Sân:</strong> @booking.Court?.Name - @booking.Court?.Facility?.Name</div>
+                                                            <div><strong>Thời gian:</strong> @booking.BookingDate.ToString("dd/MM/yyyy") (@booking.StartTime.ToString(@"hh\:mm") - @booking.EndTime.ToString(@"hh\:mm"))</div>
+                                                            <div><strong>Tổng tiền:</strong> @booking.TotalAmount.ToString("N0") VNĐ</div>
+                                                        </div>
+                                                        <div class="alert alert-warning small mb-0">
+                                                            <i class="bi bi-info-circle me-1"></i> Khung giờ này sẽ lập tức được mở lại cho người chơi khác trên hệ thống.
+                                                        </div>
+                                                    </div>
+                                                    <div class="modal-footer bg-light">
+                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                                                        <form asp-action="Cancel" method="post" class="d-inline">
+                                                            @Html.AntiForgeryToken()
+                                                            <input type="hidden" name="bookingId" value="@booking.Id" />
+                                                            <button type="submit" class="btn btn-danger fw-bold">
+                                                                <i class="bi bi-x-circle me-1"></i> Đồng ý hủy đơn
+                                                            </button>
+                                                        </form>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+<!-- Modal xem ảnh minh chứng -->
+<div class="modal fade" id="modalProofView" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content rounded-4 border-0" style="background: #0f172a; border: 1px solid rgba(255, 255, 255, 0.1) !important;">
+            <div class="modal-header border-bottom border-secondary border-opacity-25 text-white">
+                <h5 class="modal-title fw-bold" id="modalProofTitle">Ảnh minh chứng chuyển khoản</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center p-4">
+                <img id="modalProofImg" src="" alt="Minh chứng" class="img-fluid rounded-3 shadow-lg" style="max-height: 550px;" />
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function viewProofModal(url, title) {
+            document.getElementById('modalProofImg').src = url;
+            document.getElementById('modalProofTitle').textContent = 'Minh chứng chuyển khoản ' + title;
+            new bootstrap.Modal(document.getElementById('modalProofView')).show();
+        }
+    </script>
+}
+

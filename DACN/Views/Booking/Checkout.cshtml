@@ -1,0 +1,371 @@
+@model DACN.Models.Booking
+@{
+    ViewData["Title"] = "Thanh toán đơn sân #" + Model.Id;
+    var transferCode = $"BK{Model.Id}";
+    var vietQrUrl = $"https://img.vietqr.io/image/VietinBank-10287462828-compact2.png?amount={(long)Model.TotalAmount}&addInfo={transferCode}&accountName=SANBONG%20VN";
+    var defaultTxnRef = $"VTB-{DateTime.UtcNow:yyyyMMddHHmmss}-{Model.Id}";
+    var elapsedSeconds = (int)(DateTime.UtcNow - Model.CreatedAt).TotalSeconds;
+    var remainingSeconds = Math.Max(0, 300 - elapsedSeconds);
+    var remMinutes = remainingSeconds / 60;
+    var remSecs = remainingSeconds % 60;
+    var initialTimerDisplay = $"{remMinutes:D2}:{remSecs:D2}";
+}
+
+<div class="container py-4" style="max-width: 1020px;">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Trang chủ</a></li>
+            <li class="breadcrumb-item"><a asp-action="MyBookings">Vé sân của tôi</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Thanh toán #BK-@Model.Id</li>
+        </ol>
+    </nav>
+
+    <!-- Hold Timer Alert (5 Phút Giữ Chỗ) -->
+    <div class="alert alert-warning border-warning border-opacity-50 shadow-sm d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4 p-3 rounded-4" style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3);">
+        <div class="d-flex align-items-center gap-3">
+            <div class="p-2 bg-warning bg-opacity-25 rounded-circle text-warning d-flex align-items-center justify-content-center" style="width: 44px; height: 44px;">
+                <i class="bi bi-clock-history fs-4"></i>
+            </div>
+            <div>
+                <strong class="text-white">Mã thanh toán &amp; Giữ chỗ sân trong vòng 5 phút!</strong>
+                <div class="small text-white-50">Vui lòng quét mã VietQR và gửi ảnh minh chứng trước khi hết giờ. Quá 5 phút hệ thống sẽ tự động hủy đơn giữ chỗ để nhường khung giờ cho người khác đặt.</div>
+            </div>
+        </div>
+        <div class="countdown-badge px-3 py-2 rounded-pill fw-bold" style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: #f87171;">
+            <i class="bi bi-stopwatch-fill me-1"></i>
+            <span id="countdownTimer">@initialTimerDisplay</span>
+        </div>
+    </div>
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show mb-4 rounded-4" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i> @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <div class="row g-4">
+        <!-- Left Column: Realistic VietQR Bank Payment -->
+        <div class="col-lg-7">
+            <div class="card shadow-lg border-0 rounded-4" style="background: #111827; border: 1px solid rgba(255, 255, 255, 0.08) !important;">
+                <div class="card-header py-3 px-4 border-bottom border-secondary border-opacity-25 d-flex justify-content-between align-items-center" style="background: #1f2937;">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-qr-code-scan text-success fs-5"></i>
+                        <h5 class="fw-bold mb-0 text-white">Thanh Toán Chuyển Khoản Ngân Hàng (VietQR)</h5>
+                    </div>
+                    <span class="badge bg-success-subtle text-success px-3 py-1 rounded-pill small">
+                        <i class="bi bi-shield-check me-1"></i> Napas 24/7 Chuẩn Quốc Gia
+                    </span>
+                </div>
+
+                <div class="card-body p-4">
+                    <!-- Instruction steps -->
+                    <div class="row g-2 mb-4 text-center">
+                        <div class="col-4">
+                            <div class="p-2 rounded-3 h-100" style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.06);">
+                                <span class="badge bg-primary text-white rounded-circle p-1 mb-1" style="width: 22px; height: 22px;">1</span>
+                                <div class="text-white small fw-bold" style="font-size: 0.78rem;">Quét Mã VietQR</div>
+                                <div class="text-white-50" style="font-size: 0.7rem;">Mở app ngân hàng quét mã</div>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="p-2 rounded-3 h-100" style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.06);">
+                                <span class="badge bg-warning text-dark rounded-circle p-1 mb-1" style="width: 22px; height: 22px;">2</span>
+                                <div class="text-white small fw-bold" style="font-size: 0.78rem;">Chuyển Đúng Cú Pháp</div>
+                                <div class="text-white-50" style="font-size: 0.7rem;">Giữ nguyên nội dung @transferCode</div>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="p-2 rounded-3 h-100" style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.06);">
+                                <span class="badge bg-success text-white rounded-circle p-1 mb-1" style="width: 22px; height: 22px;">3</span>
+                                <div class="text-white small fw-bold" style="font-size: 0.78rem;">Gửi Ảnh Biên Lai</div>
+                                <div class="text-white-50" style="font-size: 0.7rem;">Tải ảnh chụp màn hình lên</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- QR Card Container -->
+                    <div class="text-center p-3 rounded-4 mb-3" style="background: #0f172a; border: 1px solid rgba(16, 185, 129, 0.3);">
+                        <div class="badge bg-success-subtle text-success px-3 py-1 rounded-pill mb-2 fw-semibold">
+                            <i class="bi bi-lightning-charge-fill me-1"></i> Mã VietQR Chuyển Khoản Tự Động 24/7
+                        </div>
+                        <div class="my-2 d-inline-block p-2 bg-white rounded-3 shadow">
+                            <img src="@vietQrUrl" alt="Mã VietQR Thanh Toán Sân" class="img-fluid" style="max-height: 230px; border-radius: 8px;" id="vietQrImg" />
+                        </div>
+                        <p class="small text-white-50 mb-2">Quét mã bằng bất kỳ Ứng dụng Ngân hàng nào (VietinBank, VCB, MB, Techcombank, VPBank, MoMo,...)</p>
+                        <div class="d-flex justify-content-center gap-2">
+                            <a href="@vietQrUrl" target="_blank" download="VietQR_@transferCode" class="btn btn-sm btn-outline-secondary rounded-pill px-3 py-1 small text-white-50">
+                                <i class="bi bi-download me-1"></i> Tải mã QR
+                            </a>
+                            <a href="@vietQrUrl" target="_blank" class="btn btn-sm btn-outline-info rounded-pill px-3 py-1 small">
+                                <i class="bi bi-arrows-fullscreen me-1"></i> Xem ảnh lớn
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Official Beneficiary Bank Details with Copy Buttons -->
+                    <div class="p-3 rounded-4 small mb-3" style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.07);">
+                        <h6 class="fw-bold text-white mb-2 pb-1 border-bottom border-secondary border-opacity-25 d-flex justify-content-between align-items-center">
+                            <span><i class="bi bi-bank text-info me-1"></i> Thông tin thụ hưởng ngân hàng chính thức</span>
+                            <span class="badge bg-success text-dark fw-bold">Trực tiếp</span>
+                        </h6>
+                        <div class="d-flex justify-content-between align-items-center py-1">
+                            <span class="text-white-50">Ngân hàng:</span>
+                            <strong class="text-white">VietinBank (Ngân hàng TMCP Công Thương Việt Nam)</strong>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center py-1 border-top border-secondary border-opacity-25">
+                            <span class="text-white-50">Số tài khoản:</span>
+                            <div>
+                                <strong class="text-primary fs-6 me-1" id="stkValue">10287462828</strong>
+                                <button type="button" class="btn btn-sm btn-outline-info py-0 px-2 rounded-pill" onclick="copyText('stkValue', 'stkMsg')">
+                                    <i class="bi bi-clipboard"></i> Chép
+                                </button>
+                                <span id="stkMsg" class="text-success small ms-1" style="display:none;">✓ Đã chép</span>
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center py-1 border-top border-secondary border-opacity-25">
+                            <span class="text-white-50">Chủ tài khoản:</span>
+                            <strong class="text-white">SANBONG VN</strong>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center py-1 border-top border-secondary border-opacity-25">
+                            <span class="text-white-50">Số tiền:</span>
+                            <div>
+                                <strong class="text-danger fs-6 me-1" id="amountValue">@Model.TotalAmount.ToString("N0") VNĐ</strong>
+                                <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2 rounded-pill" onclick="copyPureAmount('@((long)Model.TotalAmount)', 'amtMsg')">
+                                    <i class="bi bi-clipboard"></i> Chép
+                                </button>
+                                <span id="amtMsg" class="text-success small ms-1" style="display:none;">✓ Đã chép</span>
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center py-2 border-top border-secondary border-opacity-25 mt-1 rounded-3 px-2" style="background: rgba(245, 158, 11, 0.1);">
+                            <span class="text-warning fw-bold">Nội dung CK bắt buộc:</span>
+                            <div>
+                                <strong class="text-warning fs-6 me-2" id="msgContent">@transferCode</strong>
+                                <button type="button" class="btn btn-sm btn-outline-warning py-0 px-2 rounded-pill" onclick="copyText('msgContent', 'msgAlert')">
+                                    <i class="bi bi-clipboard"></i> Chép
+                                </button>
+                                <span id="msgAlert" class="text-success small ms-1" style="display:none;">✓ Đã chép</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Upload Proof Form (Real file upload only, no demo buttons) -->
+                    <form asp-action="SubmitVirtualTransfer" method="post" enctype="multipart/form-data" id="formUploadProof" class="mt-3">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="bookingId" value="@Model.Id" />
+                        <input type="hidden" name="transactionRef" value="@defaultTxnRef" />
+
+                        <div class="p-3 rounded-4 mb-3" style="background: rgba(16, 185, 129, 0.05); border: 2px dashed rgba(16, 185, 129, 0.4);">
+                            <label class="form-label fw-bold text-white small d-flex justify-content-between align-items-center mb-2">
+                                <span>
+                                    <i class="bi bi-camera-fill text-success me-1"></i> Tải ảnh minh chứng chuyển khoản (Ảnh chụp màn hình biên lai) <span class="text-danger">*</span>
+                                </span>
+                                <span class="badge bg-secondary-subtle text-white-50" style="font-size: 0.72rem;">JPG, PNG, WEBP</span>
+                            </label>
+
+                            <!-- Custom Clickable Dropzone -->
+                            <div class="upload-dropzone p-3 rounded-3 text-center mb-2" id="dropzoneBox" onclick="document.getElementById('proofImageInput').click()" style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.1); cursor: pointer; transition: all 0.2s;">
+                                <i class="bi bi-cloud-arrow-up display-6 text-success d-block mb-1"></i>
+                                <span class="text-white small fw-semibold" id="uploadPromptText">Bấm vào đây để chọn ảnh biên lai từ thiết bị của bạn</span>
+                                <div class="text-white-50 small" style="font-size: 0.72rem;">(Chụp lại màn hình sau khi app ngân hàng thông báo giao dịch thành công)</div>
+                            </div>
+
+                            <!-- Hidden standard file input -->
+                            <input type="file" name="proofImage" id="proofImageInput" class="d-none" accept="image/*" required onchange="previewProofImage(event)" />
+
+                            <!-- Image Preview Box -->
+                            <div id="proofPreviewContainer" class="p-3 rounded-3 mt-2 text-center" style="display: none; background: #0b0f19; border: 1px solid rgba(16, 185, 129, 0.3);">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="text-success small fw-bold">
+                                        <i class="bi bi-check-circle-fill me-1"></i> Đã đính kèm ảnh: <span id="fileNameDisplay" class="text-white fw-normal"></span>
+                                    </span>
+                                    <button type="button" class="btn btn-sm btn-outline-danger py-0 px-2 rounded-pill small" onclick="clearProofPreview()">
+                                        <i class="bi bi-x-circle me-1"></i> Đổi ảnh khác
+                                    </button>
+                                </div>
+                                <img id="proofPreviewImg" src="" alt="Minh chứng chuyển tiền" class="img-fluid rounded shadow-sm" style="max-height: 220px; object-fit: contain;" />
+                            </div>
+
+                            <div class="row g-2 mt-2">
+                                <div class="col-sm-6">
+                                    <input type="text" name="senderAccount" class="form-control form-control-sm text-white" value="@(Model.CustomerName ?? Model.Customer?.FullName ?? "")" placeholder="Tên người chuyển (ví dụ: Nguyen Van A)" style="background: #1e293b; border-color: rgba(255, 255, 255, 0.2);" />
+                                </div>
+                                <div class="col-sm-6">
+                                    <input type="text" name="note" class="form-control form-control-sm text-white" placeholder="Mã giao dịch ngân hàng / Ghi chú (nếu có)" style="background: #1e293b; border-color: rgba(255, 255, 255, 0.2);" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <button type="submit" id="btnSubmitProof" class="btn btn-sport-gradient w-100 py-3 fw-bold fs-6 shadow rounded-pill">
+                            <i class="bi bi-shield-check me-2"></i> Xác Nhận Đã Chuyển Tiền &amp; Hoàn Tất Đặt Sân
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Booking Summary Card -->
+        <div class="col-lg-5">
+            <div class="card shadow-lg border-0 rounded-4 sticky-top" style="top: 80px; z-index: 10; background: #111827; border: 1px solid rgba(255, 255, 255, 0.08) !important;">
+                <div class="card-header py-3 px-4 border-bottom border-secondary border-opacity-25" style="background: #1f2937;">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="fw-bold mb-0 text-white">
+                            <i class="bi bi-receipt text-warning me-2"></i> Tóm Tắt Đơn Sân
+                        </h5>
+                        <span class="badge bg-warning text-dark fw-bold">#BK-@Model.Id</span>
+                    </div>
+                </div>
+
+                <div class="card-body p-4">
+                    <div class="mb-3 pb-3 border-bottom border-secondary border-opacity-25">
+                        <span class="text-white-50 small d-block">Thông tin người đặt sân:</span>
+                        <div class="fw-bold text-white fs-6">@(Model.CustomerName ?? Model.Customer?.FullName ?? "Khách đặt sân")</div>
+                        <div class="text-info small mt-1">
+                            <i class="bi bi-telephone-fill me-1"></i>@(Model.CustomerPhone ?? Model.Customer?.PhoneNumber ?? "Chưa cung cấp")
+                        </div>
+                    </div>
+
+                    <div class="mb-3 pb-3 border-bottom border-secondary border-opacity-25">
+                        <span class="text-white-50 small d-block">Cơ sở thể thao:</span>
+                        <strong class="text-white fs-6">@(Model.Court?.Facility?.Name ?? "Cụm sân")</strong>
+                        <div class="text-white-50 small mt-1">
+                            <i class="bi bi-geo-alt-fill text-danger me-1"></i>@(Model.Court?.Facility?.Address ?? "")
+                        </div>
+                    </div>
+
+                    <div class="mb-3 pb-3 border-bottom border-secondary border-opacity-25">
+                        <span class="text-white-50 small d-block">Sân thi đấu:</span>
+                        <strong class="text-success fs-6">@(Model.Court?.Name ?? "Sân")</strong>
+                        <span class="badge bg-info-subtle text-info ms-1">@(Model.Court?.Facility?.SportType?.Name ?? "Thể thao")</span>
+                    </div>
+
+                    <div class="p-3 rounded-3 mb-3 small" style="background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.06);">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-white-50">Ngày thi đấu:</span>
+                            <strong class="text-white">@Model.BookingDate.ToString("dddd, dd/MM/yyyy")</strong>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span class="text-white-50">Khung giờ:</span>
+                            <strong class="text-primary fs-6">@Model.StartTime.ToString(@"hh\:mm") - @Model.EndTime.ToString(@"hh\:mm")</strong>
+                        </div>
+                    </div>
+
+                    @if (Model.ServiceDetails != null && Model.ServiceDetails.Any())
+                    {
+                        <div class="mb-3 pb-3 border-bottom border-secondary border-opacity-25">
+                            <span class="text-white-50 small d-block mb-1 fw-bold">Dịch vụ & Tiện ích đi kèm:</span>
+                            <ul class="list-group list-group-flush small rounded bg-transparent">
+                                @foreach (var sd in Model.ServiceDetails)
+                                {
+                                    <li class="list-group-item d-flex justify-content-between py-1 px-0 bg-transparent text-white border-secondary border-opacity-25">
+                                        <span class="text-white-50">@(sd.FacilityService?.Name ?? "Dịch vụ") x @sd.Quantity</span>
+                                        <strong class="text-warning">@sd.SubTotal.ToString("N0") đ</strong>
+                                    </li>
+                                }
+                            </ul>
+                        </div>
+                    }
+
+                    <div class="p-3 rounded-3 mb-4 d-flex justify-content-between align-items-center" style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3);">
+                        <span class="fw-bold text-white">Tổng cộng thanh toán:</span>
+                        <span class="fs-4 fw-bold text-danger">@Model.TotalAmount.ToString("N0") VNĐ</span>
+                    </div>
+
+                    <div class="d-flex flex-column gap-2">
+                        <a asp-action="MyBookings" class="btn btn-outline-secondary w-100 rounded-pill small py-2">
+                            <i class="bi bi-arrow-left me-1"></i> Để thanh toán sau (Về vé của tôi)
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // 5-minute countdown timer (300 seconds)
+        let timeLeft = @remainingSeconds;
+        const timerDisplay = document.getElementById('countdownTimer');
+
+        const interval = setInterval(function () {
+            if (timeLeft <= 0) {
+                clearInterval(interval);
+                timerDisplay.textContent = '00:00 (Hết hạn)';
+                alert('Thời gian 5 phút giữ chỗ đã kết thúc! Khung giờ sân đã được tự động mở lại cho người khác đặt.');
+                window.location.href = '@Url.Action("Matrix", "Booking", new { courtId = Model.CourtId, date = Model.BookingDate.ToString("yyyy-MM-dd") })';
+                return;
+            }
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            timerDisplay.textContent = (minutes < 10 ? '0' : '') + minutes + ':' + (seconds < 10 ? '0' : '') + seconds;
+            timeLeft--;
+        }, 1000);
+
+        function copyText(elementId, msgId) {
+            const text = document.getElementById(elementId).innerText.trim();
+            navigator.clipboard.writeText(text);
+            const msg = document.getElementById(msgId);
+            msg.style.display = 'inline';
+            setTimeout(function () {
+                msg.style.display = 'none';
+            }, 2500);
+        }
+
+        function copyPureAmount(amountNumber, msgId) {
+            navigator.clipboard.writeText(amountNumber);
+            const msg = document.getElementById(msgId);
+            msg.style.display = 'inline';
+            setTimeout(function () {
+                msg.style.display = 'none';
+            }, 2500);
+        }
+
+        // Image Preview Handler
+        function previewProofImage(event) {
+            const file = event.target.files[0];
+            if (file) {
+                // Check size (max 10MB)
+                if (file.size > 10 * 1024 * 1024) {
+                    alert('Dung lượng ảnh vượt quá 10MB. Vui lòng chọn ảnh nhỏ hơn.');
+                    clearProofPreview();
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('proofPreviewImg').src = e.target.result;
+                    document.getElementById('proofPreviewContainer').style.display = 'block';
+                    document.getElementById('fileNameDisplay').textContent = `${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+                    document.getElementById('uploadPromptText').textContent = 'Đã chọn: ' + file.name;
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function clearProofPreview() {
+            document.getElementById('proofImageInput').value = '';
+            document.getElementById('proofPreviewContainer').style.display = 'none';
+            document.getElementById('proofPreviewImg').src = '';
+            document.getElementById('fileNameDisplay').textContent = '';
+            document.getElementById('uploadPromptText').textContent = 'Bấm vào đây để chọn ảnh biên lai từ thiết bị của bạn';
+        }
+
+        // Form Validation on Submit
+        document.getElementById('formUploadProof').addEventListener('submit', function (e) {
+            const fileInput = document.getElementById('proofImageInput');
+            if (!fileInput.files || fileInput.files.length === 0) {
+                e.preventDefault();
+                alert('Vui lòng chọn ảnh chụp màn hình biên lai chuyển tiền thành công trước khi hoàn tất đặt sân!');
+                fileInput.focus();
+                return false;
+            }
+
+            const btn = document.getElementById('btnSubmitProof');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span> Đang xác thực biên lai & ghi nhận đặt sân...';
+        });
+    </script>
+}

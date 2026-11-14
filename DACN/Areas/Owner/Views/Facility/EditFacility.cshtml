@@ -1,0 +1,111 @@
+@model DACN.Models.ViewModels.EditFacilityViewModel
+@{
+    ViewData["Title"] = $"Chỉnh sửa - {Model.Name}";
+}
+
+<div class="container py-4" style="max-width: 860px;">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-action="Index">Kênh Chủ Sân</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Chỉnh sửa @Model.Name</li>
+        </ol>
+    </nav>
+
+    <div class="card shadow-sm border-0 bg-white">
+        <div class="card-header bg-primary text-white py-3">
+            <h4 class="fw-bold mb-0">
+                <i class="bi bi-pencil-square me-2"></i> Chỉnh Sửa Thông Tin Cụm Sân
+            </h4>
+        </div>
+        <div class="card-body p-4 p-md-5">
+            <form asp-action="EditFacility" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" asp-for="Id" />
+                <div asp-validation-summary="ModelOnly" class="text-danger small mb-3"></div>
+
+                <!-- 1. Thông tin chung -->
+                <h5 class="fw-bold text-dark border-bottom pb-2 mb-3">
+                    <i class="bi bi-info-circle text-primary me-2"></i> 1. Thông Tin Cơ Sở
+                </h5>
+                <div class="row g-3 mb-4">
+                    <div class="col-md-8">
+                        <label asp-for="Name" class="form-label fw-bold small"></label>
+                        <input asp-for="Name" class="form-control" />
+                        <span asp-validation-for="Name" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label asp-for="SportTypeId" class="form-label fw-bold small"></label>
+                        <select asp-for="SportTypeId" class="form-select" asp-items="ViewBag.SportTypes"></select>
+                        <span asp-validation-for="SportTypeId" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label asp-for="CityId" class="form-label fw-bold small"></label>
+                        <select asp-for="CityId" class="form-select" asp-items="ViewBag.Cities">
+                            <option value="">-- Chọn Tỉnh / TP --</option>
+                        </select>
+                        <span asp-validation-for="CityId" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label asp-for="DistrictName" class="form-label fw-bold small"></label>
+                        <input asp-for="DistrictName" class="form-control" />
+                        <span asp-validation-for="DistrictName" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold small">Tọa độ GPS (Vĩ độ / Kinh độ)</label>
+                        <div class="input-group">
+                            <input asp-for="Latitude" class="form-control" placeholder="Latitude" />
+                            <input asp-for="Longitude" class="form-control" placeholder="Longitude" />
+                        </div>
+                    </div>
+
+                    <div class="col-12">
+                        <label asp-for="Address" class="form-label fw-bold small"></label>
+                        <input asp-for="Address" class="form-control" />
+                        <span asp-validation-for="Address" class="text-danger small"></span>
+                    </div>
+                </div>
+
+                <!-- 2. Giờ hoạt động & Mô tả -->
+                <h5 class="fw-bold text-dark border-bottom pb-2 mb-3">
+                    <i class="bi bi-clock-history text-primary me-2"></i> 2. Thời Gian Hoạt Động & Tiện Ích
+                </h5>
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        <label asp-for="OpeningTime" class="form-label fw-bold small"></label>
+                        <input asp-for="OpeningTime" type="time" class="form-control" />
+                        <span asp-validation-for="OpeningTime" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="ClosingTime" class="form-label fw-bold small"></label>
+                        <input asp-for="ClosingTime" type="time" class="form-control" />
+                        <span asp-validation-for="ClosingTime" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-12">
+                        <label asp-for="Description" class="form-label fw-bold small"></label>
+                        <textarea asp-for="Description" class="form-control" rows="4"></textarea>
+                        <span asp-validation-for="Description" class="text-danger small"></span>
+                    </div>
+                </div>
+
+                <div class="d-flex gap-3 pt-3 border-top">
+                    <a asp-action="Index" class="btn btn-outline-secondary w-50 py-2">Hủy bỏ</a>
+                    <button type="submit" class="btn btn-primary w-50 py-2 fw-bold fs-6">
+                        <i class="bi bi-check-lg me-1"></i> Lưu Thay Đổi
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
+

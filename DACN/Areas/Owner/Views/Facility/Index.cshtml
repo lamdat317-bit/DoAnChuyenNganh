@@ -1,0 +1,235 @@
+@model List<DACN.Models.Facility>
+@{
+    ViewData["Title"] = "Quản lý cụm sân - Kênh Chủ Sân";
+}
+
+<div class="container py-4">
+    <!-- Header Section -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+        <div>
+            <h2 class="fw-bold text-dark mb-1">
+                <i class="bi bi-building-gear text-primary me-2"></i> Kênh Quản Lý Dành Cho Chủ Sân
+            </h2>
+            <p class="text-muted mb-0">Quản lý cơ sở thể thao, sân con, bảng giá khung giờ và theo dõi doanh thu theo thời gian thực</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a asp-action="CreateFacility" class="btn btn-sport-gradient shadow-sm fw-semibold">
+                <i class="bi bi-plus-circle me-1"></i> + Đăng ký cụm sân mới
+            </a>
+            <a asp-action="Bookings" class="btn btn-outline-primary fw-semibold">
+                <i class="bi bi-receipt me-1"></i> Quản lý đơn đặt sân
+            </a>
+        </div>
+    </div>
+
+    <!-- Alert Messages -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i> @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i> @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <!-- Stat Overview Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-sm-6 col-lg-3">
+            <div class="card border-0 shadow-sm p-3 bg-white h-100">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="bg-primary text-white rounded-circle p-3 fs-3 d-flex align-items-center justify-content-center" style="width: 52px; height: 52px;">
+                        <i class="bi bi-buildings-fill"></i>
+                    </div>
+                    <div>
+                        <h3 class="fw-bold mb-0 text-dark">@ViewBag.TotalFacilities</h3>
+                        <span class="text-muted small">Cụm sân quản lý</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <div class="card border-0 shadow-sm p-3 bg-white h-100">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="bg-success text-white rounded-circle p-3 fs-3 d-flex align-items-center justify-content-center" style="width: 52px; height: 52px;">
+                        <i class="bi bi-grid-3x3-gap-fill"></i>
+                    </div>
+                    <div>
+                        <h3 class="fw-bold mb-0 text-dark">@ViewBag.TotalCourts</h3>
+                        <span class="text-muted small">Tổng số sân con</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <div class="card border-0 shadow-sm p-3 bg-white h-100">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="bg-warning text-dark rounded-circle p-3 fs-3 d-flex align-items-center justify-content-center" style="width: 52px; height: 52px;">
+                        <i class="bi bi-calendar2-check-fill"></i>
+                    </div>
+                    <div>
+                        <h3 class="fw-bold mb-0 text-dark">@ViewBag.TodayBookingsCount</h3>
+                        <span class="text-muted small">Lượt đặt hôm nay</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <div class="card border-0 shadow-sm p-3 bg-white h-100">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="bg-danger text-white rounded-circle p-3 fs-3 d-flex align-items-center justify-content-center" style="width: 52px; height: 52px;">
+                        <i class="bi bi-cash-stack"></i>
+                    </div>
+                    <div>
+                        <h3 class="fw-bold mb-0 text-danger">@(((decimal)ViewBag.TodayRevenue).ToString("N0")) đ</h3>
+                        <span class="text-muted small">Doanh thu hôm nay</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Facility Cards List -->
+    <div class="row g-4">
+        @foreach (var facility in Model)
+        {
+            <div class="col-12">
+                <div class="card shadow-sm border-0 bg-white">
+                    <div class="card-header bg-white py-3 d-flex flex-wrap justify-content-between align-items-center gap-2 border-bottom">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge bg-primary fs-6">
+                                <i class="@(facility.SportType?.IconCss ?? "bi bi-activity") me-1"></i> @facility.SportType?.Name
+                            </span>
+                            <h4 class="fw-bold mb-0 text-dark">@facility.Name</h4>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <a asp-action="EditFacility" asp-route-id="@facility.Id" class="btn btn-outline-primary btn-sm fw-semibold" title="Chỉnh sửa thông tin cụm sân">
+                                <i class="bi bi-pencil me-1"></i> Sửa
+                            </a>
+                            <a asp-action="ManageServices" asp-route-facilityId="@facility.Id" class="btn btn-outline-secondary btn-sm fw-semibold">
+                                <i class="bi bi-cup-hot me-1"></i> Dịch vụ (@facility.Services.Count)
+                            </a>
+                            <a asp-action="ScheduleBoard" asp-route-facilityId="@facility.Id" class="btn btn-success btn-sm fw-bold">
+                                <i class="bi bi-calendar3-range me-1"></i> Lịch Đặt
+                            </a>
+                            <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteFacilityModal-@facility.Id" title="Xóa cụm sân">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="card-body p-4">
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-7">
+                                <p class="text-muted mb-1"><i class="bi bi-geo-alt-fill text-danger me-1"></i> <strong>Địa chỉ:</strong> @facility.Address</p>
+                                <p class="text-muted mb-0"><i class="bi bi-clock-fill text-warning me-1"></i> <strong>Giờ mở cửa:</strong> @facility.OpeningTime.ToString(@"hh\:mm") - @facility.ClosingTime.ToString(@"hh\:mm")</p>
+                            </div>
+                            <div class="col-md-5 text-md-end">
+                                <button type="button" class="btn btn-outline-primary btn-sm fw-semibold" data-bs-toggle="modal" data-bs-target="#addCourtModal-@facility.Id">
+                                    <i class="bi bi-plus-circle me-1"></i> + Thêm Sân Con Mới
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Modal Thêm Sân Con -->
+                        <div class="modal fade" id="addCourtModal-@facility.Id" tabindex="-1" aria-hidden="true">
+                            <div class="modal-dialog modal-dialog-centered">
+                                <div class="modal-content border-0 shadow">
+                                    <div class="modal-header bg-primary text-white">
+                                        <h5 class="modal-title fw-bold">
+                                            <i class="bi bi-plus-circle me-2"></i> Thêm Sân Con Mới - @facility.Name
+                                        </h5>
+                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <form asp-action="AddCourt" method="post">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="facilityId" value="@facility.Id" />
+                                        <div class="modal-body p-4">
+                                            <div class="mb-3">
+                                                <label class="form-label fw-bold">Tên sân con</label>
+                                                <input type="text" name="name" class="form-control" placeholder="VD: Sân 5C (Cỏ nhân tạo), Sân Pickleball 03..." required />
+                                                <small class="text-muted">Hệ thống sẽ tự động gán khung giờ hoạt động mặc định cho sân.</small>
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer bg-light">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                                            <button type="submit" class="btn btn-success fw-bold px-4">Lưu Sân Mới</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Modal Xóa Cụm Sân -->
+                        <div class="modal fade" id="deleteFacilityModal-@facility.Id" tabindex="-1" aria-hidden="true">
+                            <div class="modal-dialog modal-dialog-centered">
+                                <div class="modal-content border-0 shadow">
+                                    <div class="modal-header bg-danger text-white">
+                                        <h5 class="modal-title fw-bold">
+                                            <i class="bi bi-exclamation-triangle-fill me-2"></i> Xác nhận xóa cụm sân
+                                        </h5>
+                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <div class="modal-body p-4">
+                                        <p class="mb-2">Bạn có chắc chắn muốn xóa cụm sân <strong>@facility.Name</strong>?</p>
+                                        <div class="alert alert-warning small mb-0">
+                                            <i class="bi bi-info-circle me-1"></i> Lưu ý: Chỉ có thể xóa cụm sân khi không có đơn đặt sân nào đang chờ hoặc sắp diễn ra.
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer bg-light">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                                        <form asp-action="DeleteFacility" method="post" class="d-inline">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="id" value="@facility.Id" />
+                                            <button type="submit" class="btn btn-danger fw-bold">Xóa Vĩnh Viễn</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Courts List inside Facility -->
+                        <h6 class="fw-bold text-secondary mb-3"><i class="bi bi-grid-3x3 me-1"></i> Danh sách các sân con (@facility.Courts.Count sân):</h6>
+                        <div class="row g-3">
+                            @foreach (var court in facility.Courts)
+                            {
+                                <div class="col-md-4">
+                                    <div class="card border p-3 bg-light h-100">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <h6 class="fw-bold mb-0 text-dark">@court.Name</h6>
+                                            <form asp-action="ToggleCourtStatus" method="post" class="d-inline">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="courtId" value="@court.Id" />
+                                                <button type="submit" class="btn btn-sm p-0 border-0" title="Nhấp để đổi trạng thái">
+                                                    <span class="badge @(court.IsActive ? "bg-success" : "bg-danger")">
+                                                        @(court.IsActive ? "Hoạt động" : "Tạm ngưng")
+                                                    </span>
+                                                </button>
+                                            </form>
+                                        </div>
+                                        <p class="text-muted small mb-2">
+                                            Cấu hình: @court.TimeSlots.Count khung giờ giá
+                                        </p>
+                                        <div class="mt-auto pt-2 d-flex gap-2">
+                                            <a asp-action="ManageTimeSlots" asp-route-courtId="@court.Id" class="btn btn-outline-primary btn-sm flex-grow-1 fw-semibold">
+                                                <i class="bi bi-currency-dollar me-1"></i> Bảng giá
+                                            </a>
+                                            <a asp-area="" asp-controller="Booking" asp-action="Matrix" asp-route-courtId="@court.Id" class="btn btn-outline-info btn-sm" target="_blank" title="Xem giao diện khách đặt">
+                                                <i class="bi bi-box-arrow-up-right"></i>
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>

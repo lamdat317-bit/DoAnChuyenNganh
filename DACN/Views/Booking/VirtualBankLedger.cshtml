@@ -1,0 +1,190 @@
+@model List<DACN.Models.Booking>
+@{
+    ViewData["Title"] = "Sổ Cái & Biến Động Số Dư Ngân Hàng Ảo VietBank";
+    var totalIncome = Model.Where(b => b.PaymentStatus == DACN.Models.Enums.PaymentStatus.Paid).Sum(b => b.TotalAmount);
+    var totalTransactions = Model.Count;
+}
+
+<div class="container py-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Trang chủ</a></li>
+            <li class="breadcrumb-item"><a asp-controller="Booking" asp-action="Index">Tìm & Đặt sân</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Ngân Hàng Ảo VietBank</li>
+        </ol>
+    </nav>
+
+    <!-- Bank Gateway Header Banner -->
+    <div class="card border-0 rounded-4 shadow-lg mb-4 text-white overflow-hidden" style="background: linear-gradient(135deg, #09122c 0%, #172554 50%, #1e3a8a 100%); border: 1px solid rgba(59, 130, 246, 0.3) !important;">
+        <div class="card-body p-4 p-md-5">
+            <div class="row align-items-center g-4">
+                <div class="col-lg-8">
+                    <div class="d-flex align-items-center gap-3 mb-3">
+                        <div class="bg-primary text-white rounded-circle p-3 d-flex align-items-center justify-content-center shadow" style="width: 56px; height: 56px;">
+                            <i class="bi bi-bank2 fs-2"></i>
+                        </div>
+                        <div>
+                            <span class="badge bg-success-subtle text-success px-3 py-1 rounded-pill fw-bold">
+                                <i class="bi bi-broadcast me-1"></i> VietBank Digital Sandbox Gateway 24/7
+                            </span>
+                            <h2 class="fw-bold mb-0 text-white mt-1">Cổng Quản Trị & Biến Động Số Dư Ngân Hàng Ảo</h2>
+                        </div>
+                    </div>
+                    <p class="text-white-50 mb-3" style="max-width: 650px;">
+                        Hệ thống ngân hàng ảo chuyên dụng cho đồ án và demo thực tế. Giúp ghi nhận tức thì dòng tiền khách hàng chuyển khoản qua mã VietQR, xác thực ảnh minh chứng chuyển khoản và kích hoạt đơn đặt sân tự động.
+                    </p>
+                    <div class="d-flex flex-wrap gap-2 text-white small">
+                        <span class="p-2 px-3 rounded-pill" style="background: rgba(255, 255, 255, 0.08);"><i class="bi bi-shield-check text-success me-1"></i> Bảo Mật NAPAS 24/7</span>
+                        <span class="p-2 px-3 rounded-pill" style="background: rgba(255, 255, 255, 0.08);"><i class="bi bi-camera-fill text-warning me-1"></i> Lưu Trữ Ảnh Minh Chứng Thực Tế</span>
+                        <span class="p-2 px-3 rounded-pill" style="background: rgba(255, 255, 255, 0.08);"><i class="bi bi-check2-circle text-info me-1"></i> Tự Động Kích Hoạt Vé Sân</span>
+                    </div>
+                </div>
+
+                <!-- Account Balance Card -->
+                <div class="col-lg-4">
+                    <div class="card border-0 rounded-4 p-4 shadow text-white" style="background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(10px); border: 1px solid rgba(16, 185, 129, 0.3) !important;">
+                        <span class="text-white-50 small d-block mb-1">Số dư khả dụng tài khoản thụ hưởng:</span>
+                        <div class="fs-2 fw-bold text-success mb-2">@totalIncome.ToString("N0") VNĐ</div>
+                        
+                        <div class="small pt-2 border-top border-secondary border-opacity-25">
+                            <div class="d-flex justify-content-between py-1">
+                                <span class="text-white-50">Chủ tài khoản:</span>
+                                <strong class="text-white">SANBONG VN</strong>
+                            </div>
+                            <div class="d-flex justify-content-between py-1">
+                                <span class="text-white-50">Số tài khoản:</span>
+                                <strong class="text-info">10287462828</strong>
+                            </div>
+                            <div class="d-flex justify-content-between py-1">
+                                <span class="text-white-50">Ngân hàng:</span>
+                                <strong class="text-white">VietinBank / VietBank Sandbox</strong>
+                            </div>
+                            <div class="d-flex justify-content-between py-1">
+                                <span class="text-white-50">Tổng lượt GD:</span>
+                                <strong class="text-warning">@totalTransactions giao dịch</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Live Transactions Ledger Table -->
+    <div class="card border-0 rounded-4 shadow-lg" style="background: #111827; border: 1px solid rgba(255, 255, 255, 0.08) !important;">
+        <div class="card-header py-3 px-4 border-bottom border-secondary border-opacity-25 d-flex justify-content-between align-items-center" style="background: #1f2937;">
+            <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-clock-history text-info fs-5"></i>
+                <h5 class="fw-bold mb-0 text-white">Nhật Ký Giao Dịch & Minh Chứng Tiền Vào</h5>
+            </div>
+            <span class="badge bg-primary rounded-pill px-3 py-1">@Model.Count đơn gần nhất</span>
+        </div>
+
+        <div class="card-body p-0">
+            @if (!Model.Any())
+            {
+                <div class="p-5 text-center text-white-50">
+                    <i class="bi bi-inbox display-4 d-block mb-2 text-secondary"></i>
+                    Chưa có giao dịch chuyển khoản nào được ghi nhận.
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-dark table-hover align-middle mb-0" style="background: transparent;">
+                        <thead>
+                            <tr class="text-white-50 small border-bottom border-secondary border-opacity-25" style="background: rgba(255,255,255,0.02);">
+                                <th class="ps-4 py-3">Mã GD / Thời gian</th>
+                                <th>Đơn đặt sân</th>
+                                <th>Khách hàng gửi</th>
+                                <th>Số tiền chuyển</th>
+                                <th>Phương thức</th>
+                                <th>Ảnh minh chứng</th>
+                                <th class="text-end pe-4">Trạng thái</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var bk in Model)
+                            {
+                                var paidTime = bk.PaidAt ?? bk.CreatedAt;
+                                <tr class="border-bottom border-secondary border-opacity-25">
+                                    <td class="ps-4 py-3">
+                                        <div class="fw-bold text-white small">@(string.IsNullOrEmpty(bk.PaymentTransactionRef) ? $"TXN-{bk.Id}" : bk.PaymentTransactionRef)</div>
+                                        <div class="small text-white-50" style="font-size: 0.75rem;">
+                                            <i class="bi bi-calendar-event me-1"></i>@paidTime.ToString("dd/MM/yyyy HH:mm")
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <a asp-action="Confirmation" asp-route-bookingId="@bk.Id" class="text-decoration-none fw-bold text-info">
+                                            #BK-@bk.Id
+                                        </a>
+                                        <div class="small text-white-50">
+                                            @(bk.Court?.Facility?.Name ?? "Cụm sân") • @(bk.Court?.Name ?? "Sân")
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="fw-semibold text-white small">@(bk.Customer?.FullName ?? "Khách hàng")</div>
+                                        <div class="small text-white-50" style="font-size: 0.75rem;">@(bk.Customer?.PhoneNumber ?? bk.Customer?.Email ?? "")</div>
+                                    </td>
+                                    <td>
+                                        <div class="fs-6 fw-bold text-success">+@bk.TotalAmount.ToString("N0") đ</div>
+                                        <div class="small text-white-50" style="font-size: 0.75rem;">ND: BK@(bk.Id)</div>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary bg-opacity-50 text-white-50 small">
+                                            @(bk.PaymentMethod ?? "VirtualBank")
+                                        </span>
+                                    </td>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(bk.PaymentProofImage))
+                                        {
+                                            <button type="button" class="btn btn-sm btn-outline-warning py-1 px-2 rounded-pill small" onclick="viewProofModal('@bk.PaymentProofImage', '#BK-@bk.Id')">
+                                                <i class="bi bi-image me-1"></i> Xem minh chứng
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-white-50 small"><em>Chưa đính kèm</em></span>
+                                        }
+                                    </td>
+                                    <td class="text-end pe-4">
+                                        <span class="badge bg-success text-dark fw-bold px-3 py-1 rounded-pill">
+                                            <i class="bi bi-check2-circle me-1"></i> Tiền đã vào TK
+                                        </span>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Modal xem ảnh minh chứng -->
+<div class="modal fade" id="modalProofView" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content rounded-4 border-0" style="background: #0f172a; border: 1px solid rgba(255, 255, 255, 0.1) !important;">
+            <div class="modal-header border-bottom border-secondary border-opacity-25 text-white">
+                <h5 class="modal-title fw-bold" id="modalProofTitle">Ảnh minh chứng chuyển khoản</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center p-4">
+                <img id="modalProofImg" src="" alt="Minh chứng" class="img-fluid rounded-3 shadow-lg" style="max-height: 550px;" />
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function viewProofModal(url, title) {
+            document.getElementById('modalProofImg').src = url;
+            document.getElementById('modalProofTitle').textContent = 'Minh chứng chuyển khoản đơn ' + title;
+            new bootstrap.Modal(document.getElementById('modalProofView')).show();
+        }
+    </script>
+}
+

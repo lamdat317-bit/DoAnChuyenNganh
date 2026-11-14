@@ -1,0 +1,354 @@
+@model DACN.Models.ViewModels.HomeViewModel
+@{
+    ViewData["Title"] = "SanBong.vn - Đặt Sân Thể Thao Trực Tuyến & Ghép Đội Siêu Tốc";
+}
+
+<!-- Cyber Hero Search Banner (Matching Mockup) -->
+<div class="cyber-hero position-relative">
+    <div class="container text-center position-relative z-1">
+        <!-- Floating Announcement Pill -->
+        <div class="cyber-announcement mb-4">
+            <span class="cyber-announcement-tag">Mới:</span>
+            <span class="cyber-announcement-text">Nền tảng đặt sân &amp; kết nối thể thao hàng đầu Việt Nam</span>
+        </div>
+
+        <!-- Headline -->
+        <h1 class="cyber-title mb-3">
+            TÌM SÂN THI ĐẤU &amp; GHÉP ĐỘI <span class="glow-cyan">SIÊU TỐC</span>
+        </h1>
+
+        <!-- Subtitle -->
+        <p class="cyber-desc mb-4">
+            Hơn 500+ cụm sân bóng đá, pickleball, cầu lông, quần vợt với lịch trống thời gian thực. Giữ chỗ tức thì, an toàn tuyệt đối chống trùng lịch.
+        </p>
+
+        <!-- Capsule Search Box -->
+        <div class="cyber-search-box mb-4">
+            <form asp-controller="Booking" asp-action="Index" method="get" class="d-flex align-items-center flex-wrap flex-md-nowrap gap-2">
+                <div class="d-flex align-items-center flex-grow-1 ps-2">
+                    <i class="bi bi-geo-alt-fill text-danger fs-5 me-2" style="filter: drop-shadow(0 0 6px rgba(239,68,68,0.7));"></i>
+                    <input type="text" name="keyword" class="cyber-input" placeholder="Khu vực, quận huyện hoặc tên sân..." />
+                </div>
+                <div class="d-none d-md-block" style="width: 1px; height: 26px; background: rgba(255,255,255,0.18); margin: 0 4px;"></div>
+                <div class="d-flex align-items-center pe-md-2" style="min-width: 190px;">
+                    <i class="bi bi-trophy text-info fs-5 me-2"></i>
+                    <select name="sportTypeId" class="cyber-select w-100">
+                        <option value="">Tất cả môn thể thao</option>
+                        @foreach (var sport in Model.SportTypes)
+                        {
+                            <option value="@sport.Id">@sport.Name</option>
+                        }
+                    </select>
+                </div>
+                <button type="submit" class="cyber-btn-search">
+                    <i class="bi bi-search me-1"></i> Tìm Sân Ngay
+                </button>
+            </form>
+        </div>
+
+        <!-- Trust Badges Row -->
+        <div class="d-flex flex-wrap justify-content-center align-items-center gap-3 gap-md-4 pt-2">
+            <div class="cyber-badge-item">
+                <i class="bi bi-shield-check text-info fs-6"></i> 100% Chống trùng lịch (Serializable Safe)
+            </div>
+            <div class="cyber-badge-item">
+                <i class="bi bi-qr-code text-warning fs-6"></i> Giữ chỗ tức thì qua VietQR
+            </div>
+            <div class="cyber-badge-item">
+                <i class="bi bi-ticket-perforated text-primary fs-6"></i> Xuất vé điện tử QR check-in
+            </div>
+            <div class="cyber-badge-item">
+                <i class="bi bi-people-fill text-success fs-6"></i> Cộng đồng tìm kèo sôi động
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Sports Categories Section (Matching Mockup) -->
+<div class="cyber-categories">
+    <!-- 4-point Sparkle Star Decoration -->
+    <svg class="star-decor d-none d-lg-block" style="top: 45%; right: 4%; width: 38px; height: 38px;" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 0L14.5 9.5L24 12L14.5 14.5L12 24L9.5 14.5L0 12L9.5 9.5L12 0Z"/>
+    </svg>
+
+    <div class="container">
+        <div class="text-center mb-5 position-relative">
+            <span class="badge-danhmuc mb-2">DANH MỤC</span>
+            <h3 class="fw-bold text-white mt-1 mb-1 d-flex align-items-center justify-content-center gap-2">
+                <span class="sparkle-icon">✦</span>
+                <span>MÔN THỂ THAO PHỔ BIẾN</span>
+                <span class="sparkle-icon">✦</span>
+            </h3>
+            <p class="text-white-50 small mb-0">Chọn bộ môn yêu thích của bạn để khám phá các cụm sân đạt chuẩn gần nhất</p>
+        </div>
+
+        <div class="row g-4 justify-content-center">
+            @foreach (var sport in Model.SportTypes)
+            {
+                var cardClass = "football";
+                var imgFile = "football-3d.png";
+                var sportLower = sport.Name.ToLower();
+
+                if (sportLower.Contains("cầu lông") || sportLower.Contains("badminton"))
+                {
+                    cardClass = "badminton";
+                    imgFile = "badminton-3d.png";
+                }
+                else if (sportLower.Contains("quần vợt") || sportLower.Contains("tennis"))
+                {
+                    cardClass = "tennis";
+                    imgFile = "tennis-3d.png";
+                }
+                else if (sportLower.Contains("pickleball"))
+                {
+                    cardClass = "pickleball";
+                    imgFile = "pickleball-3d.png";
+                }
+
+                <div class="col-6 col-lg-3">
+                    <a asp-controller="Booking" asp-action="Index" asp-route-sportTypeId="@sport.Id" class="cyber-sport-card @cardClass">
+                        <img src="~/images/sports/@imgFile" alt="@sport.Name" class="sport-img" />
+                        <h5 class="fw-bold text-white mb-1">@sport.Name</h5>
+                        <div class="sport-count small">@sport.FacilityCount cụm sân • @sport.CourtCount sân con</div>
+                    </a>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Featured Facilities Section (Modern Dark Theme) -->
+<div class="py-5" style="background: #090e1a; border-top: 1px solid rgba(255, 255, 255, 0.05); border-bottom: 1px solid rgba(255, 255, 255, 0.05);">
+    <div class="container">
+        <div class="d-flex flex-wrap justify-content-between align-items-end mb-4 gap-2">
+            <div>
+                <span class="badge bg-primary bg-opacity-25 text-info px-3 py-1 rounded-pill fw-bold text-uppercase border border-info border-opacity-25">Cơ sở nổi bật</span>
+                <h3 class="fw-bold text-white mt-2 mb-1">Cụm Sân Thể Thao Đạt Chuẩn</h3>
+                <p class="text-white-50 mb-0 small">Sân thi đấu trang bị đèn LED chuẩn, mặt sân bảo vệ xương khớp và dịch vụ chu đáo</p>
+            </div>
+            <a asp-controller="Booking" asp-action="Index" class="btn btn-outline-info btn-sm fw-semibold rounded-pill px-3">
+                Xem tất cả cụm sân <i class="bi bi-arrow-right"></i>
+            </a>
+        </div>
+
+        <div class="row g-4">
+            @foreach (var facility in Model.FeaturedFacilities)
+            {
+                <div class="col-md-6 col-lg-6">
+                    <div class="card h-100 shadow-lg border-0 card-hover overflow-hidden" style="background: #0f172a; border: 1px solid rgba(255, 255, 255, 0.1) !important;">
+                        <!-- Stadium Image Cover -->
+                        <div class="position-relative overflow-hidden" style="height: 200px;">
+                            <img src="@(facility.ImageUrl ?? "https://images.unsplash.com/photo-1529900748604-07564a03e7a6?auto=format&fit=crop&w=800&q=80")"
+                                 alt="@facility.Name"
+                                 class="w-100 h-100 object-fit-cover transition-transform" />
+                            <div class="position-absolute top-0 start-0 w-100 h-100" 
+                                 style="background: linear-gradient(to top, rgba(15, 23, 42, 0.95) 0%, rgba(15, 23, 42, 0.2) 60%, transparent 100%);"></div>
+
+                            <!-- Floating Badges -->
+                            <div class="position-absolute top-0 start-0 p-3">
+                                <span class="badge bg-success bg-opacity-90 px-3 py-1 fw-bold fs-6 shadow-sm">
+                                    <i class="@(facility.IconCss ?? "bi bi-tag") me-1"></i> @facility.SportTypeName
+                                </span>
+                            </div>
+
+                            @if (!string.IsNullOrEmpty(facility.CityName))
+                            {
+                                <div class="position-absolute top-0 end-0 p-3">
+                                    <span class="badge bg-dark bg-opacity-75 text-white px-2 py-1 shadow-sm border border-secondary border-opacity-50">
+                                        <i class="bi bi-geo-alt-fill text-danger me-1"></i> @facility.CityName
+                                    </span>
+                                </div>
+                            }
+
+                            <div class="position-absolute bottom-0 start-0 p-3 text-white">
+                                <span class="badge bg-dark bg-opacity-75 backdrop-blur text-white px-2 py-1 border border-secondary border-opacity-50">
+                                    <i class="bi bi-grid-3x3-gap-fill text-warning me-1"></i> @facility.CourtCount sân con
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="card-body p-4 d-flex flex-column text-white">
+                            <h5 class="fw-bold mb-2">
+                                <a asp-controller="Booking" asp-action="FacilityDetail" asp-route-id="@facility.Id" class="text-decoration-none text-white hover-primary">
+                                    @facility.Name
+                                </a>
+                            </h5>
+                            <p class="text-white-50 small mb-2 text-truncate" title="@facility.Address">
+                                <i class="bi bi-geo-alt-fill text-danger me-1"></i> @facility.Address
+                            </p>
+                            <div class="d-flex justify-content-between small text-white-50 mb-3">
+                                <span><i class="bi bi-clock-fill text-warning me-1"></i> @facility.OpeningHours</span>
+                                <span class="text-success fw-semibold"><i class="bi bi-check-circle-fill me-1"></i> Đang mở cửa</span>
+                            </div>
+
+                            <div class="mt-auto pt-3 border-top border-secondary border-opacity-25 d-flex justify-content-between align-items-center">
+                                <div>
+                                    <small class="text-white-50 d-block">Giá từ:</small>
+                                    <span class="text-danger fw-bold fs-5">@facility.MinPrice.ToString("N0") đ</span>
+                                    <small class="text-white-50">/h</small>
+                                </div>
+                                <div class="d-flex gap-2">
+                                    <a asp-controller="Booking" asp-action="FacilityDetail" asp-route-id="@facility.Id" class="btn btn-outline-light btn-sm rounded-pill px-3" title="Xem chi tiết cụm sân">
+                                        <i class="bi bi-info-circle me-1"></i> Chi tiết
+                                    </a>
+                                    <a asp-controller="Booking" asp-action="Matrix" asp-route-courtId="@facility.FirstCourtId" class="btn btn-sport-gradient btn-sm fw-bold px-3 rounded-pill">
+                                        <i class="bi bi-calendar-check me-1"></i> Đặt lịch ngay
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Community Hot Matches Showcase (Kèo Thể Thao & Ghép Đội) -->
+@if (Model.HotMatches != null && Model.HotMatches.Any())
+{
+    <div class="py-5" style="background: #060b14; border-bottom: 1px solid rgba(255, 255, 255, 0.05);">
+        <div class="container">
+            <div class="d-flex flex-wrap justify-content-between align-items-end mb-4 gap-2">
+                <div>
+                    <span class="badge bg-warning bg-opacity-25 text-warning px-3 py-1 rounded-pill fw-bold text-uppercase border border-warning border-opacity-25">Cộng đồng kết nối</span>
+                    <h3 class="fw-bold text-white mt-2 mb-1">
+                        <i class="bi bi-people-fill text-warning me-2"></i> Kèo Thể Thao Đang Tuyển Slot &amp; Ghép Đội
+                    </h3>
+                    <p class="text-white-50 mb-0 small">Thiếu slot thi đấu? Đăng ký tham gia ngay với các nhóm và đội trưởng xung quanh bạn</p>
+                </div>
+                <div class="d-flex gap-2">
+                    <a asp-controller="Teamwork" asp-action="Create" class="btn btn-warning btn-sm fw-bold text-dark shadow-sm rounded-pill px-3">
+                        <i class="bi bi-plus-circle-fill me-1"></i> + Đăng kèo mới
+                    </a>
+                    <a asp-controller="Teamwork" asp-action="Index" class="btn btn-outline-info btn-sm fw-semibold rounded-pill px-3">
+                        Xem tất cả kèo <i class="bi bi-arrow-right"></i>
+                    </a>
+                </div>
+            </div>
+
+            <div class="row g-4">
+                @foreach (var post in Model.HotMatches)
+                {
+                    <div class="col-md-6 col-lg-6">
+                        <div class="card h-100 shadow-sm border-0 border-top border-4 @(post.PostType == DACN.Models.Enums.MatchPostType.FindTeammates ? "border-primary" : "border-danger") card-hover" style="background: #0f172a; border-right: 1px solid rgba(255,255,255,0.08); border-bottom: 1px solid rgba(255,255,255,0.08); border-left: 1px solid rgba(255,255,255,0.08);">
+                            <div class="card-body p-4 d-flex flex-column text-white">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="badge bg-dark text-white border border-secondary border-opacity-50">
+                                        <i class="@post.SportIconCss text-info me-1"></i> @post.SportName
+                                    </span>
+                                    @if (post.PostType == DACN.Models.Enums.MatchPostType.FindTeammates)
+                                    {
+                                        <span class="badge bg-primary bg-opacity-25 text-info fw-bold border border-primary border-opacity-50">Tuyển slot thiếu</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-danger bg-opacity-25 text-danger fw-bold border border-danger border-opacity-50">Tìm đối giao lưu</span>
+                                    }
+                                </div>
+
+                                <h5 class="fw-bold mb-2">
+                                    <a asp-controller="Teamwork" asp-action="Detail" asp-route-id="@post.Id" class="text-decoration-none text-white hover-primary">
+                                        @post.Title
+                                    </a>
+                                </h5>
+
+                                <p class="text-white-50 small mb-2">
+                                    <i class="bi bi-geo-alt-fill text-danger me-1"></i> <strong>@post.VenueName</strong>
+                                </p>
+
+                                <div class="text-white-50 small mb-3">
+                                    <i class="bi bi-calendar3 text-info me-1"></i> @post.MatchDate.ToString("dd/MM/yyyy") | 
+                                    <i class="bi bi-clock me-1"></i> @post.StartTime.ToString(@"hh\:mm") - @post.EndTime.ToString(@"hh\:mm")
+                                </div>
+
+                                <div class="p-2 rounded small mb-3" style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);">
+                                    <div class="d-flex justify-content-between mb-1">
+                                        <span class="text-white-50">Tiến độ slot:</span>
+                                        <strong class="@(post.MissingSlots == 0 ? "text-success" : "text-danger")">
+                                            @post.CurrentSlots / @post.TotalSlots người
+                                            @(post.MissingSlots > 0 ? $"(Cần thêm {post.MissingSlots})" : "(Đã đủ)")
+                                        </strong>
+                                    </div>
+                                    <div class="progress" style="height: 6px; background-color: rgba(255,255,255,0.1);">
+                                        <div class="progress-bar bg-success" style="width: @post.ProgressPercent%;"></div>
+                                    </div>
+                                </div>
+
+                                <div class="mt-auto pt-2 border-top border-secondary border-opacity-25 d-flex justify-content-between align-items-center">
+                                    <span class="fw-bold text-danger fs-5">
+                                        @(post.CostPerPerson > 0 ? $"{post.CostPerPerson:N0} đ/người" : "Bao sân")
+                                    </span>
+                                    <a asp-controller="Teamwork" asp-action="Detail" asp-route-id="@post.Id" class="btn btn-outline-info btn-sm fw-bold rounded-pill px-3">
+                                        Xem &amp; Gia nhập <i class="bi bi-arrow-right"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Platform Advantages (Modern Dark Glass Cards) -->
+<div class="py-5" style="background: #090e1a;">
+    <div class="container">
+        <div class="text-center mb-5">
+            <span class="badge bg-primary bg-opacity-25 text-info px-3 py-1 rounded-pill fw-bold text-uppercase border border-info border-opacity-25">Ưu thế vượt trội</span>
+            <h3 class="fw-bold text-white mt-2 mb-1">Tại Sao Người Chơi Chọn SanBong.vn?</h3>
+            <p class="text-white-50">Giải pháp công nghệ hiện đại giải quyết triệt để các vấn đề đặt sân thể thao truyền thống</p>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-md-6 col-lg-3">
+                <div class="card h-100 border-0 shadow-lg p-4 text-center text-white" style="background: #0f172a; border: 1px solid rgba(255,255,255,0.08) !important;">
+                    <div class="rounded-circle mx-auto p-3 mb-3 d-flex align-items-center justify-content-center" style="width: 64px; height: 64px; background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3);">
+                        <i class="bi bi-shield-lock-fill fs-2"></i>
+                    </div>
+                    <h5 class="fw-bold mb-2">Chống Trùng Lịch 100%</h5>
+                    <p class="text-white-50 small mb-0">
+                        Thuật toán Serializable Transaction &amp; RowVersion khóa slot tức thì, giải quyết triệt để race condition khi có nhiều người cùng đặt.
+                    </p>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-lg-3">
+                <div class="card h-100 border-0 shadow-lg p-4 text-center text-white" style="background: #0f172a; border: 1px solid rgba(255,255,255,0.08) !important;">
+                    <div class="rounded-circle mx-auto p-3 mb-3 d-flex align-items-center justify-content-center" style="width: 64px; height: 64px; background: rgba(14, 165, 233, 0.15); color: #0ea5e9; border: 1px solid rgba(14, 165, 233, 0.3);">
+                        <i class="bi bi-qr-code-scan fs-2"></i>
+                    </div>
+                    <h5 class="fw-bold mb-2">VietQR Chuẩn NAPAS 247</h5>
+                    <p class="text-white-50 small mb-0">
+                        Mã QR thanh toán động tích hợp sẵn số tiền và mã hóa đơn, quét mã trên mọi app ngân hàng và ví điện tử không cần nhập tay.
+                    </p>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-lg-3">
+                <div class="card h-100 border-0 shadow-lg p-4 text-center text-white" style="background: #0f172a; border: 1px solid rgba(255,255,255,0.08) !important;">
+                    <div class="rounded-circle mx-auto p-3 mb-3 d-flex align-items-center justify-content-center" style="width: 64px; height: 64px; background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3);">
+                        <i class="bi bi-people-fill fs-2"></i>
+                    </div>
+                    <h5 class="fw-bold mb-2">Ghép Đội &amp; 1-Click Kèo</h5>
+                    <p class="text-white-50 small mb-0">
+                        Dễ dàng tìm bạn chơi cùng hoặc tạo bài đăng tuyển người từ đơn đặt sân chỉ với 1 click, kết nối cộng đồng thể thao địa phương.
+                    </p>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-lg-3">
+                <div class="card h-100 border-0 shadow-lg p-4 text-center text-white" style="background: #0f172a; border: 1px solid rgba(255,255,255,0.08) !important;">
+                    <div class="rounded-circle mx-auto p-3 mb-3 d-flex align-items-center justify-content-center" style="width: 64px; height: 64px; background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3);">
+                        <i class="bi bi-graph-up-arrow fs-2"></i>
+                    </div>
+                    <h5 class="fw-bold mb-2">Kênh Chủ Sân Toàn Diện</h5>
+                    <p class="text-white-50 small mb-0">
+                        Bảng Timeline Schedule trực quan, quản lý khung giờ giá linh hoạt, duyệt đơn và thống kê doanh thu tức thì theo thời gian thực.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

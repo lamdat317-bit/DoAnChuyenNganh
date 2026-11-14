@@ -1,0 +1,455 @@
+@model DACN.Models.ViewModels.FacilityTimelineScheduleViewModel
+@{
+    ViewData["Title"] = $"Bảng lịch đặt sân - {Model.Facility.Name}";
+    var allFacilities = ViewBag.AllFacilities as IEnumerable<dynamic>;
+}
+
+<div class="container-fluid py-4 px-3 px-lg-4">
+    <!-- Breadcrumb & Facility Switcher -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+        <div class="d-flex align-items-center gap-2">
+            <a asp-area="Owner" asp-controller="Facility" asp-action="Index" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-arrow-left me-1"></i> Danh sách cụm sân
+            </a>
+            @if (allFacilities != null && allFacilities.Count() > 1)
+            {
+                <div class="d-inline-flex align-items-center gap-1 ms-2">
+                    <span class="small text-muted fw-semibold">Đổi sân:</span>
+                    <select class="form-select form-select-sm" style="max-width: 260px;" onchange="window.location.href='/Owner/Facility/ScheduleBoard?facilityId=' + this.value + '&date=@Model.SelectedDate.ToString("yyyy-MM-dd")'">
+                        @foreach (var fac in allFacilities)
+                        {
+                            if (fac.Id == Model.Facility.Id)
+                            {
+                                <option value="@fac.Id" selected="selected">@fac.Name</option>
+                            }
+                            else
+                            {
+                                <option value="@fac.Id">@fac.Name</option>
+                            }
+                        }
+                    </select>
+                </div>
+            }
+        </div>
+
+        <!-- Quick Action Management Links -->
+        <div class="d-flex flex-wrap gap-2">
+            <a asp-area="Owner" asp-controller="Facility" asp-action="Bookings" asp-route-facilityId="@Model.Facility.Id" class="btn btn-sm btn-outline-success">
+                <i class="bi bi-receipt me-1"></i> Quản lý đơn đặt
+            </a>
+            <a asp-area="Owner" asp-controller="Facility" asp-action="ManageServices" asp-route-facilityId="@Model.Facility.Id" class="btn btn-sm btn-outline-warning">
+                <i class="bi bi-cup-straw me-1"></i> Dịch vụ tiện ích
+            </a>
+            @if (Model.Facility.Courts.Any())
+            {
+                <a asp-area="Owner" asp-controller="Facility" asp-action="ManageTimeSlots" asp-route-courtId="@Model.Facility.Courts.First().Id" class="btn btn-sm btn-outline-info">
+                    <i class="bi bi-clock-history me-1"></i> Cấu hình giá giờ
+                </a>
+                <button type="button" class="btn btn-sm btn-sport-gradient text-white fw-bold shadow-sm" onclick="openQuickBookModal(@Model.Facility.Courts.First().Id, '@Model.Facility.Courts.First().Name', '07:00', '08:00')">
+                    <i class="bi bi-plus-circle me-1"></i> + Đặt sân tại quầy
+                </button>
+            }
+        </div>
+    </div>
+
+    <!-- Title & Address Banner -->
+    <div class="bg-white rounded-3 shadow-sm p-3 mb-4 border">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <div>
+                <h3 class="fw-bold mb-1 text-dark d-flex align-items-center gap-2">
+                    <i class="bi bi-calendar3-range text-primary"></i> 
+                    Timeline Schedule Board: @Model.Facility.Name
+                </h3>
+                <div class="text-muted small">
+                    <i class="bi bi-geo-alt-fill text-danger me-1"></i> @Model.Facility.Address
+                    <span class="mx-2">•</span>
+                    <i class="bi bi-clock me-1 text-info"></i> Mở cửa: @Model.Facility.OpeningTime.ToString(@"hh\:mm") - @Model.Facility.ClosingTime.ToString(@"hh\:mm")
+                    <span class="mx-2">•</span>
+                    <i class="bi bi-grid me-1 text-success"></i> Quy mô: @Model.Facility.Courts.Count sân thi đấu
+                </div>
+            </div>
+
+            <!-- Date Navigation Toolbar -->
+            <div class="d-flex flex-wrap align-items-center gap-2">
+                <div class="btn-group shadow-sm" role="group">
+                    <a href="/Owner/Facility/ScheduleBoard?facilityId=@Model.Facility.Id&date=@ViewBag.PrevDate" class="btn btn-outline-secondary btn-sm" title="Ngày hôm trước">
+                        <i class="bi bi-chevron-left me-1"></i> Hôm trước
+                    </a>
+                    <a href="/Owner/Facility/ScheduleBoard?facilityId=@Model.Facility.Id&date=@ViewBag.TodayDate" class="btn btn-primary btn-sm fw-bold">
+                        <i class="bi bi-calendar-event me-1"></i> Hôm nay
+                    </a>
+                    <a href="/Owner/Facility/ScheduleBoard?facilityId=@Model.Facility.Id&date=@ViewBag.NextDate" class="btn btn-outline-secondary btn-sm" title="Ngày hôm sau">
+                        Hôm sau <i class="bi bi-chevron-right ms-1"></i>
+                    </a>
+                </div>
+
+                <!-- Custom Date Input -->
+                <form method="get" asp-area="Owner" asp-controller="Facility" asp-action="ScheduleBoard" class="d-flex align-items-center gap-1">
+                    <input type="hidden" name="facilityId" value="@Model.Facility.Id" />
+                    <input type="date" name="date" class="form-control form-control-sm" value="@Model.SelectedDate.ToString("yyyy-MM-dd")" onchange="this.form.submit()" style="width: 140px;" />
+                    <button type="submit" class="btn btn-outline-primary btn-sm">Xem</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alert Messages -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i> @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i> @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <!-- Timeline Board Table -->
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-header bg-dark text-white py-3 d-flex justify-content-between align-items-center">
+            <span class="fw-bold"><i class="bi bi-table me-2"></i> Lịch thi đấu ngày: @Model.SelectedDate.ToString("dd/MM/yyyy") (Tổng @Model.Facility.Courts.Count sân)</span>
+            <small class="text-white-50"><i class="bi bi-hand-index-thumb me-1"></i> Bấm vào ô bất kỳ để đặt nhanh hoặc xử lý đơn</small>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-bordered mb-0 align-middle text-center" style="min-width: 1100px;">
+                    <thead class="table-secondary">
+                        <tr>
+                            <th style="width: 170px; min-width: 170px;" class="text-start ps-3 py-3">Sân / Khung giờ</th>
+                            @foreach (var hour in Model.TimelineHours)
+                            {
+                                var nextHour = hour.Add(TimeSpan.FromHours(1));
+                                <th class="py-2" style="min-width: 110px;">
+                                    <div class="small fw-bold text-dark">@hour.ToString(@"hh\:mm")</div>
+                                    <div class="text-muted" style="font-size: 0.72rem;">- @nextHour.ToString(@"hh\:mm")</div>
+                                </th>
+                            }
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (!Model.Facility.Courts.Any())
+                        {
+                            <tr>
+                                <td colspan="@(Model.TimelineHours.Count + 1)" class="py-5 text-muted">
+                                    <i class="bi bi-info-circle fs-3 d-block mb-2"></i>
+                                    Chưa có sân con nào trong cơ sở này. Hãy quay lại trang quản lý để tạo sân!
+                                </td>
+                            </tr>
+                        }
+                        @foreach (var court in Model.Facility.Courts)
+                        {
+                            var bookings = Model.CourtBookings.ContainsKey(court.Id) ? Model.CourtBookings[court.Id] : new List<DACN.Models.Booking>();
+                            <tr>
+                                <td class="fw-bold text-start ps-3 bg-light">
+                                    <div class="d-flex align-items-center justify-content-between">
+                                        <span><i class="bi bi-check-circle-fill text-success me-1"></i> @court.Name</span>
+                                        <button type="button" class="btn btn-sm btn-link text-primary p-0 text-decoration-none" style="font-size: 0.75rem;" onclick="openQuickBookModal(@court.Id, '@court.Name', '07:00', '08:00')" title="Đặt sân này">
+                                            + Đặt
+                                        </button>
+                                    </div>
+                                </td>
+                                @foreach (var hour in Model.TimelineHours)
+                                {
+                                    var nextHour = hour.Add(TimeSpan.FromHours(1));
+                                    var matchedBooking = bookings.FirstOrDefault(b => hour < b.EndTime && nextHour > b.StartTime);
+
+                                    if (matchedBooking != null)
+                                    {
+                                        var isPaid = matchedBooking.PaymentStatus == DACN.Models.Enums.PaymentStatus.Paid;
+                                        var custName = matchedBooking.CustomerName ?? matchedBooking.Customer?.FullName ?? "Khách đặt sân";
+                                        var custPhone = matchedBooking.CustomerPhone ?? matchedBooking.Customer?.PhoneNumber ?? "Chưa có SĐT";
+                                        <td class="p-1">
+                                            <button type="button" class="btn btn-sm w-100 h-100 p-2 text-start rounded border-0 shadow-sm @(isPaid ? "bg-danger text-white" : "bg-warning text-dark")" 
+                                                    onclick="openBookingDetailModal(@matchedBooking.Id, '@custName', '@custPhone', '@court.Name', '@hour.ToString(@"hh\:mm") - @nextHour.ToString(@"hh\:mm")', @matchedBooking.TotalAmount, '@matchedBooking.Status', '@matchedBooking.PaymentStatus', '@(matchedBooking.PaymentProofImage ?? "")')"
+                                                    title="Khách: @custName | SĐT: @custPhone | Bấm để xử lý đơn">
+                                                <div class="fw-bold small text-truncate" style="max-width: 95px;">
+                                                    @custName
+                                                </div>
+                                                <span class="badge @(isPaid ? "bg-white text-danger" : "bg-dark text-warning")" style="font-size: 0.65rem;">
+                                                    @(isPaid ? "Đã thanh toán" : "Chờ thu tiền")
+                                                </span>
+                                                <div style="font-size: 0.65rem; opacity: 0.85;" class="mt-1">
+                                                    #BK-@matchedBooking.Id
+                                                </div>
+                                            </button>
+                                        </td>
+                                    }
+                                    else
+                                    {
+                                        <td class="p-1">
+                                            <button type="button" class="btn btn-sm btn-outline-success w-100 h-100 py-2 border-dashed rounded"
+                                                    onclick="openQuickBookModal(@court.Id, '@court.Name', '@hour.ToString(@"hh\:mm")', '@nextHour.ToString(@"hh\:mm")')"
+                                                    title="Khung giờ trống! Bấm để đặt sân nhanh tại quầy">
+                                                <i class="bi bi-plus-lg d-block mb-1 text-success opacity-75"></i>
+                                                <span class="small text-success fw-semibold">Trống</span>
+                                            </button>
+                                        </td>
+                                    }
+                                }
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card-footer bg-white py-3">
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                <div class="d-flex flex-wrap gap-4 small">
+                    <div class="d-flex align-items-center">
+                        <span class="d-inline-block rounded me-2 bg-success-subtle border border-success" style="width: 16px; height: 16px;"></span> 
+                        <span><strong>Sân trống:</strong> Có thể nhận khách ngay</span>
+                    </div>
+                    <div class="d-flex align-items-center">
+                        <span class="d-inline-block rounded me-2 bg-danger" style="width: 16px; height: 16px;"></span> 
+                        <span><strong>Đã thanh toán:</strong> Đã trả tiền VietQR / Tiền mặt</span>
+                    </div>
+                    <div class="d-flex align-items-center">
+                        <span class="d-inline-block rounded me-2 bg-warning" style="width: 16px; height: 16px;"></span> 
+                        <span><strong>Chờ thu tiền:</strong> Giữ chỗ tạm thời / Thanh toán tại sân</span>
+                    </div>
+                </div>
+
+                <div class="small text-muted">
+                    <i class="bi bi-lightning-charge-fill text-warning me-1"></i> Tự động kiểm tra chống trùng lịch 100%
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- MODAL 1: XEM & XỬ LÝ ĐƠN ĐẶT SÂN (CHECK-IN / THU TIỀN MẶT / HỦY)           -->
+<!-- ========================================================================= -->
+<div class="modal fade" id="bookingDetailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title fw-bold" id="bdModalTitle">
+                    <i class="bi bi-receipt me-2 text-warning"></i> Chi Tiết Đơn Đặt Sân
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="d-flex justify-content-between align-items-center pb-3 mb-3 border-bottom">
+                    <div>
+                        <div class="text-muted small">Mã hóa đơn:</div>
+                        <h4 class="fw-bold text-primary mb-0" id="bdBookingCode">#BK-0</h4>
+                    </div>
+                    <div class="text-end">
+                        <div class="text-muted small">Trạng thái thanh toán:</div>
+                        <span class="badge fs-6" id="bdPaymentBadge">Chờ thanh toán</span>
+                    </div>
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-6">
+                        <label class="form-label small text-muted mb-0">Tên khách hàng:</label>
+                        <div class="fw-bold text-dark" id="bdCustomerName">Nguyễn Văn A</div>
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label small text-muted mb-0">Số điện thoại:</label>
+                        <div class="fw-bold text-dark" id="bdCustomerPhone">0901234567</div>
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label small text-muted mb-0">Sân con:</label>
+                        <div class="fw-bold text-dark" id="bdCourtName">Sân 5A</div>
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label small text-muted mb-0">Khung giờ:</label>
+                        <div class="fw-bold text-dark" id="bdTimeSlot">17:00 - 18:00</div>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label small text-muted mb-0">Tổng tiền sân:</label>
+                        <h4 class="fw-bold text-danger mb-0" id="bdTotalAmount">150,000 đ</h4>
+                    </div>
+                    <div class="col-12" id="bdProofContainer" style="display:none;">
+                        <div class="p-2 bg-light rounded text-center border mt-2">
+                            <div class="small fw-bold text-success mb-1"><i class="bi bi-image me-1"></i> Ảnh minh chứng chuyển khoản:</div>
+                            <img id="bdProofImg" src="" alt="Minh chứng" class="img-fluid rounded border shadow-sm" style="max-height: 160px; cursor: pointer;" onclick="window.open(this.src, '_blank')" title="Nhấp để xem kích thước lớn" />
+                        </div>
+                    </div>
+                </div>
+
+                <hr class="my-3" />
+
+                <!-- Action Forms -->
+                <h6 class="fw-bold text-dark mb-2"><i class="bi bi-gear-fill me-1 text-primary"></i> Thao tác xử lý của Chủ Sân:</h6>
+                
+                <div class="d-grid gap-2">
+                    <!-- Nút 1: Thu tiền mặt tại quầy -->
+                    <form asp-area="Owner" asp-controller="Facility" asp-action="UpdateBookingStatus" method="post" id="formCollectCash">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="bookingId" id="cashBookingId" value="" />
+                        <input type="hidden" name="status" value="@DACN.Models.Enums.BookingStatus.Confirmed" />
+                        <input type="hidden" name="paymentStatus" value="@DACN.Models.Enums.PaymentStatus.Paid" />
+                        <input type="hidden" name="returnAction" value="ScheduleBoard" />
+                        <input type="hidden" name="facilityId" value="@Model.Facility.Id" />
+                        <input type="hidden" name="date" value="@Model.SelectedDate.ToString("yyyy-MM-dd")" />
+                        <button type="submit" class="btn btn-success w-100 fw-bold py-2" id="btnCollectCash">
+                            <i class="bi bi-cash-stack me-1"></i> 💵 Thu Tiền Mặt Tại Quầy (Đã Thanh Toán)
+                        </button>
+                    </form>
+
+                    <!-- Nút 2: Xác nhận Check-in nhận sân -->
+                    <form asp-area="Owner" asp-controller="Facility" asp-action="UpdateBookingStatus" method="post" id="formCheckIn">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="bookingId" id="checkinBookingId" value="" />
+                        <input type="hidden" name="status" value="@DACN.Models.Enums.BookingStatus.Confirmed" />
+                        <input type="hidden" name="returnAction" value="ScheduleBoard" />
+                        <input type="hidden" name="facilityId" value="@Model.Facility.Id" />
+                        <input type="hidden" name="date" value="@Model.SelectedDate.ToString("yyyy-MM-dd")" />
+                        <button type="submit" class="btn btn-primary w-100 fw-bold py-2">
+                            <i class="bi bi-check2-circle me-1"></i> ✅ Xác Nhận Check-in Nhận Sân
+                        </button>
+                    </form>
+
+                    <!-- Nút 3: Hủy đơn đặt sân -->
+                    <form asp-area="Owner" asp-controller="Facility" asp-action="UpdateBookingStatus" method="post" id="formCancelBooking" onsubmit="return confirm('Bạn có chắc chắn muốn hủy đơn đặt sân này không?');">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="bookingId" id="cancelBookingId" value="" />
+                        <input type="hidden" name="status" value="@DACN.Models.Enums.BookingStatus.Cancelled" />
+                        <input type="hidden" name="returnAction" value="ScheduleBoard" />
+                        <input type="hidden" name="facilityId" value="@Model.Facility.Id" />
+                        <input type="hidden" name="date" value="@Model.SelectedDate.ToString("yyyy-MM-dd")" />
+                        <button type="submit" class="btn btn-outline-danger w-100 btn-sm">
+                            <i class="bi bi-x-circle me-1"></i> Hủy Đơn Đặt Này
+                        </button>
+                    </form>
+                </div>
+            </div>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- MODAL 2: ĐẶT SÂN NHANH TẠI QUẦY (WALK-IN / QUA ĐIỆN THOẠI)                 -->
+<!-- ========================================================================= -->
+<div class="modal fade" id="quickBookModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title fw-bold">
+                    <i class="bi bi-plus-circle-fill text-success me-2"></i> Đặt Sân Nhanh Tại Quầy
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form asp-area="Owner" asp-controller="Facility" asp-action="QuickBookCourt" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="facilityId" value="@Model.Facility.Id" />
+                <input type="hidden" name="date" value="@Model.SelectedDate.ToString("yyyy-MM-dd")" />
+                <input type="hidden" name="courtId" id="qbCourtId" value="0" />
+
+                <div class="modal-body p-4">
+                    <div class="alert alert-info py-2 px-3 small mb-3">
+                        <i class="bi bi-info-circle me-1"></i> Dành cho nhân viên lễ tân ghi nhận khách vãng lai hoặc đặt qua điện thoại.
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-dark">Sân thi đấu:</label>
+                        <input type="text" class="form-control" id="qbCourtName" readonly style="background:#f8fafc;" />
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small fw-bold text-dark">Giờ bắt đầu:</label>
+                            <input type="time" name="startTime" id="qbStartTime" class="form-control" required />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-bold text-dark">Giờ kết thúc:</label>
+                            <input type="time" name="endTime" id="qbEndTime" class="form-control" required />
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-dark">Tên khách hàng:</label>
+                        <input type="text" name="customerName" class="form-control" placeholder="Khách vãng lai" value="Khách vãng lai" required />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-dark">Số điện thoại khách (nếu có):</label>
+                        <input type="tel" name="customerPhone" class="form-control" placeholder="09xxxxxxxx" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-dark">Tổng tiền sân (VNĐ):</label>
+                        <input type="number" name="totalAmount" class="form-control" value="150000" step="10000" min="0" required />
+                    </div>
+
+                    <div class="form-check form-switch mb-2">
+                        <input class="form-check-input" type="checkbox" name="isPaid" value="true" id="qbIsPaid" checked />
+                        <label class="form-check-label fw-bold text-dark" for="qbIsPaid">
+                            💵 Đã thu tiền mặt trực tiếp tại quầy
+                        </label>
+                    </div>
+                </div>
+
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy bỏ</button>
+                    <button type="submit" class="btn btn-sport-gradient text-white fw-bold px-4">
+                        <i class="bi bi-check2-circle me-1"></i> Xác Nhận Giữ Chỗ Ngay
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    function openBookingDetailModal(id, custName, custPhone, courtName, timeSlot, amount, status, payStatus, proofUrl) {
+        document.getElementById('bdBookingCode').innerText = '#BK-' + id;
+        document.getElementById('bdCustomerName').innerText = custName;
+        document.getElementById('bdCustomerPhone').innerText = custPhone;
+        document.getElementById('bdCourtName').innerText = courtName;
+        document.getElementById('bdTimeSlot').innerText = timeSlot;
+        document.getElementById('bdTotalAmount').innerText = Number(amount).toLocaleString('vi-VN') + ' đ';
+
+        var badge = document.getElementById('bdPaymentBadge');
+        var btnCash = document.getElementById('btnCollectCash');
+
+        if (payStatus === 'Paid') {
+            badge.className = 'badge bg-success fs-6';
+            badge.innerText = 'Đã thanh toán';
+            if (btnCash) btnCash.style.display = 'none';
+        } else {
+            badge.className = 'badge bg-warning text-dark fs-6';
+            badge.innerText = 'Chờ thu tiền';
+            if (btnCash) btnCash.style.display = 'block';
+        }
+
+        var proofContainer = document.getElementById('bdProofContainer');
+        var proofImg = document.getElementById('bdProofImg');
+        if (proofUrl && proofUrl.trim() !== '') {
+            proofImg.src = proofUrl;
+            proofContainer.style.display = 'block';
+        } else {
+            proofContainer.style.display = 'none';
+        }
+
+        document.getElementById('cashBookingId').value = id;
+        document.getElementById('checkinBookingId').value = id;
+        document.getElementById('cancelBookingId').value = id;
+
+        var myModal = new bootstrap.Modal(document.getElementById('bookingDetailModal'));
+        myModal.show();
+    }
+
+    function openQuickBookModal(courtId, courtName, startTime, endTime) {
+        document.getElementById('qbCourtId').value = courtId;
+        document.getElementById('qbCourtName').value = courtName;
+        document.getElementById('qbStartTime').value = startTime;
+        document.getElementById('qbEndTime').value = endTime;
+
+        var myModal = new bootstrap.Modal(document.getElementById('quickBookModal'));
+        myModal.show();
+    }
+</script>
+}

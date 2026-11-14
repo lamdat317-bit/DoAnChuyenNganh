@@ -1,0 +1,437 @@
+@model DACN.Models.ViewModels.MatchPostDetailViewModel
+@using DACN.Models.Enums
+@{
+    ViewData["Title"] = Model.Post.Title;
+}
+
+<div class="container py-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-area="" asp-controller="Home" asp-action="Index" class="text-white-50 text-decoration-none">Trang chủ</a></li>
+            <li class="breadcrumb-item"><a asp-action="Index" class="text-white-50 text-decoration-none">Ghép đội &amp; Tìm kèo</a></li>
+            <li class="breadcrumb-item text-white active" aria-current="page">Chi tiết kèo</li>
+        </ol>
+    </nav>
+
+    <!-- Alerts -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i> @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i> @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <!-- Main Header Card (Cyber Dark) -->
+    <div class="card shadow-lg border-0 mb-4" style="background: #0f172a; border: 1px solid rgba(255, 255, 255, 0.1) !important; border-radius: 16px;">
+        <div class="card-body p-4">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                <div class="d-flex gap-2 align-items-center flex-wrap">
+                    <span class="badge py-1 px-3 d-inline-flex align-items-center" style="background: rgba(0, 255, 170, 0.1); color: #00ffaa; border: 1px solid rgba(0, 255, 170, 0.3); border-radius: 20px; font-size: 0.85rem;">
+                        <i class="@(Model.Post.SportType?.IconCss ?? "bi bi-activity") me-1"></i> @Model.Post.SportType?.Name
+                    </span>
+                    @if (Model.Post.PostType == MatchPostType.FindTeammates)
+                    {
+                        <span class="badge py-1 px-3 d-inline-flex align-items-center" style="background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 20px; font-size: 0.85rem;">
+                            <i class="bi bi-people-fill me-1"></i> Ghép Đội / Tuyển Slot Thiếu
+                        </span>
+                    }
+                    else
+                    {
+                        <span class="badge py-1 px-3 d-inline-flex align-items-center" style="background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 20px; font-size: 0.85rem;">
+                            <i class="bi bi-shield-shaded me-1"></i> Tìm Đối Thủ Giao Lưu
+                        </span>
+                    }
+                </div>
+                <div>
+                    @if (Model.Post.Status == MatchPostStatus.Open)
+                    {
+                        <span class="badge py-1 px-3" style="background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 20px; font-size: 0.85rem;">
+                            <i class="bi bi-check-circle-fill me-1"></i> Đang mở tuyển
+                        </span>
+                    }
+                    else
+                    {
+                        <span class="badge py-1 px-3" style="background: rgba(100, 116, 139, 0.2); color: #94a3b8; border: 1px solid rgba(100, 116, 139, 0.4); border-radius: 20px; font-size: 0.85rem;">
+                            <i class="bi bi-lock-fill me-1"></i> Đã đóng / Đủ slot
+                        </span>
+                    }
+                </div>
+            </div>
+
+            <h2 class="fw-bold text-white mb-3">@Model.Post.Title</h2>
+
+            <div class="row g-3 text-white-50 small">
+                <div class="col-md-4">
+                    <div class="d-flex align-items-start gap-2">
+                        <i class="bi bi-geo-alt-fill text-danger fs-5"></i>
+                        <div>
+                            <strong class="text-white">@Model.Post.VenueName</strong>
+                            @if (!string.IsNullOrEmpty(Model.Post.VenueAddress))
+                            {
+                                <div class="text-white-50">@Model.Post.VenueAddress</div>
+                            }
+                            <div class="mt-1">
+                                <a href="https://www.google.com/maps/dir/?api=1&destination=@Uri.EscapeDataString(Model.Post.VenueAddress ?? Model.Post.VenueName)" target="_blank" rel="noopener noreferrer" class="text-info text-decoration-none small d-inline-flex align-items-center gap-1">
+                                    <i class="bi bi-cursor-fill text-danger" style="font-size: 0.75rem;"></i> Chỉ đường Google Maps
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="d-flex align-items-start gap-2">
+                        <i class="bi bi-calendar3 text-info fs-5"></i>
+                        <div>
+                            <strong class="text-white">@Model.Post.MatchDate.ToString("dd/MM/yyyy")</strong>
+                            <div class="text-warning fw-bold mt-1">
+                                <i class="bi bi-clock me-1"></i> @Model.Post.StartTime.ToString(@"hh\:mm") - @Model.Post.EndTime.ToString(@"hh\:mm")
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="d-flex align-items-start gap-2">
+                        <i class="bi bi-person-fill text-success fs-5"></i>
+                        <div>
+                            Đội trưởng: <strong class="text-white">@(Model.Post.Creator?.FullName ?? "Đội trưởng")</strong>
+                            <div class="text-white-50 mt-1">Đăng lúc: @Model.Post.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Left Column: Details & Roster -->
+        <div class="col-lg-8">
+            <!-- Mô tả & Chi phí -->
+            <div class="card shadow-lg border-0 mb-4" style="background: #0f172a; border: 1px solid rgba(255, 255, 255, 0.1) !important; border-radius: 16px;">
+                <div class="card-body p-4">
+                    <h5 class="fw-bold text-white border-bottom border-secondary border-opacity-25 pb-2 mb-3">
+                        <i class="bi bi-info-circle-fill text-info me-2"></i> Thông Tin &amp; Quy Định Trận Đấu
+                    </h5>
+                    <p class="text-white-50" style="white-space: pre-line; line-height: 1.7;">
+                        @Model.Post.Description
+                    </p>
+
+                    <div class="row g-3 p-3 rounded-3 mt-2" style="background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08);">
+                        <div class="col-sm-6">
+                            <span class="text-white-50 d-block small">Trình độ yêu cầu:</span>
+                            <strong class="text-white">
+                                @switch (Model.Post.SkillLevel)
+                                {
+                                    case MatchSkillLevel.Beginner:
+                                        <span>Mới chơi / Vui là chính</span>
+                                        break;
+                                    case MatchSkillLevel.Intermediate:
+                                        <span>Trung bình / Đã biết chơi</span>
+                                        break;
+                                    case MatchSkillLevel.Advanced:
+                                        <span>Khá - Bán chuyên</span>
+                                        break;
+                                    default:
+                                        <span>Mọi trình độ / Giao lưu hòa nhã</span>
+                                        break;
+                                }
+                            </strong>
+                        </div>
+                        <div class="col-sm-6">
+                            <span class="text-white-50 d-block small">Hình thức chi phí:</span>
+                            <strong class="text-danger fs-5">
+                                @(Model.Post.CostPerPerson > 0 ? $"{Model.Post.CostPerPerson:N0} VNĐ / người" : "Miễn phí / Bao sân")
+                            </strong>
+                            <small class="text-white-50 d-block">(@Model.Post.CostSharingNote)</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sơ Đồ Danh Sách Slot Thành Viên (Team Roster) -->
+            <div class="card shadow-lg border-0 mb-4" style="background: #0f172a; border: 1px solid rgba(255, 255, 255, 0.1) !important; border-radius: 16px;">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3 border-bottom border-secondary border-opacity-25 pb-2">
+                        <h5 class="fw-bold text-white mb-0">
+                            <i class="bi bi-people-fill text-info me-2"></i> Danh Sách Thành Viên Tham Gia
+                        </h5>
+                        <span class="badge bg-primary fs-6">
+                            @Model.Post.CurrentSlots / @Model.Post.TotalSlots slots
+                        </span>
+                    </div>
+
+                    <div class="row g-3">
+                        <!-- Đội Trưởng Slot -->
+                        <div class="col-md-6">
+                            <div class="p-3 rounded-3 d-flex align-items-center gap-3" style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.25);">
+                                <div class="rounded-circle p-2 fs-4 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; background: rgba(245, 158, 11, 0.2); color: #fbbf24;">
+                                    <i class="bi bi-star-fill"></i>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <span class="badge bg-warning text-dark mb-1">Đội trưởng / Chủ kèo</span>
+                                    <h6 class="fw-bold mb-0 text-white">@(Model.Post.Creator?.FullName ?? "Đội trưởng")</h6>
+                                    <small class="text-white-50"><i class="bi bi-telephone-fill me-1"></i> @Model.Post.ContactPhone</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Các Thành Viên Đã Duyệt -->
+                        @foreach (var member in Model.AcceptedMembers)
+                        {
+                            <div class="col-md-6">
+                                <div class="p-3 rounded-3 d-flex align-items-center gap-3" style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.25);">
+                                    <div class="rounded-circle p-2 fs-4 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; background: rgba(16, 185, 129, 0.2); color: #34d399;">
+                                        <i class="bi bi-check-lg"></i>
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <span class="badge bg-success-subtle text-success mb-1">Thành viên chính thức</span>
+                                        <h6 class="fw-bold mb-0 text-white">@(member.User?.FullName ?? "Thành viên")</h6>
+                                        <small class="text-white-50">
+                                            <i class="bi bi-bullseye me-1 text-info"></i> Vị trí: <strong class="text-white">@(member.PreferredPosition ?? "Đá tự do")</strong>
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+
+                        <!-- Các Slot Còn Trống -->
+                        @{
+                            int emptySlots = Math.Max(0, Model.Post.TotalSlots - Model.Post.CurrentSlots);
+                            for (int i = 1; i <= emptySlots; i++)
+                            {
+                                <div class="col-md-6">
+                                    <div class="p-3 rounded-3 text-center" style="background: rgba(255, 255, 255, 0.02); border: 2px dashed rgba(255, 255, 255, 0.15);">
+                                        <i class="bi bi-plus-circle-dotted fs-4 text-white-50 d-block mb-1"></i>
+                                        <span class="fw-semibold small text-white">Slot trống #@(Model.Post.CurrentSlots + i)</span>
+                                        <small class="d-block text-white-50">Đang chờ bạn gia nhập</small>
+                                    </div>
+                                </div>
+                            }
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Nếu là Đội Trưởng: Danh sách Yêu Cầu Chờ Phê Duyệt -->
+            @if (Model.IsCreator)
+            {
+                <div class="card shadow-lg border-0 mb-4" style="background: #0f172a; border: 1px solid rgba(245, 158, 11, 0.3) !important; border-radius: 16px;">
+                    <div class="card-body p-4">
+                        <div class="d-flex justify-content-between align-items-center mb-3 border-bottom border-secondary border-opacity-25 pb-2">
+                            <h5 class="fw-bold text-white mb-0">
+                                <i class="bi bi-inbox-fill text-warning me-2"></i> Yêu Cầu Xin Gia Nhập (@Model.PendingRequests.Count yêu cầu)
+                            </h5>
+                        </div>
+
+                        @if (!Model.PendingRequests.Any())
+                        {
+                            <p class="text-white-50 small mb-0">Chưa có yêu cầu xin gia nhập nào đang chờ duyệt.</p>
+                        }
+                        else
+                        {
+                            <div class="list-group list-group-flush">
+                                @foreach (var req in Model.PendingRequests)
+                                {
+                                    <div class="list-group-item px-0 py-3 d-flex flex-wrap justify-content-between align-items-center gap-3 bg-transparent border-secondary border-opacity-25">
+                                        <div>
+                                            <h6 class="fw-bold mb-1 text-white">@(req.User?.FullName ?? "Người chơi")</h6>
+                                            <div class="text-white-50 small mb-1">
+                                                <i class="bi bi-telephone me-1 text-info"></i> SĐT: <strong class="text-white">@req.ContactPhone</strong> |
+                                                <i class="bi bi-geo me-1 text-warning"></i> Sở trường: <strong class="text-white">@(req.PreferredPosition ?? "Chưa ghi")</strong>
+                                            </div>
+                                            <div class="fst-italic text-white-50 small p-2 rounded" style="background: rgba(255,255,255,0.05);">
+                                                "@req.Message"
+                                            </div>
+                                        </div>
+                                        <div class="d-flex gap-2">
+                                            <form asp-action="ApproveRequest" method="post" class="d-inline">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="requestId" value="@req.Id" />
+                                                <input type="hidden" name="accept" value="true" />
+                                                <button type="submit" class="btn btn-success btn-sm fw-bold">
+                                                    <i class="bi bi-check-lg me-1"></i> Chấp nhận
+                                                </button>
+                                            </form>
+                                            <form asp-action="ApproveRequest" method="post" class="d-inline">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="requestId" value="@req.Id" />
+                                                <input type="hidden" name="accept" value="false" />
+                                                <button type="submit" class="btn btn-outline-danger btn-sm">
+                                                    <i class="bi bi-x-lg me-1"></i> Từ chối
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- Right Column: Action Card -->
+        <div class="col-lg-4">
+            <!-- Card Hành Động Tham Gia (Cyber Dark Sticky) -->
+            <div class="card shadow-lg border-0 mb-4 sticky-top" style="top: 80px; z-index: 10; background: #0f172a; border: 1px solid rgba(255, 255, 255, 0.1) !important; border-radius: 16px;">
+                <div class="card-body p-4">
+                    <h5 class="fw-bold text-white border-bottom border-secondary border-opacity-25 pb-2 mb-3">
+                        <i class="bi bi-lightning-charge-fill text-warning me-1"></i> Tham Gia Trận Đấu
+                    </h5>
+
+                    @if (Model.IsCreator)
+                    {
+                        <div class="alert alert-info small mb-3" style="background: rgba(59, 130, 246, 0.15); border-color: rgba(59, 130, 246, 0.3); color: #93c5fd;">
+                            <i class="bi bi-info-circle-fill me-1"></i> Bạn là Đội trưởng tạo kèo này. Bạn có thể duyệt các yêu cầu xin gia nhập ở danh sách bên cạnh.
+                        </div>
+                        <form asp-action="TogglePostStatus" method="post" class="mb-2">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@Model.Post.Id" />
+                            <button type="submit" class="btn @(Model.Post.Status == MatchPostStatus.Open ? "btn-outline-danger" : "btn-outline-success") w-100 fw-bold rounded-pill">
+                                <i class="bi @(Model.Post.Status == MatchPostStatus.Open ? "bi-lock-fill" : "bi-unlock-fill") me-1"></i>
+                                @(Model.Post.Status == MatchPostStatus.Open ? "Khóa / Chốt danh sách thành viên" : "Mở lại tuyển thêm thành viên")
+                            </button>
+                        </form>
+                        <form asp-action="DeletePost" method="post" class="mb-3" onsubmit="return confirm('Bạn có chắc chắn muốn xóa bài đăng tìm kèo này?');">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@Model.Post.Id" />
+                            <button type="submit" class="btn btn-outline-secondary w-100 btn-sm text-danger rounded-pill">
+                                <i class="bi bi-trash me-1"></i> Xóa bài đăng kèo này
+                            </button>
+                        </form>
+                    }
+                    else if (Model.HasJoined)
+                    {
+                        <div class="alert alert-success small mb-3" style="background: rgba(16, 185, 129, 0.15); border-color: rgba(16, 185, 129, 0.3); color: #6ee7b7;">
+                            <i class="bi bi-check-circle-fill me-1"></i> Bạn đã là <strong>Thành viên chính thức</strong> của trận này! Hãy đến sân đúng giờ nhé.
+                        </div>
+                    }
+                    else if (Model.HasPendingRequest)
+                    {
+                        <div class="alert alert-warning small mb-3" style="background: rgba(245, 158, 11, 0.15); border-color: rgba(245, 158, 11, 0.3); color: #fde68a;">
+                            <i class="bi bi-hourglass-split me-1"></i> Yêu cầu tham gia của bạn đang chờ Đội trưởng xét duyệt.
+                        </div>
+                        var currentUId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "demo-customer-id";
+                        var myReq = Model.Post.JoinRequests.FirstOrDefault(r => r.UserId == currentUId);
+                        if (myReq != null)
+                        {
+                            <form asp-action="CancelRequest" method="post" class="mb-3">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="requestId" value="@myReq.Id" />
+                                <button type="submit" class="btn btn-outline-danger btn-sm w-100 rounded-pill">
+                                    <i class="bi bi-x-circle me-1"></i> Rút lại yêu cầu tham gia
+                                </button>
+                            </form>
+                        }
+                    }
+                    else if (Model.Post.Status != MatchPostStatus.Open || Model.Post.CurrentSlots >= Model.Post.TotalSlots)
+                    {
+                        <div class="alert alert-secondary small mb-3" style="background: rgba(100, 116, 139, 0.15); border-color: rgba(100, 116, 139, 0.3); color: #cbd5e1;">
+                            <i class="bi bi-lock-fill me-1"></i> Kèo này đã đủ số lượng thành viên hoặc đã kết thúc.
+                        </div>
+                    }
+                    else
+                    {
+                        <!-- Nút mở Modal đăng ký tham gia -->
+                        <button type="button" class="btn btn-sport-gradient w-100 py-3 fw-bold fs-6 text-white shadow-lg mb-3 rounded-pill"
+                                data-bs-toggle="modal" data-bs-target="#joinModal">
+                            <i class="bi bi-hand-thumbs-up-fill me-1"></i> Đăng Ký Gia Nhập Kèo
+                        </button>
+                        <small class="text-white-50 d-block text-center mb-3">
+                            Miễn phí đăng ký • Giữ slot ngay sau khi đội trưởng duyệt
+                        </small>
+                    }
+
+                    <!-- Liên hệ trực tiếp -->
+                    <div class="p-3 rounded-3 mb-3" style="background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08);">
+                        <span class="small text-white-50 d-block mb-1">Liên hệ Đội trưởng:</span>
+                        <div class="fw-bold fs-6 text-white">
+                            <i class="bi bi-person-circle text-info me-1"></i> @(Model.Post.Creator?.FullName ?? "Đội trưởng")
+                        </div>
+                        <div class="fw-bold fs-5 text-danger mt-1">
+                            <i class="bi bi-telephone-fill me-1"></i> @Model.Post.ContactPhone
+                        </div>
+                        <a href="tel:@Model.Post.ContactPhone" class="btn btn-outline-success btn-sm w-100 mt-2 rounded-pill">
+                            <i class="bi bi-telephone-outbound me-1"></i> Gọi điện ngay
+                        </a>
+                    </div>
+
+                    <!-- Chia sẻ kèo -->
+                    <button type="button" class="btn btn-outline-light btn-sm w-100 rounded-pill" onclick="copyShareLink()">
+                        <i class="bi bi-share me-1"></i> Sao chép link mời bạn bè
+                    </button>
+                    <div id="copyAlert" class="text-success small text-center mt-2" style="display: none;">
+                        <i class="bi bi-check-circle"></i> Đã sao chép link vào bộ nhớ tạm!
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Đăng Ký Tham Gia (Cyber Dark) -->
+<div class="modal fade" id="joinModal" tabindex="-1" aria-labelledby="joinModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="background: #0f172a; border: 1px solid rgba(255, 255, 255, 0.15) !important;">
+            <div class="modal-header bg-dark text-white border-bottom border-secondary border-opacity-25">
+                <h5 class="modal-title fw-bold" id="joinModalLabel">
+                    <i class="bi bi-person-plus-fill me-2 text-info"></i> Đăng Ký Gia Nhập Kèo
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form asp-action="Join" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="matchPostId" value="@Model.Post.Id" />
+
+                <div class="modal-body p-4 text-white">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-white small">Vị trí sở trường của bạn</label>
+                        <input type="text" name="preferredPosition" class="form-control text-white" style="background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.15);" placeholder="VD: Tiền vệ cánh, Tiền đạo, Đánh đôi lưới..." required />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-white small">Số điện thoại / Zalo liên hệ</label>
+                        <input type="tel" name="contactPhone" class="form-control text-white" style="background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.15);" placeholder="Số điện thoại để đội trưởng liên hệ" required />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-white small">Lời nhắn gửi Đội trưởng</label>
+                        <textarea name="message" class="form-control text-white" style="background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.15);" rows="3" placeholder="Chào đội trưởng, mình đá thường xuyên vào các buổi tối, cho mình tham gia trận này nhé!"></textarea>
+                    </div>
+
+                    <div class="alert alert-dark border border-secondary border-opacity-25 small text-white-50">
+                        <i class="bi bi-shield-check text-success me-1"></i> Tinh thần thể thao: Cam kết đến đúng giờ, thi đấu trung thực và fair-play.
+                    </div>
+                </div>
+
+                <div class="modal-footer border-top border-secondary border-opacity-25">
+                    <button type="button" class="btn btn-secondary rounded-pill" data-bs-dismiss="modal">Đóng</button>
+                    <button type="submit" class="btn btn-sport-gradient fw-bold px-4 text-white rounded-pill">
+                        <i class="bi bi-send-fill me-1"></i> Gửi Yêu Cầu Gia Nhập
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function copyShareLink() {
+            navigator.clipboard.writeText(window.location.href);
+            var alertBox = document.getElementById('copyAlert');
+            alertBox.style.display = 'block';
+            setTimeout(function () {
+                alertBox.style.display = 'none';
+            }, 3000);
+        }
+    </script>
+}

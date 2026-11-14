@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="520" viewBox="0 0 400 520">
+                <rect width="100%" height="100%" fill="#0f172a" rx="16"/>
+                <circle cx="200" cy="65" r="32" fill="#10b981"/>
+                <path d="M190 65 l7 7 l14 -14" stroke="#ffffff" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                <text x="200" y="125" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#ffffff" text-anchor="middle">GIAO DỊCH THÀNH CÔNG</text>
+                <text x="200" y="148" font-family="Arial, sans-serif" font-size="12" fill="#94a3b8" text-anchor="middle">VietBank Digital Sandbox</text>
+                
+                <text x="200" y="195" font-family="Arial, sans-serif" font-size="26" font-weight="bold" fill="#38bdf8" text-anchor="middle">340,000 VNĐ</text>
+                
+                <line x1="30" y1="220" x2="370" y2="220" stroke="#334155" stroke-dasharray="4 4"/>
+                
+                <text x="40" y="250" font-family="Arial, sans-serif" font-size="12" fill="#94a3b8">Thời gian:</text>
+                <text x="360" y="250" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#f8fafc" text-anchor="end">15:05:26 30/10/2026</text>
+                
+                <text x="40" y="285" font-family="Arial, sans-serif" font-size="12" fill="#94a3b8">Tài khoản chuyển:</text>
+                <text x="360" y="285" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#f8fafc" text-anchor="end">Tr&#x1EA7;n &#x110;&#x103;ng Khoa</text>
+                
+                <text x="40" y="320" font-family="Arial, sans-serif" font-size="12" fill="#94a3b8">Tài khoản nhận:</text>
+                <text x="360" y="320" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#10b981" text-anchor="end">SANBONG VN</text>
+                
+                <text x="40" y="355" font-family="Arial, sans-serif" font-size="12" fill="#94a3b8">Ngân hàng nhận:</text>
+                <text x="360" y="355" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#f8fafc" text-anchor="end">VietinBank (10287462828)</text>
+                
+                <text x="40" y="390" font-family="Arial, sans-serif" font-size="12" fill="#94a3b8">Mã giao dịch:</text>
+                <text x="360" y="390" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#f59e0b" text-anchor="end">VTB-1004</text>
+                
+                <text x="40" y="425" font-family="Arial, sans-serif" font-size="12" fill="#94a3b8">Nội dung chuyển:</text>
+                <text x="360" y="425" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#f8fafc" text-anchor="end">BK1004</text>
+                
+                <rect x="30" y="460" width="340" height="40" rx="8" fill="#1e293b"/>
+                <text x="200" y="485" font-family="Arial, sans-serif" font-size="11" fill="#10b981" font-weight="bold" text-anchor="middle">✓ ĐÃ XÁC THỰC BẢO MẬT NAPAS 24/7</text>
+            </svg>
