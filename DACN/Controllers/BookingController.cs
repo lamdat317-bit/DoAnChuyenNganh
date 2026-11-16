@@ -2,6 +2,7 @@ using System;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using DACN.Models.DTOs;
+using DACN.Models.Enums;
 using DACN.Repositories;
 using DACN.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -163,20 +164,43 @@ namespace DACN.Controllers
                 return NotFound("Đơn đặt sân không tồn tại.");
             }
 
-            // Kiểm tra thời hạn giữ chỗ: Tối đa 5 phút
-            var elapsed = DateTime.UtcNow - booking.CreatedAt;
-            if (booking.PaymentStatus != DACN.Models.Enums.PaymentStatus.Paid && elapsed.TotalMinutes >= 5)
+            // Đơn đã thanh toán thì chuyển thẳng sang vé xác nhận
+            if (booking.PaymentStatus == PaymentStatus.Paid)
             {
-                booking.Status = DACN.Models.Enums.BookingStatus.Cancelled;
-                booking.PaymentNote = (booking.PaymentNote ?? "") + " [Đã quá hạn 5 phút giữ chỗ]";
-                _unitOfWork.Bookings.Update(booking);
-                await _unitOfWork.CompleteAsync();
+                return RedirectToAction(nameof(Confirmation), new { bookingId });
+            }
 
-                TempData["ErrorMessage"] = $"Đơn giữ chỗ #BK-{bookingId} đã quá thời hạn 5 phút. Khung giờ này đã được mở lại cho người khác.";
+            // Đơn đã hủy / đã hoàn thành / quá hạn giữ chỗ (sẽ bị hủy ngay) thì không cho thanh toán nữa
+            var check = await _bookingService.CheckPayableAsync(bookingId);
+            if (!check.IsSuccess)
+            {
+                TempData["ErrorMessage"] = check.Message;
                 return RedirectToAction(nameof(Matrix), new { courtId = booking.CourtId, date = booking.BookingDate.ToString("yyyy-MM-dd") });
             }
 
             return View(booking);
+        }
+
+        /// <summary>
+        /// Điều hướng khi đơn không thể thanh toán: đã trả tiền → vé xác nhận; không tồn tại → trang tìm sân;
+        /// còn lại (đã hủy / quá hạn giữ chỗ) → về ma trận giờ để khách chọn lại khung giờ.
+        /// </summary>
+        private IActionResult RedirectForUnpayable(BookingResult check, int bookingId)
+        {
+            if (check.Booking == null)
+            {
+                TempData["ErrorMessage"] = check.Message;
+                return RedirectToAction(nameof(Index));
+            }
+
+            if (check.Booking.PaymentStatus == PaymentStatus.Paid)
+            {
+                TempData["SuccessMessage"] = check.Message;
+                return RedirectToAction(nameof(Confirmation), new { bookingId });
+            }
+
+            TempData["ErrorMessage"] = check.Message;
+            return RedirectToAction(nameof(Matrix), new { courtId = check.Booking.CourtId, date = check.Booking.BookingDate.ToString("yyyy-MM-dd") });
         }
 
         // 5. Xử lý thanh toán thông thường (Chỉ chấp nhận chuyển khoản điện tử, không nhận tiền mặt)
@@ -190,16 +214,15 @@ namespace DACN.Controllers
                 return RedirectToAction(nameof(Checkout), new { bookingId });
             }
 
-            var success = await _bookingService.ProcessPaymentAsync(bookingId, paymentMethod ?? "VietQR");
+            var result = await _bookingService.ProcessPaymentAsync(bookingId, paymentMethod ?? "VietQR");
 
-            if (success)
+            if (result.IsSuccess)
             {
-                TempData["SuccessMessage"] = "Thanh toán thành công! Sân đã được xác nhận giữ chỗ cho bạn.";
+                TempData["SuccessMessage"] = result.Message;
                 return RedirectToAction(nameof(Confirmation), new { bookingId });
             }
 
-            TempData["ErrorMessage"] = "Thanh toán thất bại. Vui lòng thử lại.";
-            return RedirectToAction(nameof(Checkout), new { bookingId });
+            return RedirectForUnpayable(result, bookingId);
         }
 
         // 5a. Hỗ trợ GET cho SubmitVirtualTransfer (chống lỗi 405 Method Not Allowed khi F5 hoặc gõ URL trực tiếp)
@@ -226,24 +249,11 @@ namespace DACN.Controllers
         {
             try
             {
-                var booking = await _bookingService.GetBookingByIdAsync(bookingId);
-                if (booking == null)
+                // Kiểm tra đơn còn thanh toán được (chưa trả tiền, chưa hủy, còn hạn giữ chỗ) TRƯỚC khi lưu file
+                var check = await _bookingService.CheckPayableAsync(bookingId);
+                if (!check.IsSuccess)
                 {
-                    TempData["ErrorMessage"] = "Đơn đặt sân không tồn tại.";
-                    return RedirectToAction(nameof(Index));
-                }
-
-                // Kiểm tra thời hạn 5 phút giữ chỗ
-                var elapsed = DateTime.UtcNow - booking.CreatedAt;
-                if (booking.PaymentStatus != DACN.Models.Enums.PaymentStatus.Paid && elapsed.TotalMinutes >= 5)
-                {
-                    booking.Status = DACN.Models.Enums.BookingStatus.Cancelled;
-                    booking.PaymentNote = (booking.PaymentNote ?? "") + " [Đã quá hạn 5 phút giữ chỗ]";
-                    _unitOfWork.Bookings.Update(booking);
-                    await _unitOfWork.CompleteAsync();
-
-                    TempData["ErrorMessage"] = "Đơn giữ chỗ đã quá thời hạn 5 phút và đã bị hủy. Khung giờ này đã được mở lại cho người chơi khác.";
-                    return RedirectToAction(nameof(Matrix), new { courtId = booking.CourtId, date = booking.BookingDate.ToString("yyyy-MM-dd") });
+                    return RedirectForUnpayable(check, bookingId);
                 }
 
                 var webRoot = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
@@ -311,21 +321,20 @@ namespace DACN.Controllers
                     ? $"Người chuyển: {senderAccount}. {note}"
                     : (string.IsNullOrEmpty(note) ? "Chuyển khoản VietQR" : note);
 
-                var success = await _bookingService.SubmitBankTransferProofAsync(
+                var result = await _bookingService.SubmitBankTransferProofAsync(
                     bookingId,
                     savedProofPath,
                     txnRef,
                     "VietQR (VietinBank 24/7)",
                     fullNote);
 
-                if (success)
+                if (result.IsSuccess)
                 {
-                    TempData["SuccessMessage"] = "Thanh toán chuyển khoản thành công! Sân đã được xác nhận giữ chỗ cho bạn.";
+                    TempData["SuccessMessage"] = result.Message;
                     return RedirectToAction(nameof(Confirmation), new { bookingId });
                 }
 
-                TempData["ErrorMessage"] = "Không thể ghi nhận giao dịch. Vui lòng thử lại.";
-                return RedirectToAction(nameof(Checkout), new { bookingId });
+                return RedirectForUnpayable(result, bookingId);
             }
             catch (Exception ex)
             {
@@ -344,22 +353,11 @@ namespace DACN.Controllers
         {
             try
             {
-                var booking = await _bookingService.GetBookingByIdAsync(bookingId);
-                if (booking == null)
+                // Kiểm tra đơn còn thanh toán được (chưa trả tiền, chưa hủy, còn hạn giữ chỗ) TRƯỚC khi lưu file
+                var check = await _bookingService.CheckPayableAsync(bookingId);
+                if (!check.IsSuccess)
                 {
-                    return Json(new { success = false, message = "Đơn đặt sân không tồn tại." });
-                }
-
-                // Kiểm tra thời hạn 5 phút giữ chỗ
-                var elapsed = DateTime.UtcNow - booking.CreatedAt;
-                if (booking.PaymentStatus != DACN.Models.Enums.PaymentStatus.Paid && elapsed.TotalMinutes >= 5)
-                {
-                    booking.Status = DACN.Models.Enums.BookingStatus.Cancelled;
-                    booking.PaymentNote = (booking.PaymentNote ?? "") + " [Đã quá hạn 5 phút giữ chỗ]";
-                    _unitOfWork.Bookings.Update(booking);
-                    await _unitOfWork.CompleteAsync();
-
-                    return Json(new { success = false, message = "Đơn giữ chỗ đã quá hạn 5 phút. Khung giờ này đã được mở lại cho người khác." });
+                    return Json(new { success = false, message = check.Message });
                 }
 
                 var webRoot = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
@@ -379,14 +377,14 @@ namespace DACN.Controllers
                 var txnRef = $"VTB-{DateTime.UtcNow:yyyyMMddHHmmss}-{bookingId}";
                 var note = $"Giao dịch qua VietBank Sandbox | Người gửi: {senderName ?? "Khách hàng"} ({senderBank ?? "VietBank Digital"})";
 
-                var success = await _bookingService.SubmitBankTransferProofAsync(
+                var result = await _bookingService.SubmitBankTransferProofAsync(
                     bookingId,
                     savedBillPath,
                     txnRef,
                     "VietBank_Sandbox",
                     note);
 
-                if (success)
+                if (result.IsSuccess)
                 {
                     return Json(new
                     {
@@ -397,7 +395,7 @@ namespace DACN.Controllers
                     });
                 }
 
-                return Json(new { success = false, message = "Giao dịch không thành công." });
+                return Json(new { success = false, message = result.Message });
             }
             catch (Exception ex)
             {
@@ -459,16 +457,9 @@ namespace DACN.Controllers
         public async Task<IActionResult> Cancel(int bookingId)
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "demo-customer-id";
-            var success = await _bookingService.CancelBookingAsync(bookingId, userId);
+            var result = await _bookingService.CancelBookingAsync(bookingId, userId);
 
-            if (success)
-            {
-                TempData["SuccessMessage"] = $"Đã hủy đơn đặt sân #BK-{bookingId} thành công!";
-            }
-            else
-            {
-                TempData["ErrorMessage"] = "Không thể hủy đơn đặt sân này hoặc bạn không có quyền thực hiện.";
-            }
+            TempData[result.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = result.Message;
 
             return RedirectToAction(nameof(MyBookings));
         }

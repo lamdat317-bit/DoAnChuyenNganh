@@ -4,8 +4,7 @@
     var transferCode = $"BK{Model.Id}";
     var vietQrUrl = $"https://img.vietqr.io/image/VietinBank-10287462828-compact2.png?amount={(long)Model.TotalAmount}&addInfo={transferCode}&accountName=SANBONG%20VN";
     var defaultTxnRef = $"VTB-{DateTime.UtcNow:yyyyMMddHHmmss}-{Model.Id}";
-    var elapsedSeconds = (int)(DateTime.UtcNow - Model.CreatedAt).TotalSeconds;
-    var remainingSeconds = Math.Max(0, 300 - elapsedSeconds);
+    var remainingSeconds = DACN.Services.BookingRules.HoldRemainingSeconds(Model, DateTime.UtcNow);
     var remMinutes = remainingSeconds / 60;
     var remSecs = remainingSeconds % 60;
     var initialTimerDisplay = $"{remMinutes:D2}:{remSecs:D2}";

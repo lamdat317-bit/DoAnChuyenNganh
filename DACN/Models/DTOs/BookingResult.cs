@@ -17,12 +17,13 @@ namespace DACN.Models.DTOs
             };
         }
 
-        public static BookingResult Failure(string message)
+        public static BookingResult Failure(string message, Booking? booking = null)
         {
             return new BookingResult
             {
                 IsSuccess = false,
-                Message = message
+                Message = message,
+                Booking = booking
             };
         }
     }

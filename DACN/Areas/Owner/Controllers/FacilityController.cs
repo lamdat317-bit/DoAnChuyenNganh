@@ -4,6 +4,7 @@ using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using DACN.Models;
+using DACN.Models.DTOs;
 using DACN.Models.Enums;
 using DACN.Models.ViewModels;
 using DACN.Repositories;
@@ -189,19 +190,79 @@ namespace DACN.Areas.Owner.Controllers
                 return RedirectToAction(nameof(ManageTimeSlots), new { courtId });
             }
 
-            var timeSlot = new TimeSlot
+            if (price < 0)
+            {
+                TempData["ErrorMessage"] = "Đơn giá không được âm.";
+                return RedirectToAction(nameof(ManageTimeSlots), new { courtId });
+            }
+
+            var court = await _unitOfWork.Courts.Query()
+                .Include(c => c.Facility)
+                .Include(c => c.TimeSlots)
+                .FirstOrDefaultAsync(c => c.Id == courtId);
+
+            if (court == null)
+            {
+                TempData["ErrorMessage"] = "Sân không tồn tại.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            if (court.Facility != null && (startTime < court.Facility.OpeningTime || endTime > court.Facility.ClosingTime))
+            {
+                TempData["ErrorMessage"] = $"Khung giờ phải nằm trong giờ hoạt động của cụm sân ({court.Facility.OpeningTime:hh\\:mm} - {court.Facility.ClosingTime:hh\\:mm}).";
+                return RedirectToAction(nameof(ManageTimeSlots), new { courtId });
+            }
+
+            // Khung giờ mới được ưu tiên: các khung cũ bị chồng lấn sẽ được cắt bớt / tách đôi / xóa,
+            // để mỗi thời điểm chỉ thuộc đúng 1 khung giá (tránh tính tiền 2 lần).
+            int adjustedCount = 0;
+            foreach (var old in court.TimeSlots.Where(s => s.StartTime < endTime && s.EndTime > startTime).ToList())
+            {
+                adjustedCount++;
+                bool keepsLeft = old.StartTime < startTime;
+                bool keepsRight = old.EndTime > endTime;
+
+                if (keepsLeft && keepsRight)
+                {
+                    // Khung cũ bao trùm khung mới => tách làm 2 phần trái / phải
+                    await _unitOfWork.TimeSlots.AddAsync(new TimeSlot
+                    {
+                        CourtId = courtId,
+                        StartTime = endTime,
+                        EndTime = old.EndTime,
+                        Price = old.Price,
+                        IsPeakHour = old.IsPeakHour
+                    });
+                    old.EndTime = startTime;
+                }
+                else if (keepsLeft)
+                {
+                    old.EndTime = startTime;
+                }
+                else if (keepsRight)
+                {
+                    old.StartTime = endTime;
+                }
+                else
+                {
+                    // Khung cũ nằm trọn trong khung mới => bỏ
+                    _unitOfWork.TimeSlots.Remove(old);
+                }
+            }
+
+            await _unitOfWork.TimeSlots.AddAsync(new TimeSlot
             {
                 CourtId = courtId,
                 StartTime = startTime,
                 EndTime = endTime,
                 Price = price,
                 IsPeakHour = isPeakHour
-            };
-
-            await _unitOfWork.TimeSlots.AddAsync(timeSlot);
+            });
             await _unitOfWork.CompleteAsync();
 
-            TempData["SuccessMessage"] = "Thêm khung giờ và bảng giá thành công!";
+            TempData["SuccessMessage"] = adjustedCount > 0
+                ? $"Thêm khung giờ và bảng giá thành công! Đã tự động điều chỉnh {adjustedCount} khung giờ cũ bị chồng lấn."
+                : "Thêm khung giờ và bảng giá thành công!";
             return RedirectToAction(nameof(ManageTimeSlots), new { courtId });
         }
 
@@ -274,16 +335,9 @@ namespace DACN.Areas.Owner.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> UpdateBookingStatus(int bookingId, BookingStatus status, PaymentStatus? paymentStatus, string? returnAction = "Bookings", int? facilityId = null, string? date = null)
         {
-            var success = await _bookingService.UpdateBookingStatusAsync(bookingId, status, paymentStatus);
+            var result = await _bookingService.UpdateBookingStatusAsync(bookingId, status, paymentStatus);
 
-            if (success)
-            {
-                TempData["SuccessMessage"] = $"Cập nhật đơn đặt sân #BK-{bookingId} thành công!";
-            }
-            else
-            {
-                TempData["ErrorMessage"] = "Không thể cập nhật trạng thái đơn đặt sân này.";
-            }
+            TempData[result.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = result.Message;
 
             if (returnAction == "ScheduleBoard" && facilityId.HasValue)
             {
@@ -296,7 +350,7 @@ namespace DACN.Areas.Owner.Controllers
         // 7b. Đặt sân nhanh tại quầy (Dành cho khách vãng lai hoặc đặt trực tiếp qua điện thoại)
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> QuickBookCourt(int facilityId, int courtId, string date, TimeSpan startTime, TimeSpan endTime, string? customerName, string? customerPhone, decimal totalAmount, bool isPaid)
+        public async Task<IActionResult> QuickBookCourt(int facilityId, int courtId, string date, TimeSpan startTime, TimeSpan endTime, string? customerName, string? customerPhone, decimal? totalAmount, bool isPaid)
         {
             if (!DateOnly.TryParse(date, out var bookingDate))
             {
@@ -311,40 +365,32 @@ namespace DACN.Areas.Owner.Controllers
                 return RedirectToAction(nameof(ScheduleBoard), new { facilityId, date });
             }
 
-            var isOverlap = await _unitOfWork.Context.Bookings.AnyAsync(b =>
-                b.CourtId == courtId &&
-                b.BookingDate == bookingDate &&
-                b.Status != BookingStatus.Cancelled &&
-                startTime < b.EndTime && endTime > b.StartTime);
-
-            if (isOverlap)
-            {
-                TempData["ErrorMessage"] = "Khung giờ này đã có người đặt trước hoặc đang được giữ chỗ.";
-                return RedirectToAction(nameof(ScheduleBoard), new { facilityId, date });
-            }
-
-            var ownerUser = await _unitOfWork.Context.Users.FirstOrDefaultAsync(u => u.Id == GetCurrentUserId()) 
+            var ownerUser = await _unitOfWork.Context.Users.FirstOrDefaultAsync(u => u.Id == GetCurrentUserId())
                             ?? await _unitOfWork.Context.Users.FirstOrDefaultAsync();
 
-            var booking = new Booking
+            // Dùng chung luồng tạo đơn với khách online: kiểm tra giờ hợp lệ, giờ mở cửa,
+            // sân đang hoạt động và chống trùng lịch trong Serializable Transaction.
+            // Để trống / 0 ở ô tổng tiền => hệ thống tự tính theo bảng giá khung giờ.
+            var dto = new BookingDto
             {
                 CourtId = courtId,
                 CustomerId = ownerUser?.Id ?? "demo-customer-id",
-                CustomerName = customerName,
-                CustomerPhone = customerPhone,
+                CustomerName = string.IsNullOrWhiteSpace(customerName) ? "Khách vãng lai" : customerName.Trim(),
+                CustomerPhone = customerPhone?.Trim(),
                 BookingDate = bookingDate,
                 StartTime = startTime,
-                EndTime = endTime,
-                TotalAmount = totalAmount > 0 ? totalAmount : 150000,
-                Status = BookingStatus.Confirmed,
-                PaymentStatus = isPaid ? PaymentStatus.Paid : PaymentStatus.Unpaid,
-                CreatedAt = DateTime.UtcNow
+                EndTime = endTime
             };
 
-            await _unitOfWork.Bookings.AddAsync(booking);
-            await _unitOfWork.CompleteAsync();
+            var result = await _bookingService.CreateCounterBookingAsync(dto, totalAmount, isPaid);
 
-            TempData["SuccessMessage"] = $"Đặt sân nhanh thành công tại {court.Name} ({startTime:hh\\:mm} - {endTime:hh\\:mm})! Đơn #BK-{booking.Id}";
+            if (!result.IsSuccess)
+            {
+                TempData["ErrorMessage"] = result.Message;
+                return RedirectToAction(nameof(ScheduleBoard), new { facilityId, date });
+            }
+
+            TempData["SuccessMessage"] = $"Đặt sân nhanh thành công tại {court.Name} ({startTime:hh\\:mm} - {endTime:hh\\:mm}), tổng tiền {result.Booking!.TotalAmount:N0} đ! Đơn #BK-{result.BookingId}";
             return RedirectToAction(nameof(ScheduleBoard), new { facilityId, date });
         }
 
@@ -398,9 +444,21 @@ namespace DACN.Areas.Owner.Controllers
             var service = await _unitOfWork.FacilityServices.GetByIdAsync(serviceId);
             if (service != null)
             {
-                _unitOfWork.FacilityServices.Remove(service);
-                await _unitOfWork.CompleteAsync();
-                TempData["SuccessMessage"] = "Đã xóa dịch vụ thành công!";
+                // Dịch vụ đã từng được đặt kèm trong đơn thì không thể xóa (khóa ngoại Restrict, cần giữ lịch sử hóa đơn)
+                // => chuyển sang "Tạm ngưng" để khách không chọn được nữa.
+                bool usedInBookings = await _unitOfWork.BookingServiceDetails.AnyAsync(d => d.FacilityServiceId == serviceId);
+                if (usedInBookings)
+                {
+                    service.IsActive = false;
+                    await _unitOfWork.CompleteAsync();
+                    TempData["SuccessMessage"] = $"Dịch vụ \"{service.Name}\" đã có trong lịch sử đơn đặt sân nên được chuyển sang Tạm ngưng thay vì xóa.";
+                }
+                else
+                {
+                    _unitOfWork.FacilityServices.Remove(service);
+                    await _unitOfWork.CompleteAsync();
+                    TempData["SuccessMessage"] = "Đã xóa dịch vụ thành công!";
+                }
             }
 
             return RedirectToAction(nameof(ManageServices), new { facilityId });
@@ -423,6 +481,11 @@ namespace DACN.Areas.Owner.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CreateFacility(CreateFacilityViewModel model)
         {
+            if (model.OpeningTime >= model.ClosingTime)
+            {
+                ModelState.AddModelError(nameof(model.ClosingTime), "Giờ đóng cửa phải sau giờ mở cửa.");
+            }
+
             if (!ModelState.IsValid)
             {
                 var sportTypes = await _unitOfWork.SportTypes.GetAllAsync();
@@ -546,6 +609,11 @@ namespace DACN.Areas.Owner.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> EditFacility(EditFacilityViewModel model)
         {
+            if (model.OpeningTime >= model.ClosingTime)
+            {
+                ModelState.AddModelError(nameof(model.ClosingTime), "Giờ đóng cửa phải sau giờ mở cửa.");
+            }
+
             if (!ModelState.IsValid)
             {
                 var sportTypes = await _unitOfWork.SportTypes.GetAllAsync();
@@ -587,7 +655,6 @@ namespace DACN.Areas.Owner.Controllers
         {
             var facility = await _unitOfWork.Facilities.Query()
                 .Include(f => f.Courts)
-                    .ThenInclude(c => c.Bookings)
                 .FirstOrDefaultAsync(f => f.Id == id);
 
             if (facility == null)
@@ -596,12 +663,26 @@ namespace DACN.Areas.Owner.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            var activeBookings = facility.Courts.SelectMany(c => c.Bookings)
-                .Count(b => b.Status != BookingStatus.Cancelled && b.BookingDate >= DateOnly.FromDateTime(DateTime.Today));
+            var today = DateOnly.FromDateTime(DateTime.Today);
+            var holdThreshold = BookingRules.HoldThreshold(DateTime.UtcNow);
+            var facilityBookings = _unitOfWork.Bookings.Query()
+                .Where(b => b.Court != null && b.Court.FacilityId == id);
 
-            if (activeBookings > 0)
+            var upcomingBookings = await facilityBookings
+                .Where(BookingRules.IsActive(holdThreshold))
+                .CountAsync(b => b.BookingDate >= today);
+
+            if (upcomingBookings > 0)
             {
-                TempData["ErrorMessage"] = $"Không thể xóa cụm sân này vì đang có {activeBookings} lịch đặt sân sắp diễn ra.";
+                TempData["ErrorMessage"] = $"Không thể xóa cụm sân này vì đang có {upcomingBookings} lịch đặt sân sắp diễn ra.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            // Đơn đặt sân (kể cả đơn cũ / đã hủy) tham chiếu tới sân con bằng khóa ngoại Restrict
+            // và là lịch sử doanh thu => không xóa được cụm sân, hướng dẫn chủ sân tạm ngưng các sân con.
+            if (await facilityBookings.AnyAsync())
+            {
+                TempData["ErrorMessage"] = "Cụm sân đã có lịch sử đặt sân nên không thể xóa (cần giữ lại hóa đơn, doanh thu). Hãy chuyển các sân con sang trạng thái Tạm ngưng.";
                 return RedirectToAction(nameof(Index));
             }
 

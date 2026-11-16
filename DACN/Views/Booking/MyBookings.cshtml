@@ -3,7 +3,6 @@
 @{
     ViewData["Title"] = "Vé Sân Của Tôi - Lịch Sử Đặt Sân";
     var activeFilter = ViewBag.ActiveFilter as string ?? "all";
-    var today = DateOnly.FromDateTime(DateTime.Today);
 }
 
 <div class="container py-4">
@@ -77,9 +76,12 @@
         <div class="row g-4">
             @foreach (var booking in Model)
             {
-                var isPast = booking.BookingDate < today;
                 var isCancelled = booking.Status == BookingStatus.Cancelled;
                 var isPaid = booking.PaymentStatus == PaymentStatus.Paid;
+                var cancelBlockReason = DACN.Services.BookingRules.GetCustomerCancelBlockReason(booking, DateTime.Now);
+                var isLateForFreeCancel = cancelBlockReason != null && !isCancelled
+                                          && booking.Status != BookingStatus.Completed
+                                          && DateTime.Now < DACN.Services.BookingRules.StartsAt(booking);
 
                 <div class="col-lg-6">
                     <div class="card h-100 shadow-sm border-0 border-start border-4 @(isCancelled ? "border-danger bg-light" : (isPaid ? "border-success" : "border-warning")) bg-white">
@@ -185,9 +187,16 @@
                                         </a>
                                     }
 
-                                    @if (!isCancelled && !isPast)
+                                    @if (isLateForFreeCancel)
                                     {
-                                        <button type="button" class="btn btn-outline-danger btn-sm" 
+                                        <span class="badge bg-secondary-subtle text-secondary align-self-center" title="@cancelBlockReason">
+                                            <i class="bi bi-lock me-1"></i> Quá hạn hủy miễn phí
+                                        </span>
+                                    }
+
+                                    @if (cancelBlockReason == null)
+                                    {
+                                        <button type="button" class="btn btn-outline-danger btn-sm"
                                                 data-bs-toggle="modal" data-bs-target="#cancelModal-@booking.Id">
                                             <i class="bi bi-trash"></i> Hủy
                                         </button>
@@ -211,6 +220,10 @@
                                                         </div>
                                                         <div class="alert alert-warning small mb-0">
                                                             <i class="bi bi-info-circle me-1"></i> Khung giờ này sẽ lập tức được mở lại cho người chơi khác trên hệ thống.
+                                                            @if (isPaid || booking.Status == BookingStatus.Confirmed)
+                                                            {
+                                                                <div class="mt-1">Bạn đang hủy trước giờ thi đấu ít nhất @DACN.Services.BookingRules.FreeCancelHours tiếng nên được hủy miễn phí. @(isPaid ? "Đơn đã thanh toán: vui lòng liên hệ chủ sân để được hoàn tiền." : "")</div>
+                                                            }
                                                         </div>
                                                     </div>
                                                     <div class="modal-footer bg-light">

@@ -34,6 +34,9 @@ builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 builder.Services.AddScoped<IBookingService, BookingService>();
 builder.Services.AddScoped<IFacilityService, DACN.Services.FacilityService>();
 
+// Job nền tự hủy các đơn giữ chỗ quá hạn chưa thanh toán
+builder.Services.AddHostedService<ExpiredBookingCleanupService>();
+
 // 4. Thêm MVC Controllers & Views
 builder.Services.AddControllersWithViews();
 

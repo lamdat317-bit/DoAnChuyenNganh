@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using DACN.Models;
 using DACN.Models.Enums;
 using DACN.Models.ViewModels;
+using DACN.Repositories;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -15,10 +16,12 @@ namespace DACN.Areas.Admin.Controllers
     public class UserController : Controller
     {
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly IUnitOfWork _unitOfWork;
 
-        public UserController(UserManager<ApplicationUser> userManager)
+        public UserController(UserManager<ApplicationUser> userManager, IUnitOfWork unitOfWork)
         {
             _userManager = userManager;
+            _unitOfWork = unitOfWork;
         }
 
         // GET: /Admin/User/Index
@@ -111,6 +114,20 @@ namespace DACN.Areas.Admin.Controllers
             if (user.Email == "admin@sanbong.vn")
             {
                 TempData["ErrorMessage"] = "Không thể xóa tài khoản Quản Trị Viên mặc định của hệ thống.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            // Đơn đặt sân, cụm sân, bài đăng kèo, yêu cầu ghép đội đều tham chiếu tới tài khoản bằng khóa ngoại Restrict
+            // => tài khoản đã phát sinh dữ liệu thì không xóa được (tránh lỗi 500 và mất lịch sử giao dịch).
+            bool hasRelatedData =
+                await _unitOfWork.Bookings.AnyAsync(b => b.CustomerId == id)
+                || await _unitOfWork.Facilities.AnyAsync(f => f.OwnerId == id)
+                || await _unitOfWork.MatchPosts.AnyAsync(p => p.CreatorId == id)
+                || await _unitOfWork.MatchJoinRequests.AnyAsync(r => r.UserId == id);
+
+            if (hasRelatedData)
+            {
+                TempData["ErrorMessage"] = $"Không thể xóa tài khoản {user.FullName} ({user.Email}) vì đã phát sinh đơn đặt sân, cụm sân hoặc bài đăng ghép đội.";
                 return RedirectToAction(nameof(Index));
             }
 

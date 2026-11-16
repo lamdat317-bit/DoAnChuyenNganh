@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using DACN.Models;
 using DACN.Models.DTOs;
@@ -16,6 +17,12 @@ namespace DACN.Services
         Task<BookingResult> CreateBookingAsync(BookingDto dto);
 
         /// <summary>
+        /// Chủ sân đặt sân nhanh tại quầy (đơn được xác nhận ngay, có thể đã/chưa thu tiền).
+        /// Dùng chung cơ chế chống trùng lịch với khách đặt online.
+        /// </summary>
+        Task<BookingResult> CreateCounterBookingAsync(BookingDto dto, decimal? totalAmountOverride, bool isPaid);
+
+        /// <summary>
         /// Lấy ma trận khung giờ còn trống / đã đặt của 1 sân con trong ngày được chọn (dành cho Customer).
         /// </summary>
         Task<CourtScheduleMatrixViewModel> GetCourtScheduleMatrixAsync(int courtId, DateOnly date);
@@ -26,24 +33,35 @@ namespace DACN.Services
         Task<FacilityTimelineScheduleViewModel> GetFacilityTimelineScheduleAsync(int facilityId, DateOnly date);
 
         /// <summary>
+        /// Kiểm tra đơn còn được phép thanh toán hay không (tự hủy nếu đã quá hạn giữ chỗ).
+        /// Khi thất bại, <see cref="BookingResult.Booking"/> vẫn được gán (nếu đơn tồn tại) để controller điều hướng phù hợp.
+        /// </summary>
+        Task<BookingResult> CheckPayableAsync(int bookingId);
+
+        /// <summary>
         /// Xử lý thanh toán giả lập đơn đặt sân.
         /// </summary>
-        Task<bool> ProcessPaymentAsync(int bookingId, string paymentMethod = "DemoGateway");
+        Task<BookingResult> ProcessPaymentAsync(int bookingId, string paymentMethod = "DemoGateway");
 
         /// <summary>
         /// Xác nhận chuyển khoản ngân hàng ảo kèm ảnh minh chứng giao dịch.
         /// </summary>
-        Task<bool> SubmitBankTransferProofAsync(int bookingId, string? proofImageUrl, string? transactionRef, string? paymentMethod = "VirtualBank", string? note = null);
+        Task<BookingResult> SubmitBankTransferProofAsync(int bookingId, string? proofImageUrl, string? transactionRef, string? paymentMethod = "VirtualBank", string? note = null);
 
         /// <summary>
-        /// Hủy đơn đặt sân.
+        /// Hủy đơn đặt sân (khách đặt hoặc chủ cụm sân).
         /// </summary>
-        Task<bool> CancelBookingAsync(int bookingId, string userId);
+        Task<BookingResult> CancelBookingAsync(int bookingId, string userId);
 
         /// <summary>
         /// Cập nhật trạng thái đơn đặt sân (dành cho Chủ sân duyệt / xác nhận thanh toán tiền mặt).
         /// </summary>
-        Task<bool> UpdateBookingStatusAsync(int bookingId, BookingStatus status, PaymentStatus? paymentStatus = null);
+        Task<BookingResult> UpdateBookingStatusAsync(int bookingId, BookingStatus status, PaymentStatus? paymentStatus = null);
+
+        /// <summary>
+        /// Hủy toàn bộ đơn giữ chỗ đã quá hạn mà chưa thanh toán. Trả về số đơn bị hủy.
+        /// </summary>
+        Task<int> ReleaseExpiredHoldsAsync(CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Lấy danh sách đơn đặt sân của khách hàng.

@@ -107,7 +107,7 @@ namespace DACN.Controllers
                     "• Hệ thống tự động tính tổng tiền minh bạch theo thời gian thực.\n\n" +
                     "**Bước 4: Thanh toán giữ chỗ tức thì qua VietQR**\n" +
                     "• Nhấn nút **'Giữ Chỗ & Thanh Toán Ngay'**.\n" +
-                    "• Hệ thống tự động khóa khung giờ trong **15 phút** (cam kết chống trùng lịch 100%).\n" +
+                    "• Hệ thống tự động khóa khung giờ trong **5 phút** chờ thanh toán (cam kết chống trùng lịch 100%).\n" +
                     "• Mở bất kỳ ứng dụng ngân hàng nào (*VietinBank, VCB, MB, Techcombank...*) hoặc ví MoMo, chọn **'Quét QR'** để thanh toán tự động trong 3 giây không cần nhập tay.\n\n" +
                     "**Bước 5: Nhận Vé Điện Tử E-Ticket Check-in**\n" +
                     "• Nhận ngay mã **Stadium Pass (Vé điện tử)** có mã QR check-in tại quầy sân.\n" +
@@ -284,7 +284,7 @@ namespace DACN.Controllers
                         "SanBong.vn giải quyết triệt để lỗi đặt trùng giờ (Race Condition) bằng giải pháp kỹ thuật nâng cao:\n\n" +
                         "1. **Cấp độ cô lập giao dịch Serializable (SQL Server):**\n" +
                         "   Khi bạn nhấn nút đặt sân, hệ thống thực thi giao dịch với khóa phân đoạn cao nhất. Không giao dịch nào khác được phép xen ngang vào cùng khung giờ đó.\n" +
-                        "2. **Khóa tạm thời 15 phút (Holding Lock):**\n" +
+                        "2. **Khóa tạm thời 5 phút (Holding Lock):**\n" +
                         "   Khung giờ sẽ chuyển ngay sang trạng thái *'Đang giữ chỗ'* màu vàng cam. Những người chơi khác truy cập cùng thời điểm sẽ không thể bấm đặt đè lên.\n" +
                         "3. **Cơ chế RowVersion (Concurrency Token):**\n" +
                         "   Mỗi bản ghi được kiểm tra phiên bản dữ liệu tự động, ngăn chặn hoàn toàn việc 2 người cùng thanh toán 1 sân.\n\n" +
@@ -347,7 +347,8 @@ namespace DACN.Controllers
                 return Ok(new ChatResponse
                 {
                     Reply = "🔄 **CHÍNH SÁCH HỦY & DỜI LỊCH ĐẶT SÂN:**\n\n" +
-                        "• **Hủy miễn phí trước 6 tiếng:** Người chơi có thể tự thao tác bấm 'Hủy đơn' trực tiếp tại mục *'Vé sân của tôi'* trước giờ thi đấu ít nhất 6 tiếng.\n" +
+                        $"• **Hủy miễn phí trước {DACN.Services.BookingRules.FreeCancelHours} tiếng:** Người chơi có thể tự thao tác bấm 'Hủy đơn' trực tiếp tại mục *'Vé sân của tôi'* trước giờ thi đấu ít nhất {DACN.Services.BookingRules.FreeCancelHours} tiếng. Trong vòng {DACN.Services.BookingRules.FreeCancelHours} tiếng trước giờ đá, vui lòng liên hệ chủ sân để được hỗ trợ.\n" +
+                        "• **Đơn giữ chỗ chưa thanh toán:** có thể tự hủy bất cứ lúc nào trước giờ thi đấu.\n" +
                         "• **Thời tiết mưa bão bất khả kháng:** Đối với sân ngoài trời, nếu trời mưa to không thể thi đấu, ban quản lý sân sẽ hỗ trợ dời lịch sang ngày khác hoặc hoàn tiền cọc 100%.\n" +
                         "• **Hỗ trợ tổng đài:** Mọi sự cố phát sinh bạn có thể gọi hotline **1900 8888** để nhân viên hỗ trợ xử lý tức thì.",
                     ActionUrl = "/Booking/MyBookings",
