@@ -1,0 +1,233 @@
+﻿@model List<DACN.Models.Booking>
+@using DACN.Models.Enums
+@{
+    ViewData["Title"] = "Lịch đặt của tôi";
+    var activeFilter = ViewBag.ActiveFilter as string ?? "all";
+    var reviewed = ViewBag.ReviewedBookingIds as HashSet<int> ?? new HashSet<int>();
+    var vi = new System.Globalization.CultureInfo("vi-VN");
+    var tabs = new[]
+    {
+        ("all", "Tất cả", (int)ViewBag.TotalCount),
+        ("upcoming", "Sắp tới", (int)ViewBag.UpcomingCount),
+        ("unpaid", "Chờ thanh toán", (int)ViewBag.UnpaidCount),
+        ("completed", "Đã chơi", (int)ViewBag.CompletedCount),
+        ("cancelled", "Đã hủy", (int)ViewBag.CancelledCount),
+    };
+}
+
+<div class="page-header">
+    <div class="container">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Trang chủ</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Lịch đặt của tôi</li>
+            </ol>
+        </nav>
+        <div class="d-flex flex-wrap justify-content-between align-items-end gap-3">
+            <div>
+                <h1>Lịch đặt của tôi</h1>
+                <p class="sub">Xem vé, thanh toán, hủy lịch và đánh giá sân sau khi chơi.</p>
+            </div>
+            <a asp-controller="Booking" asp-action="Index" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i> Đặt sân mới</a>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    <div class="d-flex flex-wrap gap-2 mb-4">
+        @foreach (var (key, label, count) in tabs)
+        {
+            <a asp-action="MyBookings" asp-route-filter="@key" class="chip @(activeFilter == key ? "active" : "")">@label <span class="count">@count</span></a>
+        }
+    </div>
+
+    @if (!Model.Any())
+    {
+        <div class="panel empty-state">
+            <span class="icon-bubble lg slate"><i class="bi bi-ticket-perforated"></i></span>
+            <h5>Chưa có lịch đặt nào</h5>
+            <p>Không có đơn nào trong mục này. Tìm sân trống và đặt ngay nhé!</p>
+            <a asp-controller="Booking" asp-action="Index" class="btn btn-primary"><i class="bi bi-search me-1"></i> Tìm sân</a>
+        </div>
+    }
+    else
+    {
+        <div class="row g-3">
+            @foreach (var booking in Model)
+            {
+                var isCancelled = booking.Status == BookingStatus.Cancelled;
+                var isPaid = booking.PaymentStatus == PaymentStatus.Paid;
+                var cancelBlockReason = DACN.Services.BookingRules.GetCustomerCancelBlockReason(booking, DateTime.Now);
+                var isLateForFreeCancel = cancelBlockReason != null && !isCancelled
+                                          && booking.Status != BookingStatus.Completed
+                                          && DateTime.Now < DACN.Services.BookingRules.StartsAt(booking);
+                var endsAt = booking.BookingDate.ToDateTime(TimeOnly.FromTimeSpan(booking.EndTime));
+                var played = booking.Status == BookingStatus.Completed
+                             || (booking.Status == BookingStatus.Confirmed && isPaid && endsAt <= DateTime.Now);
+                var canReview = played && !isCancelled && !reviewed.Contains(booking.Id);
+                var facilityName = booking.Court?.Facility?.Name ?? "Cụm sân";
+
+                <div class="col-lg-6">
+                    <div class="card booking-card h-100 @(isCancelled ? "is-cancelled" : "")">
+                        <div class="date-box">
+                            <div class="m">Th@(booking.BookingDate.Month)</div>
+                            <div class="d">@booking.BookingDate.Day</div>
+                            <div class="y">@booking.BookingDate.ToString("ddd", vi)</div>
+                        </div>
+                        <div class="flex-grow-1 min-w-0">
+                            <div class="d-flex flex-wrap justify-content-between gap-2 mb-1">
+                                <span class="small text-muted">#BK-@booking.Id · @(booking.Court?.Facility?.SportType?.Name ?? "Thể thao")</span>
+                                <div class="d-flex flex-wrap gap-1">
+                                    @{ var (tone, icon, text) = DACN.Services.BookingRules.StatusBadge(booking); }
+                                    <span class="badge-soft @tone"><i class="bi @icon"></i> @text</span>
+                                    @if (reviewed.Contains(booking.Id))
+                                    {
+                                        <span class="badge-soft violet"><i class="bi bi-star-fill"></i> Đã đánh giá</span>
+                                    }
+                                </div>
+                            </div>
+                            <div class="fw-bold text-ink text-truncate">@facilityName</div>
+                            <div class="small text-muted mb-2 text-truncate">@(booking.Court?.Name ?? "Sân") · <i class="bi bi-geo-alt"></i> @(booking.Court?.Facility?.Address ?? "")</div>
+                            <div class="d-flex flex-wrap gap-3 small mb-2">
+                                <span><i class="bi bi-clock text-success me-1"></i><strong class="text-ink">@DACN.Services.BookingRules.Hm(booking.StartTime) – @DACN.Services.BookingRules.Hm(booking.EndTime)</strong></span>
+                                <span class="fw-bold text-accent">@booking.TotalAmount.ToString("N0")đ</span>
+                            </div>
+                            @if (booking.ServiceDetails != null && booking.ServiceDetails.Any())
+                            {
+                                <div class="small text-muted mb-2"><i class="bi bi-bag me-1"></i>@string.Join(", ", booking.ServiceDetails.Select(sd => $"{sd.FacilityService?.Name ?? "Dịch vụ"} ×{sd.Quantity}"))</div>
+                            }
+
+                            @if (booking.PaymentStatus == PaymentStatus.AwaitingVerification && !isCancelled)
+                            {
+                                <div class="small rounded-3 px-2 py-1 mb-2" style="background:var(--violet-50);color:#5b21b6"><i class="bi bi-shield-check me-1"></i>Đã gửi biên lai — khung giờ đang được giữ trong lúc chủ sân xác nhận.</div>
+                            }
+                            @if (booking.PaymentStatus == PaymentStatus.RefundPending)
+                            {
+                                <div class="small rounded-3 px-2 py-1 mb-2" style="background:var(--warning-50);color:#92400e"><i class="bi bi-arrow-counterclockwise me-1"></i>Chủ sân sẽ hoàn <strong>@((booking.RefundAmount ?? booking.TotalAmount).ToString("N0"))đ</strong> cho bạn.</div>
+                            }
+                            else if (booking.PaymentStatus == PaymentStatus.Refunded)
+                            {
+                                <div class="small rounded-3 px-2 py-1 mb-2 text-muted" style="background:var(--line-2)"><i class="bi bi-check2-circle me-1"></i>Đã hoàn @((booking.RefundAmount ?? booking.TotalAmount).ToString("N0"))đ@(booking.RefundedAt.HasValue ? $" ngày {booking.RefundedAt.Value.ToLocalTime():dd/MM}" : "")@(string.IsNullOrEmpty(booking.RefundNote) ? "" : $" · {booking.RefundNote}")</div>
+                            }
+                            else if (isCancelled && !string.IsNullOrEmpty(booking.PaymentNote))
+                            {
+                                <div class="small text-muted mb-2"><i class="bi bi-info-circle me-1"></i>@booking.PaymentNote</div>
+                            }
+
+                            <div class="d-flex flex-wrap gap-2 pt-2 mt-1 border-top">
+                                @if (!isCancelled && booking.PaymentStatus == PaymentStatus.Unpaid && booking.Status == BookingStatus.Pending)
+                                {
+                                    <a asp-action="Checkout" asp-route-bookingId="@booking.Id" class="btn btn-accent btn-sm"><i class="bi bi-credit-card me-1"></i>Thanh toán</a>
+                                }
+                                @if (canReview)
+                                {
+                                    <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#reviewModal"
+                                            data-booking-id="@booking.Id" data-facility="@facilityName"><i class="bi bi-star me-1"></i>Đánh giá</button>
+                                }
+                                <a asp-action="Confirmation" asp-route-bookingId="@booking.Id" class="btn btn-light btn-sm"><i class="bi bi-qr-code me-1"></i>Vé</a>
+                                @if (!isCancelled && (booking.Status == BookingStatus.Confirmed || isPaid) && !played)
+                                {
+                                    <a asp-controller="Teamwork" asp-action="Create" asp-route-bookingId="@booking.Id" class="btn btn-light btn-sm"><i class="bi bi-people me-1"></i>Tạo kèo</a>
+                                }
+                                @if (cancelBlockReason == null)
+                                {
+                                    <button type="button" class="btn btn-light btn-sm text-danger ms-auto" data-bs-toggle="modal" data-bs-target="#cancelModal"
+                                            data-booking-id="@booking.Id"
+                                            data-summary="@facilityName · @(booking.Court?.Name) · @booking.BookingDate.ToString("dd/MM/yyyy") @DACN.Services.BookingRules.Hm(booking.StartTime)–@DACN.Services.BookingRules.Hm(booking.EndTime)"
+                                            data-paid="@(booking.PaymentStatus is PaymentStatus.Paid or PaymentStatus.AwaitingVerification ? "1" : "0")" data-amount="@booking.TotalAmount.ToString("N0")"><i class="bi bi-x-circle me-1"></i>Hủy</button>
+                                }
+                                else if (isLateForFreeCancel)
+                                {
+                                    <span class="small text-muted ms-auto align-self-center" title="@cancelBlockReason"><i class="bi bi-lock me-1"></i>Hết hạn hủy</span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+<!-- Cancel modal (dùng chung) -->
+<div class="modal fade" id="cancelModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form asp-action="Cancel" method="post">
+                <input type="hidden" name="bookingId" id="cancelBookingId" />
+                <div class="modal-body p-4 text-center">
+                    <span class="icon-bubble lg red mb-3"><i class="bi bi-exclamation-triangle"></i></span>
+                    <h5 class="fw-bold">Hủy đơn đặt sân?</h5>
+                    <p class="text-muted small mb-2" id="cancelSummary"></p>
+                    <div class="alert alert-warning small text-start mb-0">
+                        Khung giờ sẽ được mở lại ngay cho người khác.
+                        <span id="cancelPaidNote" class="d-none"><br />Đơn đã thanh toán: bạn được hoàn <strong id="cancelRefundAmount"></strong> (hủy trước giờ chơi ít nhất @DACN.Services.BookingRules.FreeCancelHours tiếng). Chủ sân sẽ chuyển khoản lại và bạn theo dõi trạng thái ngay tại đây.</span>
+                    </div>
+                    <textarea name="reason" class="form-control mt-3" rows="2" maxlength="200" placeholder="Lý do hủy (không bắt buộc)"></textarea>
+                </div>
+                <div class="modal-footer justify-content-center">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Giữ lại</button>
+                    <button type="submit" class="btn btn-danger">Xác nhận hủy</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Review modal (dùng chung) -->
+<div class="modal fade" id="reviewModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form asp-action="SubmitReview" method="post">
+                <input type="hidden" name="BookingId" id="reviewBookingId" />
+                <div class="modal-header">
+                    <h5 class="modal-title">Đánh giá sân</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="text-center mb-3">
+                        <div class="small text-muted">Trải nghiệm của bạn tại</div>
+                        <div class="fw-bold text-ink fs-5" id="reviewFacility"></div>
+                    </div>
+                    <div class="text-center mb-1">
+                        <div class="star-input">
+                            @for (int i = 5; i >= 1; i--)
+                            {
+                                <input type="radio" name="Rating" id="star@(i)" value="@i" checked="@(i == 5)" />
+                                <label for="star@(i)" title="@i sao"><i class="bi bi-star-fill"></i></label>
+                            }
+                        </div>
+                    </div>
+                    <div class="text-center small text-muted mb-3" id="ratingLabel">Tuyệt vời</div>
+                    <label class="form-label" for="reviewComment">Nhận xét <span class="text-muted fw-normal">(tùy chọn)</span></label>
+                    <textarea name="Comment" id="reviewComment" class="form-control" rows="3" maxlength="1000" placeholder="Mặt sân, ánh sáng, dịch vụ, thái độ phục vụ..."></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Để sau</button>
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-send me-1"></i>Gửi đánh giá</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.getElementById('cancelModal').addEventListener('show.bs.modal', function (e) {
+            const btn = e.relatedTarget;
+            document.getElementById('cancelBookingId').value = btn.dataset.bookingId;
+            document.getElementById('cancelSummary').textContent = '#BK-' + btn.dataset.bookingId + ' · ' + btn.dataset.summary;
+            document.getElementById('cancelPaidNote').classList.toggle('d-none', btn.dataset.paid !== '1');
+            document.getElementById('cancelRefundAmount').textContent = (btn.dataset.amount || '') + 'đ';
+        });
+        document.getElementById('reviewModal').addEventListener('show.bs.modal', function (e) {
+            const btn = e.relatedTarget;
+            document.getElementById('reviewBookingId').value = btn.dataset.bookingId;
+            document.getElementById('reviewFacility').textContent = btn.dataset.facility;
+        });
+        const labels = { 1: 'Rất tệ', 2: 'Chưa tốt', 3: 'Bình thường', 4: 'Tốt', 5: 'Tuyệt vời' };
+        document.querySelectorAll('.star-input input').forEach(function (r) {
+            r.addEventListener('change', function () { document.getElementById('ratingLabel').textContent = labels[this.value]; });
+        });
+    </script>
+}

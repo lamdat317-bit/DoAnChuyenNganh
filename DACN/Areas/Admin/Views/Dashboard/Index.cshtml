@@ -1,0 +1,164 @@
+﻿@model DACN.Models.ViewModels.AdminDashboardViewModel
+@{
+    ViewData["Title"] = "Tổng quan hệ thống";
+    var maxSport = Model.BookingsBySport.Any() ? Model.BookingsBySport.Max(s => s.Count) : 0;
+    var json = new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase };
+}
+
+<div class="page-header">
+    <div class="container">
+        <span class="eyebrow">Quản trị hệ thống</span>
+        <h1>Tổng quan</h1>
+        <p class="sub">Số liệu toàn hệ thống: người dùng, cụm sân, lượt đặt và doanh thu.</p>
+        <partial name="_ManageNav" />
+    </div>
+</div>
+
+<div class="container">
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-xl-3"><div class="card stat-card"><span class="icon-bubble green"><i class="bi bi-cash-stack"></i></span><div><div class="label">Doanh thu tháng này</div><div class="value">@Model.RevenueThisMonth.ToString("N0")<small class="fs-6">đ</small></div><div class="small text-muted">Tổng: @Model.RevenueAllTime.ToString("N0")đ</div></div></div></div>
+        <div class="col-6 col-xl-3"><div class="card stat-card"><span class="icon-bubble blue"><i class="bi bi-receipt"></i></span><div><div class="label">Lượt đặt tháng này</div><div class="value">@Model.BookingsThisMonth</div><div class="small text-muted">Tổng: @Model.TotalBookings lượt</div></div></div></div>
+        <div class="col-6 col-xl-3"><div class="card stat-card"><span class="icon-bubble amber"><i class="bi bi-buildings"></i></span><div><div class="label">Cụm sân / sân con</div><div class="value">@Model.TotalFacilities <small class="fs-6 text-muted">/ @Model.TotalCourts</small></div><div class="small text-muted">@Model.TotalOwners chủ sân</div></div></div></div>
+        <div class="col-6 col-xl-3"><div class="card stat-card"><span class="icon-bubble violet"><i class="bi bi-people"></i></span><div><div class="label">Người dùng</div><div class="value">@Model.TotalUsers</div><div class="small text-muted">@Model.TotalCustomers khách · ★ @Model.AverageRating.ToString("0.0") (@Model.TotalReviews đánh giá)</div></div></div></div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-lg-8">
+            <div class="panel h-100">
+                <div class="panel-header"><h5 class="panel-title"><i class="bi bi-bar-chart"></i> Doanh thu 12 tháng</h5></div>
+                <div class="panel-body"><div class="chart-box"><canvas id="adminMonthly" role="img" aria-label="Biểu đồ doanh thu 12 tháng"></canvas></div></div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="panel h-100">
+                <div class="panel-header"><h5 class="panel-title"><i class="bi bi-trophy"></i> Lượt đặt theo môn</h5></div>
+                <div class="panel-body">
+                    @if (!Model.BookingsBySport.Any())
+                    {
+                        <div class="small text-muted">Chưa có dữ liệu.</div>
+                    }
+                    @foreach (var s in Model.BookingsBySport)
+                    {
+                        var pct = maxSport > 0 ? s.Count * 100.0 / maxSport : 0;
+                        <div class="mb-3" title="@s.Label: @s.Count lượt · @s.Value.ToString("N0")đ">
+                            <div class="d-flex justify-content-between small mb-1"><span class="fw-semibold text-ink">@s.Label</span><span class="text-muted">@s.Count lượt</span></div>
+                            <div class="rating-bar" style="height:10px"><span style="width:@pct.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)%;background:var(--brand)"></span></div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="panel mb-4">
+        <div class="panel-header">
+            <h5 class="panel-title"><i class="bi bi-buildings"></i> Cụm sân trên hệ thống</h5>
+            <a asp-area="Owner" asp-controller="Facility" asp-action="CreateFacility" class="btn btn-light btn-sm"><i class="bi bi-plus-lg me-1"></i>Thêm cụm sân</a>
+        </div>
+        <div class="table-wrap">
+            <table class="table table-hover">
+                <thead><tr><th>Cụm sân</th><th>Chủ sân</th><th class="text-end">Sân</th><th class="text-end">Lượt đặt</th><th class="text-end">Doanh thu</th><th>Đánh giá</th><th></th></tr></thead>
+                <tbody>
+                    @if (!Model.Facilities.Any())
+                    {
+                        <tr><td colspan="7" class="text-center text-muted py-4">Chưa có cụm sân nào.</td></tr>
+                    }
+                    @foreach (var f in Model.Facilities)
+                    {
+                        <tr>
+                            <td><div class="fw-semibold text-ink">@f.Name</div><div class="small text-muted">@f.SportName · <span class="text-truncate d-inline-block align-bottom" style="max-width: 220px;">@f.Address</span></div></td>
+                            <td><div class="text-ink">@f.OwnerName</div><div class="small text-muted">@f.OwnerEmail</div></td>
+                            <td class="text-end">@f.CourtCount</td>
+                            <td class="text-end">@f.BookingCount</td>
+                            <td class="text-end fw-bold">@f.Revenue.ToString("N0")đ</td>
+                            <td>
+                                @if (f.ReviewCount > 0)
+                                {
+                                    <span class="rating-inline"><i class="bi bi-star-fill"></i> @f.AverageRating.ToString("0.0") <span class="count">(@f.ReviewCount)</span></span>
+                                }
+                                else
+                                {
+                                    <span class="small text-muted">—</span>
+                                }
+                            </td>
+                            <td class="text-end text-nowrap">
+                                <a asp-area="Owner" asp-controller="Facility" asp-action="ScheduleBoard" asp-route-facilityId="@f.Id" class="btn btn-light btn-sm" title="Bảng lịch"><i class="bi bi-calendar3-range"></i></a>
+                                <a asp-area="Owner" asp-controller="Facility" asp-action="EditFacility" asp-route-id="@f.Id" class="btn btn-light btn-sm" title="Sửa"><i class="bi bi-pencil"></i></a>
+                                <a asp-area="" asp-controller="Booking" asp-action="FacilityDetail" asp-route-id="@f.Id" target="_blank" class="btn btn-light btn-sm" title="Trang khách"><i class="bi bi-box-arrow-up-right"></i></a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="panel">
+        <div class="panel-header">
+            <h5 class="panel-title"><i class="bi bi-clock-history"></i> Đơn đặt gần đây</h5>
+            <a asp-area="Admin" asp-controller="Bank" asp-action="Index" class="small">Xem sổ cái</a>
+        </div>
+        <div class="table-wrap">
+            <table class="table table-hover">
+                <thead><tr><th>Đơn</th><th>Khách</th><th>Sân</th><th>Thời gian</th><th class="text-end">Tiền</th><th>Trạng thái</th></tr></thead>
+                <tbody>
+                    @foreach (var b in Model.RecentBookings)
+                    {
+                        <tr>
+                            <td><span class="kbd-tag">#BK-@b.Id</span></td>
+                            <td>@(b.CustomerName ?? b.Customer?.FullName)</td>
+                            <td><div class="text-ink">@b.Court?.Name</div><div class="small text-muted">@b.Court?.Facility?.Name</div></td>
+                            <td class="small">@b.BookingDate.ToString("dd/MM/yyyy") · @DACN.Services.BookingRules.Hm(b.StartTime)</td>
+                            <td class="text-end fw-bold">@b.TotalAmount.ToString("N0")đ</td>
+                            <td>
+                                @if (b.Status == BookingStatus.Cancelled)
+                                {
+                                    <span class="badge-soft danger">Đã hủy</span>
+                                }
+                                else if (b.PaymentStatus == PaymentStatus.Paid)
+                                {
+                                    <span class="badge-soft success">Đã thanh toán</span>
+                                }
+                                else
+                                {
+                                    <span class="badge-soft warning">Chờ thanh toán</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/lib/chartjs/chart.umd.min.js"></script>
+    <script>
+        const monthly = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.MonthlyRevenue, json));
+        const vnd = v => Number(v).toLocaleString('vi-VN') + 'đ';
+        const shortVnd = v => v >= 1e6 ? (v / 1e6).toLocaleString('vi-VN', { maximumFractionDigits: 1 }) + 'tr' : v >= 1e3 ? (v / 1e3).toFixed(0) + 'k' : v;
+        Chart.defaults.font.family = "'Be Vietnam Pro', system-ui, sans-serif";
+        Chart.defaults.color = '#64748b';
+        new Chart(document.getElementById('adminMonthly'), {
+            type: 'bar',
+            data: {
+                labels: monthly.map(m => m.label),
+                datasets: [{ data: monthly.map(m => m.value), backgroundColor: '#16a34a', hoverBackgroundColor: '#15803d', borderRadius: { topLeft: 4, topRight: 4 }, borderSkipped: 'bottom', maxBarThickness: 32 }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { backgroundColor: '#0f172a', padding: 10, cornerRadius: 8, displayColors: false,
+                        callbacks: { title: c => 'Tháng ' + c[0].label, label: c => vnd(c.raw), afterLabel: c => monthly[c.dataIndex].count + ' lượt đặt' } }
+                },
+                scales: {
+                    x: { grid: { display: false }, border: { color: '#e5e9f0' } },
+                    y: { beginAtZero: true, grid: { color: '#eef1f5' }, border: { display: false }, ticks: { callback: shortVnd, maxTicksLimit: 5 } }
+                }
+            }
+        });
+    </script>
+}

@@ -1,0 +1,92 @@
+@model List<DACN.Models.ViewModels.FacilityCardDto>
+@{
+    ViewData["Title"] = "Tìm & đặt sân";
+    string? selectedSort = ViewBag.SelectedSortBy as string;
+    bool hasFilter = !string.IsNullOrEmpty(ViewBag.Keyword as string) || ViewBag.SelectedSportTypeId != null || ViewBag.SelectedCityId != null;
+}
+
+<div class="page-header">
+    <div class="container">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Trang chủ</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Tìm sân</li>
+            </ol>
+        </nav>
+        <div class="d-flex flex-wrap justify-content-between align-items-end gap-3">
+            <div>
+                <h1>Tìm sân thể thao</h1>
+                <p class="sub">Lọc theo môn, khu vực và giá để tìm sân phù hợp, xem lịch trống và đặt ngay.</p>
+            </div>
+            <a asp-controller="Teamwork" asp-action="Index" class="btn btn-light"><i class="bi bi-people me-1"></i> Tìm kèo ghép đội</a>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    <form method="get" asp-action="Index" class="filter-bar mb-4">
+        <div class="row g-2 align-items-end">
+            <div class="col-lg-4 col-md-6">
+                <label class="form-label small">Từ khóa</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                    <input type="text" name="keyword" value="@ViewBag.Keyword" class="form-control" placeholder="Tên sân, đường, quận..." />
+                </div>
+            </div>
+            <div class="col-lg-2 col-md-6">
+                <label class="form-label small">Môn thể thao</label>
+                <select name="sportTypeId" class="form-select" asp-items="ViewBag.SportTypes">
+                    <option value="">Tất cả</option>
+                </select>
+            </div>
+            <div class="col-lg-2 col-md-4">
+                <label class="form-label small">Tỉnh / thành</label>
+                <select name="cityId" class="form-select" asp-items="ViewBag.Cities">
+                    <option value="">Toàn quốc</option>
+                </select>
+            </div>
+            <div class="col-lg-2 col-md-4">
+                <label class="form-label small">Sắp xếp</label>
+                <select name="sortBy" class="form-select">
+                    <option value="">Mặc định</option>
+                    <option value="rating" selected="@(selectedSort == "rating" ? "selected" : null)">Đánh giá cao nhất</option>
+                    <option value="price_asc" selected="@(selectedSort == "price_asc" ? "selected" : null)">Giá thấp → cao</option>
+                    <option value="price_desc" selected="@(selectedSort == "price_desc" ? "selected" : null)">Giá cao → thấp</option>
+                    <option value="courts" selected="@(selectedSort == "courts" ? "selected" : null)">Nhiều sân nhất</option>
+                </select>
+            </div>
+            <div class="col-lg-2 col-md-4 d-flex gap-2">
+                <button type="submit" class="btn btn-primary flex-grow-1"><i class="bi bi-funnel me-1"></i> Lọc</button>
+                @if (hasFilter || !string.IsNullOrEmpty(selectedSort))
+                {
+                    <a asp-action="Index" class="btn btn-light btn-icon" style="height:auto;width:44px" title="Xóa bộ lọc"><i class="bi bi-x-lg"></i></a>
+                }
+            </div>
+        </div>
+    </form>
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="text-muted small">Tìm thấy <strong class="text-ink">@Model.Count</strong> cụm sân</div>
+    </div>
+
+    @if (!Model.Any())
+    {
+        <div class="panel empty-state">
+            <span class="icon-bubble lg slate"><i class="bi bi-search"></i></span>
+            <h5>Không tìm thấy sân phù hợp</h5>
+            <p>Thử dùng từ khóa ngắn hơn, đổi môn thể thao hoặc bỏ bớt bộ lọc.</p>
+            <a asp-action="Index" class="btn btn-primary">Xem tất cả sân</a>
+        </div>
+    }
+    else
+    {
+        <div class="row g-4">
+            @foreach (var facility in Model)
+            {
+                <div class="col-md-6 col-lg-4">
+                    <partial name="_VenueCard" model="facility" />
+                </div>
+            }
+        </div>
+    }
+</div>

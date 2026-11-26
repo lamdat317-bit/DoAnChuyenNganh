@@ -1,0 +1,94 @@
+﻿@model DACN.Models.ViewModels.EditFacilityViewModel
+@{
+    ViewData["Title"] = $"Sửa · {Model.Name}";
+}
+
+<div class="page-header">
+    <div class="container" style="max-width: 900px;">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a asp-action="Index">Cụm sân</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Sửa thông tin</li>
+            </ol>
+        </nav>
+        <h1>Sửa cụm sân</h1>
+        <p class="sub">@Model.Name</p>
+    </div>
+</div>
+
+<div class="container" style="max-width: 900px;">
+    <form asp-action="EditFacility" method="post">
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger small" role="alert"></div>
+        <input type="hidden" asp-for="Id" />
+
+        <div class="panel mb-4">
+            <div class="panel-header"><h5 class="panel-title"><i class="bi bi-info-circle"></i> Thông tin cơ sở</h5></div>
+            <div class="panel-body">
+                <div class="row g-3">
+                    <div class="col-md-8">
+                        <label asp-for="Name" class="form-label"></label>
+                        <input asp-for="Name" class="form-control" />
+                        <span asp-validation-for="Name" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="SportTypeId" class="form-label"></label>
+                        <select asp-for="SportTypeId" class="form-select" asp-items="ViewBag.SportTypes"></select>
+                        <span asp-validation-for="SportTypeId" class="text-danger small"></span>
+                    </div>
+                    <div class="col-12">
+                        <label asp-for="Address" class="form-label"></label>
+                        <input asp-for="Address" class="form-control" />
+                        <span asp-validation-for="Address" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="CityId" class="form-label"></label>
+                        <select asp-for="CityId" class="form-select" asp-items="ViewBag.Cities"><option value="">Chọn tỉnh/thành</option></select>
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="DistrictName" class="form-label"></label>
+                        <input asp-for="DistrictName" class="form-control" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Tọa độ GPS</label>
+                        <div class="input-group">
+                            <input asp-for="Latitude" class="form-control" placeholder="Vĩ độ" />
+                            <input asp-for="Longitude" class="form-control" placeholder="Kinh độ" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel mb-4">
+            <div class="panel-header"><h5 class="panel-title"><i class="bi bi-clock"></i> Giờ hoạt động &amp; mô tả</h5></div>
+            <div class="panel-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label asp-for="OpeningTime" class="form-label"></label>
+                        <input asp-for="OpeningTime" type="time" class="form-control" />
+                        <span asp-validation-for="OpeningTime" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="ClosingTime" class="form-label"></label>
+                        <input asp-for="ClosingTime" type="time" class="form-control" />
+                        <span asp-validation-for="ClosingTime" class="text-danger small"></span>
+                        <div class="form-text">Sân mở qua đêm: nhập giờ đóng nhỏ hơn giờ mở (vd 16:00 → 02:00). Đóng lúc nửa đêm: 00:00.</div>
+                    </div>
+                    <div class="col-12">
+                        <label asp-for="Description" class="form-label"></label>
+                        <textarea asp-for="Description" class="form-control" rows="4"></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-end gap-2">
+            <a asp-action="Index" class="btn btn-light">Hủy</a>
+            <button type="submit" class="btn btn-primary btn-lg"><i class="bi bi-check2 me-1"></i> Lưu thay đổi</button>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

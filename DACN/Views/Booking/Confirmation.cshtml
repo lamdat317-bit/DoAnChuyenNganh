@@ -1,0 +1,134 @@
+﻿@model DACN.Models.Booking
+@using DACN.Models.Enums
+@{
+    ViewData["Title"] = "Vé điện tử #BK-" + Model.Id;
+    var qrTicketUrl = $"https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=SANBONG-PASS-BK{Model.Id}";
+    var isPaid = Model.PaymentStatus == PaymentStatus.Paid;
+    var isCancelled = Model.Status == BookingStatus.Cancelled;
+    var isVerifying = Model.PaymentStatus == PaymentStatus.AwaitingVerification && !isCancelled;
+    var (badgeTone, badgeIcon, badgeText) = DACN.Services.BookingRules.StatusBadge(Model);
+    var (heroTone, heroIcon, heroTitle, heroSub) = isCancelled
+        ? ("red", "bi-x-lg", "Đơn đã bị hủy", Model.PaymentStatus switch
+            {
+                PaymentStatus.RefundPending => $"Chủ sân sẽ hoàn {(Model.RefundAmount ?? Model.TotalAmount):N0}đ cho bạn.",
+                PaymentStatus.Refunded => $"Đã hoàn {(Model.RefundAmount ?? Model.TotalAmount):N0}đ" + (string.IsNullOrEmpty(Model.RefundNote) ? "." : $" · {Model.RefundNote}"),
+                _ => Model.PaymentNote ?? "Khung giờ đã được mở lại cho người khác."
+            })
+        : isPaid || Model.Status == BookingStatus.Completed ? ("green", "bi-check-lg", "Đặt sân thành công!", "Xuất trình vé này tại quầy để nhận sân.")
+        : isVerifying ? ("violet", "bi-shield-check", "Đang chờ chủ sân xác nhận chuyển khoản", "Khung giờ đã được giữ cho bạn. Bạn sẽ nhận thông báo ngay khi chủ sân xác nhận.")
+        : Model.Status == BookingStatus.Confirmed ? ("green", "bi-check-lg", "Đã giữ chỗ", "Thanh toán tại quầy khi đến sân.")
+        : ("amber", "bi-hourglass-split", "Đơn đang chờ thanh toán", "Hoàn tất thanh toán để giữ chỗ.");
+    var vi = new System.Globalization.CultureInfo("vi-VN");
+    var statusText = Model.Status switch
+    {
+        BookingStatus.Confirmed => "Đã xác nhận",
+        BookingStatus.Completed => "Đã hoàn thành",
+        BookingStatus.Cancelled => "Đã hủy",
+        _ => "Chờ xác nhận"
+    };
+}
+
+<div class="container py-5" style="max-width: 760px;">
+    <div class="text-center mb-4 no-print">
+        <span class="icon-bubble lg @heroTone mb-3"><i class="bi @heroIcon"></i></span>
+        <h1 class="h3 fw-extrabold mb-1">@heroTitle</h1>
+        <p class="text-muted mb-0">@heroSub</p>
+        @if (!isCancelled && Model.PaymentStatus == PaymentStatus.Unpaid && Model.Status == BookingStatus.Pending)
+        {
+            <a asp-action="Checkout" asp-route-bookingId="@Model.Id" class="btn btn-accent mt-3"><i class="bi bi-credit-card me-1"></i>Thanh toán ngay</a>
+        }
+    </div>
+
+    <div class="ticket-card mb-4">
+        <div class="ticket-header d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center gap-2">
+                <span class="brand-mark d-inline-flex align-items-center justify-content-center rounded-3" style="width:36px;height:36px;background:rgba(255,255,255,.18)"><i class="bi bi-dribbble"></i></span>
+                <div>
+                    <div class="fw-bold">SanBong.vn</div>
+                    <div class="small" style="opacity:.8">VÉ VÀO SÂN · E-TICKET</div>
+                </div>
+            </div>
+            <span class="fw-bold fs-5">#BK-@Model.Id</span>
+        </div>
+
+        <div class="p-4">
+            <div class="row g-4 align-items-center">
+                <div class="col-sm-8">
+                    <span class="badge-soft success mb-2">@(Model.Court?.Facility?.SportType?.Name ?? "Thể thao")</span>
+                    <h4 class="fw-bold mb-1">@(Model.Court?.Facility?.Name ?? "Cụm sân")</h4>
+                    <div class="small text-muted mb-3"><i class="bi bi-geo-alt me-1"></i>@(Model.Court?.Facility?.Address ?? "")</div>
+                    <div class="row g-3 small">
+                        <div class="col-6"><div class="text-muted">Sân</div><div class="fw-bold text-ink">@(Model.Court?.Name ?? "Sân")</div></div>
+                        <div class="col-6"><div class="text-muted">Ngày</div><div class="fw-bold text-ink">@Model.BookingDate.ToString("ddd, dd/MM/yyyy", vi)</div></div>
+                        <div class="col-6"><div class="text-muted">Giờ</div><div class="fw-bold text-success fs-6">@DACN.Services.BookingRules.Hm(Model.StartTime) – @DACN.Services.BookingRules.Hm(Model.EndTime)</div></div>
+                        <div class="col-6"><div class="text-muted">Người đặt</div><div class="fw-bold text-ink">@(Model.CustomerName ?? Model.Customer?.FullName ?? "Khách")</div></div>
+                        <div class="col-6"><div class="text-muted">Điện thoại</div><div class="fw-bold text-ink">@(Model.CustomerPhone ?? Model.Customer?.PhoneNumber ?? "—")</div></div>
+                        @if (Model.ServiceDetails != null && Model.ServiceDetails.Any())
+                        {
+                            <div class="col-6"><div class="text-muted">Dịch vụ</div><div class="fw-semibold text-ink">@string.Join(", ", Model.ServiceDetails.Select(sd => $"{sd.FacilityService?.Name ?? "Dịch vụ"} ×{sd.Quantity}"))</div></div>
+                        }
+                    </div>
+                </div>
+                <div class="col-sm-4 text-center">
+                    <img src="@qrTicketUrl" alt="Mã QR check-in" class="border rounded-3 p-2 bg-white" style="width:150px;height:150px;" />
+                    <div class="small text-muted mt-1">Mã check-in</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="ticket-stub p-4">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+                <div>
+                    <div class="small text-muted">Tổng tiền</div>
+                    <div class="price fs-3">@Model.TotalAmount.ToString("N0")đ</div>
+                </div>
+                <div class="d-flex flex-wrap gap-2">
+                    <span class="badge-soft @badgeTone"><i class="bi @badgeIcon"></i> @badgeText</span>
+                </div>
+            </div>
+            @if (!string.IsNullOrEmpty(Model.PaymentTransactionRef))
+            {
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3 pt-3 border-top small">
+                    <span class="text-muted">Mã giao dịch: <span class="kbd-tag">@Model.PaymentTransactionRef</span></span>
+                    @if (!string.IsNullOrEmpty(Model.PaymentProofImage))
+                    {
+                        <button type="button" class="btn btn-light btn-sm no-print" data-bs-toggle="modal" data-bs-target="#modalProofView"><i class="bi bi-image me-1"></i>Xem biên lai</button>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="panel p-4 mb-4 d-flex flex-wrap align-items-center gap-3 no-print">
+        <span class="icon-bubble orange"><i class="bi bi-people"></i></span>
+        <div class="flex-grow-1" style="min-width: 220px;">
+            <div class="fw-bold text-ink">Thiếu người hoặc cần tìm đối?</div>
+            <div class="small text-muted">Tạo bài tuyển người với thông tin trận này chỉ trong 1 bước.</div>
+        </div>
+        <a asp-controller="Teamwork" asp-action="Create" asp-route-bookingId="@Model.Id" class="btn btn-accent"><i class="bi bi-plus-lg me-1"></i>Tạo kèo</a>
+    </div>
+
+    <div class="d-flex flex-wrap justify-content-center gap-2 no-print">
+        <a asp-action="MyBookings" class="btn btn-light"><i class="bi bi-ticket-perforated me-1"></i> Lịch đặt của tôi</a>
+        <a href="https://www.google.com/maps/dir/?api=1&destination=@Uri.EscapeDataString(Model.Court?.Facility?.Address ?? "")" target="_blank" rel="noopener" class="btn btn-light"><i class="bi bi-sign-turn-right me-1"></i> Chỉ đường</a>
+        <button type="button" class="btn btn-light" onclick="window.print();"><i class="bi bi-printer me-1"></i> In vé</button>
+        <a asp-action="Index" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i> Đặt thêm sân</a>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.PaymentProofImage))
+{
+    <div class="modal fade" id="modalProofView" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Biên lai chuyển khoản #BK-@Model.Id</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <img src="@Model.PaymentProofImage" alt="Biên lai" class="img-fluid rounded-3" style="max-height: 70vh;" />
+                </div>
+            </div>
+        </div>
+    </div>
+}

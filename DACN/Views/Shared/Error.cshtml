@@ -1,0 +1,17 @@
+﻿@model ErrorViewModel
+@{
+    ViewData["Title"] = "Đã xảy ra lỗi";
+}
+
+<div class="container py-5" style="max-width: 560px;">
+    <div class="panel empty-state py-5">
+        <span class="icon-bubble lg red"><i class="bi bi-exclamation-octagon"></i></span>
+        <h4 class="fw-bold">Rất tiếc, đã có lỗi xảy ra</h4>
+        <p>Hệ thống gặp sự cố khi xử lý yêu cầu của bạn. Vui lòng thử lại sau ít phút.</p>
+        @if (Model.ShowRequestId)
+        {
+            <p class="small">Mã lỗi: <span class="kbd-tag">@Model.RequestId</span></p>
+        }
+        <a asp-controller="Home" asp-action="Index" class="btn btn-primary"><i class="bi bi-house me-1"></i> Về trang chủ</a>
+    </div>
+</div>

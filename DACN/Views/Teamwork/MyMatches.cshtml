@@ -1,0 +1,142 @@
+﻿@model DACN.Models.ViewModels.MyMatchesViewModel
+@using DACN.Models.Enums
+@{
+    ViewData["Title"] = "Kèo của tôi";
+    var vi = new System.Globalization.CultureInfo("vi-VN");
+}
+
+<div class="page-header">
+    <div class="container">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a asp-area="" asp-controller="Home" asp-action="Index">Trang chủ</a></li>
+                <li class="breadcrumb-item"><a asp-action="Index">Ghép đội</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Kèo của tôi</li>
+            </ol>
+        </nav>
+        <div class="d-flex flex-wrap justify-content-between align-items-end gap-3">
+            <div>
+                <h1>Kèo của tôi</h1>
+                <p class="sub">Các trận bạn làm đội trưởng và các kèo bạn đã xin tham gia.</p>
+            </div>
+            <a asp-action="Create" class="btn btn-accent"><i class="bi bi-plus-lg me-1"></i> Đăng kèo</a>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    <ul class="nav nav-tabs-clean mb-4" role="tablist">
+        <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#created-content" type="button" role="tab">Tôi làm đội trưởng <span class="badge-soft neutral ms-1">@Model.MyCreatedPosts.Count</span></button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#joined-content" type="button" role="tab">Tôi xin tham gia <span class="badge-soft neutral ms-1">@Model.MyJoinedRequests.Count</span></button></li>
+    </ul>
+
+    <div class="tab-content">
+        <div class="tab-pane fade show active" id="created-content" role="tabpanel">
+            @if (!Model.MyCreatedPosts.Any())
+            {
+                <div class="panel empty-state">
+                    <span class="icon-bubble lg orange"><i class="bi bi-calendar-plus"></i></span>
+                    <h5>Bạn chưa đăng kèo nào</h5>
+                    <p>Đăng kèo để rủ bạn bè hoặc người chơi gần bạn cùng tham gia.</p>
+                    <a asp-action="Create" class="btn btn-accent">Đăng kèo ngay</a>
+                </div>
+            }
+            else
+            {
+                <div class="row g-3">
+                    @foreach (var post in Model.MyCreatedPosts)
+                    {
+                        var pendingCount = post.JoinRequests.Count(r => r.Status == JoinRequestStatus.Pending);
+                        var pct = post.TotalSlots > 0 ? post.CurrentSlots * 100 / post.TotalSlots : 0;
+                        <div class="col-md-6 col-xl-4">
+                            <div class="card match-card @(post.PostType == MatchPostType.FindTeammates ? "" : "opponent")">
+                                <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
+                                    <span class="badge-soft neutral"><i class="@(post.SportType?.IconCss ?? "bi bi-activity")"></i> @post.SportType?.Name</span>
+                                    @if (pendingCount > 0)
+                                    {
+                                        <span class="badge-soft danger"><i class="bi bi-bell-fill"></i> @pendingCount chờ duyệt</span>
+                                    }
+                                    else if (post.Status == MatchPostStatus.Open)
+                                    {
+                                        <span class="badge-soft success">Đang mở</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge-soft neutral">Đã chốt</span>
+                                    }
+                                </div>
+                                <div class="title mb-2"><a asp-action="Detail" asp-route-id="@post.Id">@post.Title</a></div>
+                                <div class="match-meta mb-3">
+                                    <span class="text-truncate"><i class="bi bi-geo-alt"></i> @post.VenueName</span>
+                                    <span><i class="bi bi-calendar3"></i> @post.MatchDate.ToString("ddd dd/MM", vi) · @DACN.Services.BookingRules.Hm(post.StartTime)–@DACN.Services.BookingRules.Hm(post.EndTime)</span>
+                                </div>
+                                <div class="mt-auto">
+                                    <div class="d-flex justify-content-between small mb-1"><span class="text-muted">Đội hình</span><strong class="text-ink">@post.CurrentSlots/@post.TotalSlots</strong></div>
+                                    <div class="slot-progress mb-3"><div style="width:@pct%"></div></div>
+                                    <a asp-action="Detail" asp-route-id="@post.Id" class="btn btn-soft btn-sm w-100"><i class="bi bi-gear me-1"></i>Quản lý &amp; duyệt</a>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+
+        <div class="tab-pane fade" id="joined-content" role="tabpanel">
+            @if (!Model.MyJoinedRequests.Any())
+            {
+                <div class="panel empty-state">
+                    <span class="icon-bubble lg blue"><i class="bi bi-inbox"></i></span>
+                    <h5>Bạn chưa xin tham gia kèo nào</h5>
+                    <p>Khám phá bảng tin để tìm trận phù hợp với lịch rảnh của bạn.</p>
+                    <a asp-action="Index" class="btn btn-primary">Khám phá kèo</a>
+                </div>
+            }
+            else
+            {
+                <div class="row g-3">
+                    @foreach (var req in Model.MyJoinedRequests)
+                    {
+                        var post = req.MatchPost;
+                        if (post == null) continue;
+                        <div class="col-md-6 col-xl-4">
+                            <div class="card match-card">
+                                <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
+                                    <span class="badge-soft neutral"><i class="@(post.SportType?.IconCss ?? "bi bi-activity")"></i> @post.SportType?.Name</span>
+                                    @switch (req.Status)
+                                    {
+                                        case JoinRequestStatus.Pending:
+                                            <span class="badge-soft warning"><i class="bi bi-hourglass-split"></i> Chờ duyệt</span>
+                                            break;
+                                        case JoinRequestStatus.Accepted:
+                                            <span class="badge-soft success"><i class="bi bi-check-circle"></i> Đã nhận</span>
+                                            break;
+                                        default:
+                                            <span class="badge-soft danger"><i class="bi bi-x-circle"></i> Bị từ chối</span>
+                                            break;
+                                    }
+                                </div>
+                                <div class="title mb-2"><a asp-action="Detail" asp-route-id="@post.Id">@post.Title</a></div>
+                                <div class="match-meta mb-3">
+                                    <span class="text-truncate"><i class="bi bi-geo-alt"></i> @post.VenueName</span>
+                                    <span><i class="bi bi-calendar3"></i> @post.MatchDate.ToString("ddd dd/MM", vi) · @DACN.Services.BookingRules.Hm(post.StartTime)–@DACN.Services.BookingRules.Hm(post.EndTime)</span>
+                                    <span><i class="bi bi-person"></i> @(post.Creator?.FullName ?? "Đội trưởng") · @post.ContactPhone</span>
+                                </div>
+                                <div class="mt-auto d-flex gap-2">
+                                    @if (req.Status == JoinRequestStatus.Pending)
+                                    {
+                                        <form asp-action="CancelRequest" method="post">
+                                            <input type="hidden" name="requestId" value="@req.Id" />
+                                            <button type="submit" class="btn btn-light btn-sm text-danger">Rút yêu cầu</button>
+                                        </form>
+                                    }
+                                    <a asp-action="Detail" asp-route-id="@post.Id" class="btn btn-soft btn-sm ms-auto">Xem kèo <i class="bi bi-arrow-right"></i></a>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+</div>

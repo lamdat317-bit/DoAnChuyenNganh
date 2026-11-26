@@ -1,0 +1,172 @@
+@model DACN.Models.ViewModels.CreateMatchPostViewModel
+@using DACN.Models.Enums
+@{
+    ViewData["Title"] = "Đăng kèo mới";
+}
+
+<div class="page-header">
+    <div class="container" style="max-width: 900px;">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a asp-area="" asp-controller="Home" asp-action="Index">Trang chủ</a></li>
+                <li class="breadcrumb-item"><a asp-action="Index">Ghép đội</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Đăng kèo</li>
+            </ol>
+        </nav>
+        <h1>Đăng kèo mới</h1>
+        <p class="sub">Điền thông tin trận đấu để mọi người có thể tìm và tham gia.</p>
+    </div>
+</div>
+
+<div class="container" style="max-width: 900px;">
+    @if (Model.BookingId.HasValue)
+    {
+        <div class="alert alert-success d-flex align-items-center gap-3 mb-4">
+            <i class="bi bi-link-45deg fs-3"></i>
+            <div>Thông tin sân, ngày giờ và chi phí đã được điền sẵn từ đơn <strong>#BK-@Model.BookingId</strong>.</div>
+        </div>
+    }
+
+    <form asp-action="Create" method="post">
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger small" role="alert"></div>
+        <input type="hidden" asp-for="BookingId" />
+        <input type="hidden" asp-for="FacilityId" />
+
+        <div class="panel mb-4">
+            <div class="panel-header"><h5 class="panel-title"><span class="icon-bubble sm green">1</span> Mục đích &amp; môn thể thao</h5></div>
+            <div class="panel-body">
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="pay-method mb-0 h-100">
+                            <input type="radio" asp-for="PostType" value="@MatchPostType.FindTeammates" class="form-check-input mt-0" />
+                            <span class="icon-bubble sm green"><i class="bi bi-person-plus"></i></span>
+                            <span><span class="fw-semibold text-ink d-block">Tìm đồng đội</span><span class="small text-muted">Đội đang thiếu người</span></span>
+                        </label>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="pay-method mb-0 h-100">
+                            <input type="radio" asp-for="PostType" value="@MatchPostType.FindOpponent" class="form-check-input mt-0" />
+                            <span class="icon-bubble sm orange"><i class="bi bi-shield"></i></span>
+                            <span><span class="fw-semibold text-ink d-block">Tìm đối thủ</span><span class="small text-muted">Giao lưu giữa hai đội</span></span>
+                        </label>
+                    </div>
+                </div>
+                <div class="row g-3">
+                    <div class="col-md-5">
+                        <label asp-for="SportTypeId" class="form-label"></label>
+                        <select asp-for="SportTypeId" class="form-select" asp-items="ViewBag.SportTypes">
+                            <option value="">Chọn môn</option>
+                        </select>
+                        <span asp-validation-for="SportTypeId" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-7">
+                        <label asp-for="Title" class="form-label"></label>
+                        <input asp-for="Title" class="form-control" placeholder="VD: Sân 7 tối thứ 5 thiếu 2 người" />
+                        <span asp-validation-for="Title" class="text-danger small"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel mb-4">
+            <div class="panel-header"><h5 class="panel-title"><span class="icon-bubble sm green">2</span> Địa điểm &amp; thời gian</h5></div>
+            <div class="panel-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label asp-for="VenueName" class="form-label"></label>
+                        <input asp-for="VenueName" class="form-control" placeholder="VD: Sân bóng Chảo Lửa" />
+                        <span asp-validation-for="VenueName" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="VenueAddress" class="form-label"></label>
+                        <input asp-for="VenueAddress" class="form-control" placeholder="Số nhà, đường, quận" />
+                        <span asp-validation-for="VenueAddress" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="MatchDate" class="form-label"></label>
+                        <input asp-for="MatchDate" type="date" class="form-control" value="@Model.MatchDate.ToString("yyyy-MM-dd")" min="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                        <span asp-validation-for="MatchDate" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="StartTime" class="form-label"></label>
+                        <input asp-for="StartTime" type="time" class="form-control" />
+                        <span asp-validation-for="StartTime" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="EndTime" class="form-label"></label>
+                        <input asp-for="EndTime" type="time" class="form-control" />
+                        <span asp-validation-for="EndTime" class="text-danger small"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel mb-4">
+            <div class="panel-header"><h5 class="panel-title"><span class="icon-bubble sm green">3</span> Đội hình &amp; trình độ</h5></div>
+            <div class="panel-body">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label asp-for="TotalSlots" class="form-label"></label>
+                        <input asp-for="TotalSlots" type="number" class="form-control" min="2" max="50" />
+                        <div class="form-text">Tổng số người cần</div>
+                        <span asp-validation-for="TotalSlots" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="CurrentSlots" class="form-label"></label>
+                        <input asp-for="CurrentSlots" type="number" class="form-control" min="1" max="50" />
+                        <div class="form-text">Đã có bao nhiêu người</div>
+                        <span asp-validation-for="CurrentSlots" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="SkillLevel" class="form-label"></label>
+                        <select asp-for="SkillLevel" class="form-select">
+                            <option value="@MatchSkillLevel.All">Mọi trình độ</option>
+                            <option value="@MatchSkillLevel.Beginner">Mới chơi</option>
+                            <option value="@MatchSkillLevel.Intermediate">Trung bình</option>
+                            <option value="@MatchSkillLevel.Advanced">Khá – bán chuyên</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel mb-4">
+            <div class="panel-header"><h5 class="panel-title"><span class="icon-bubble sm green">4</span> Chi phí &amp; liên hệ</h5></div>
+            <div class="panel-body">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label asp-for="CostPerPerson" class="form-label"></label>
+                        <div class="input-group">
+                            <input asp-for="CostPerPerson" type="number" step="1000" min="0" class="form-control" />
+                            <span class="input-group-text">đ</span>
+                        </div>
+                        <div class="form-text">Nhập 0 nếu miễn phí</div>
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="CostSharingNote" class="form-label"></label>
+                        <input asp-for="CostSharingNote" class="form-control" placeholder="VD: Chia đều tiền sân + nước" />
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="ContactPhone" class="form-label"></label>
+                        <input asp-for="ContactPhone" class="form-control" placeholder="Số điện thoại / Zalo" />
+                        <span asp-validation-for="ContactPhone" class="text-danger small"></span>
+                    </div>
+                    <div class="col-12">
+                        <label asp-for="Description" class="form-label"></label>
+                        <textarea asp-for="Description" class="form-control" rows="4" placeholder="Phong cách chơi, màu áo, yêu cầu riêng..."></textarea>
+                        <span asp-validation-for="Description" class="text-danger small"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-end gap-2 mb-2">
+            <a asp-action="Index" class="btn btn-light">Hủy</a>
+            <button type="submit" class="btn btn-primary btn-lg"><i class="bi bi-send me-1"></i> Đăng kèo</button>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

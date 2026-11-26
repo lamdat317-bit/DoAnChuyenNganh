@@ -1,0 +1,20 @@
+@{
+    ViewData["Title"] = "Không có quyền truy cập";
+}
+
+<div class="container py-5" style="max-width: 560px;">
+    <div class="panel empty-state py-5">
+        <span class="icon-bubble lg red"><i class="bi bi-shield-lock"></i></span>
+        <h4 class="fw-bold">Bạn không có quyền truy cập trang này</h4>
+        <p>
+            Trang này chỉ dành cho tài khoản có quyền phù hợp (Chủ sân hoặc Quản trị viên).
+            Nếu bạn nghĩ đây là nhầm lẫn, hãy đăng nhập bằng tài khoản khác hoặc liên hệ quản trị viên.
+        </p>
+        <div class="d-flex flex-wrap justify-content-center gap-2">
+            <a asp-controller="Home" asp-action="Index" class="btn btn-primary"><i class="bi bi-house me-1"></i> Về trang chủ</a>
+            <form asp-controller="Account" asp-action="Logout" method="post" class="d-inline">
+                <button type="submit" class="btn btn-light"><i class="bi bi-arrow-left-right me-1"></i> Đăng nhập tài khoản khác</button>
+            </form>
+        </div>
+    </div>
+</div>

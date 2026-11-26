@@ -1,0 +1,190 @@
+﻿@model DACN.Models.ViewModels.ProfileViewModel
+@using DACN.Models.Enums
+@{
+    ViewData["Title"] = "Hồ sơ cá nhân";
+    var u = Model.User;
+    var initials = string.Concat(u.FullName.Split(' ', StringSplitOptions.RemoveEmptyEntries).TakeLast(2).Select(w => char.ToUpper(w[0])));
+    var (vipClass, vipLabel) = Model.VipTier switch
+    {
+        VipTier.Platinum => ("platinum", "Bạch kim"),
+        VipTier.Gold => ("gold", "Vàng"),
+        VipTier.Silver => ("silver", "Bạc"),
+        _ => ("standard", "Thành viên")
+    };
+    var roleLabel = u.Role switch { UserRole.Admin => "Quản trị viên", UserRole.FacilityOwner => "Chủ sân", _ => "Khách hàng" };
+    // Tiến độ lên hạng tiếp theo
+    decimal nextTarget = Model.TotalSpent > 2000000 ? 0 : (Model.TotalSpent > 500000 ? 2000000 : 500000);
+    int progress = nextTarget == 0 ? 100 : (int)Math.Min(100, Model.TotalSpent * 100 / nextTarget);
+}
+
+<div class="container py-4" style="max-width: 1040px;">
+    <div class="panel mb-4">
+        <div class="profile-cover"></div>
+        <div class="profile-head d-flex flex-wrap align-items-end justify-content-between gap-3">
+            <div class="d-flex align-items-end gap-3">
+                <span class="avatar avatar-lg">@initials</span>
+                <div class="pb-1">
+                    <h1 class="h4 fw-extrabold mb-1">@u.FullName</h1>
+                    <div class="d-flex flex-wrap gap-2 align-items-center small text-muted">
+                        <span><i class="bi bi-envelope me-1"></i>@u.Email</span>
+                        <span class="badge-soft info">@roleLabel</span>
+                        <span class="vip-badge @vipClass"><i class="bi bi-gem"></i> @vipLabel</span>
+                    </div>
+                </div>
+            </div>
+            <div class="small text-muted pb-1">Tham gia từ @u.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy")</div>
+        </div>
+    </div>
+
+    <ul class="nav nav-tabs-clean mb-4" role="tablist">
+        <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-overview" type="button" role="tab">Tổng quan</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-info" type="button" role="tab" id="tab-info-btn">Thông tin cá nhân</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-password" type="button" role="tab" id="tab-password-btn">Đổi mật khẩu</button></li>
+    </ul>
+
+    <div class="tab-content">
+        <!-- Overview -->
+        <div class="tab-pane fade show active" id="tab-overview" role="tabpanel">
+            <div class="row g-3 mb-4">
+                <div class="col-6 col-lg-3"><div class="card stat-card"><span class="icon-bubble green"><i class="bi bi-calendar2-check"></i></span><div><div class="label">Lượt đặt sân</div><div class="value">@Model.TotalBookings</div></div></div></div>
+                <div class="col-6 col-lg-3"><div class="card stat-card"><span class="icon-bubble orange"><i class="bi bi-wallet2"></i></span><div><div class="label">Đã chi tiêu</div><div class="value">@Model.TotalSpent.ToString("N0")<small class="fs-6">đ</small></div></div></div></div>
+                <div class="col-6 col-lg-3"><div class="card stat-card"><span class="icon-bubble blue"><i class="bi bi-people"></i></span><div><div class="label">Kèo đã tham gia</div><div class="value">@Model.TotalMatchesJoined</div></div></div></div>
+                <div class="col-6 col-lg-3"><div class="card stat-card"><span class="icon-bubble amber"><i class="bi bi-star"></i></span><div><div class="label">Đánh giá đã viết</div><div class="value">@Model.TotalReviews</div></div></div></div>
+            </div>
+
+            <div class="row g-4">
+                <div class="col-lg-7">
+                    <div class="panel h-100">
+                        <div class="panel-header">
+                            <h5 class="panel-title"><i class="bi bi-clock-history"></i> Đặt sân gần đây</h5>
+                            <a asp-controller="Booking" asp-action="MyBookings" class="small">Xem tất cả</a>
+                        </div>
+                        @if (!Model.RecentBookings.Any())
+                        {
+                            <div class="empty-state py-4">
+                                <p class="mb-3">Bạn chưa đặt sân lần nào.</p>
+                                <a asp-controller="Booking" asp-action="Index" class="btn btn-primary btn-sm">Tìm sân ngay</a>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="table-wrap">
+                                <table class="table table-hover">
+                                    <tbody>
+                                        @foreach (var b in Model.RecentBookings)
+                                        {
+                                            <tr>
+                                                <td>
+                                                    <div class="fw-semibold text-ink">@(b.Court?.Facility?.Name ?? "Cụm sân")</div>
+                                                    <div class="small text-muted">@(b.Court?.Name) · @b.BookingDate.ToString("dd/MM/yyyy") · @DACN.Services.BookingRules.Hm(b.StartTime)</div>
+                                                </td>
+                                                <td class="text-end">
+                                                    <div class="fw-bold">@b.TotalAmount.ToString("N0")đ</div>
+                                                    @if (b.Status == BookingStatus.Cancelled)
+                                                    {
+                                                        <span class="badge-soft danger">Đã hủy</span>
+                                                    }
+                                                    else if (b.PaymentStatus == PaymentStatus.Paid)
+                                                    {
+                                                        <span class="badge-soft success">Đã thanh toán</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="badge-soft warning">Chờ thanh toán</span>
+                                                    }
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                    </div>
+                </div>
+                <div class="col-lg-5">
+                    <div class="panel panel-body h-100">
+                        <h6 class="fw-bold text-ink mb-3"><i class="bi bi-gem text-success me-2"></i>Hạng thành viên</h6>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="vip-badge @vipClass">@vipLabel</span>
+                            <span class="small text-muted">@Model.TotalSpent.ToString("N0")đ</span>
+                        </div>
+                        <div class="progress mb-2" style="height: 10px;"><div class="progress-bar" style="width:@progress%"></div></div>
+                        <div class="small text-muted mb-4">
+                            @if (nextTarget == 0)
+                            {
+                                <span>Bạn đã đạt hạng cao nhất. Cảm ơn bạn!</span>
+                            }
+                            else
+                            {
+                                <span>Chi tiêu thêm <strong class="text-ink">@((nextTarget - Model.TotalSpent).ToString("N0"))đ</strong> để lên hạng @(nextTarget == 500000 ? "Bạc" : "Vàng").</span>
+                            }
+                        </div>
+                        <div class="d-grid gap-2">
+                            <a asp-controller="Booking" asp-action="MyBookings" class="btn btn-light"><i class="bi bi-ticket-perforated me-1"></i> Lịch đặt của tôi</a>
+                            <a asp-controller="Teamwork" asp-action="MyMatches" class="btn btn-light"><i class="bi bi-people me-1"></i> Kèo của tôi</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Edit info -->
+        <div class="tab-pane fade" id="tab-info" role="tabpanel">
+            <div class="panel" style="max-width: 620px;">
+                <div class="panel-header"><h5 class="panel-title"><i class="bi bi-person-gear"></i> Thông tin cá nhân</h5></div>
+                <form asp-action="UpdateProfile" method="post" class="panel-body">
+                    <div class="mb-3">
+                        <label class="form-label" for="pfName">Họ và tên</label>
+                        <input type="text" id="pfName" name="FullName" value="@u.FullName" class="form-control" required maxlength="100" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="pfPhone">Số điện thoại</label>
+                        <input type="tel" id="pfPhone" name="PhoneNumber" value="@u.PhoneNumber" class="form-control" required />
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label" for="pfEmail">Email đăng nhập</label>
+                        <input type="email" id="pfEmail" value="@u.Email" class="form-control bg-light" readonly disabled />
+                        <div class="form-text">Email dùng để đăng nhập và không thể thay đổi.</div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Lưu thay đổi</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Password -->
+        <div class="tab-pane fade" id="tab-password" role="tabpanel">
+            <div class="panel" style="max-width: 620px;">
+                <div class="panel-header"><h5 class="panel-title"><i class="bi bi-key"></i> Đổi mật khẩu</h5></div>
+                <form asp-action="ChangePassword" method="post" class="panel-body" id="changePasswordForm">
+                    <div class="mb-3">
+                        <label class="form-label" for="CurrentPassword">Mật khẩu hiện tại</label>
+                        <input type="password" id="CurrentPassword" name="CurrentPassword" class="form-control" required autocomplete="current-password" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="NewPassword">Mật khẩu mới</label>
+                        <input type="password" id="NewPassword" name="NewPassword" class="form-control" required minlength="6" autocomplete="new-password" />
+                        <div class="form-text">Tối thiểu 6 ký tự.</div>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label" for="ConfirmNewPassword">Nhập lại mật khẩu mới</label>
+                        <input type="password" id="ConfirmNewPassword" name="ConfirmNewPassword" class="form-control" required autocomplete="new-password" />
+                        <div class="text-danger small mt-1 d-none" id="pwMismatch">Mật khẩu nhập lại không khớp.</div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Cập nhật mật khẩu</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        if (location.hash === '#password') bootstrap.Tab.getOrCreateInstance(document.getElementById('tab-password-btn')).show();
+        if (location.hash === '#info') bootstrap.Tab.getOrCreateInstance(document.getElementById('tab-info-btn')).show();
+        document.getElementById('changePasswordForm').addEventListener('submit', function (e) {
+            const ok = document.getElementById('NewPassword').value === document.getElementById('ConfirmNewPassword').value;
+            document.getElementById('pwMismatch').classList.toggle('d-none', ok);
+            if (!ok) e.preventDefault();
+        });
+    </script>
+}

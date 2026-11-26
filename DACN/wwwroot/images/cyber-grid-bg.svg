@@ -1,0 +1,147 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 800" width="100%" height="100%" preserveAspectRatio="none">
+  <defs>
+    <!-- Background Gradient -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#020814" />
+      <stop offset="45%" stop-color="#051224" />
+      <stop offset="100%" stop-color="#011812" />
+    </linearGradient>
+
+    <!-- Side Radial Glows -->
+    <radialGradient id="blueGlow" cx="15%" cy="30%" r="45%">
+      <stop offset="0%" stop-color="#00aaff" stop-opacity="0.45" />
+      <stop offset="50%" stop-color="#0077cc" stop-opacity="0.18" />
+      <stop offset="100%" stop-color="#00aaff" stop-opacity="0" />
+    </radialGradient>
+
+    <radialGradient id="greenGlow" cx="85%" cy="30%" r="45%">
+      <stop offset="0%" stop-color="#00ffaa" stop-opacity="0.42" />
+      <stop offset="50%" stop-color="#00a86b" stop-opacity="0.16" />
+      <stop offset="100%" stop-color="#00ffaa" stop-opacity="0" />
+    </radialGradient>
+
+    <radialGradient id="centerGlow" cx="50%" cy="50%" r="40%">
+      <stop offset="0%" stop-color="#00ffff" stop-opacity="0.12" />
+      <stop offset="100%" stop-color="#000000" stop-opacity="0" />
+    </radialGradient>
+
+    <!-- Floor Gradient -->
+    <linearGradient id="floorGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#00c8ff" stop-opacity="0.45" />
+      <stop offset="50%" stop-color="#00ffea" stop-opacity="0.3" />
+      <stop offset="100%" stop-color="#00ffaa" stop-opacity="0.5" />
+    </linearGradient>
+
+    <!-- Left Wall Grid Gradient -->
+    <linearGradient id="leftGridGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#00c8ff" stop-opacity="0.6" />
+      <stop offset="100%" stop-color="#00c8ff" stop-opacity="0.05" />
+    </linearGradient>
+
+    <!-- Right Wall Grid Gradient -->
+    <linearGradient id="rightGridGrad" x1="100%" y1="0%" x2="0%" y2="0%">
+      <stop offset="0%" stop-color="#00ffaa" stop-opacity="0.6" />
+      <stop offset="100%" stop-color="#00ffaa" stop-opacity="0.05" />
+    </linearGradient>
+
+    <!-- Horizontal Lines Fade Mask -->
+    <linearGradient id="floorMaskGrad" x1="0%" y1="100%" x2="0%" y2="0%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.9" />
+      <stop offset="70%" stop-color="#ffffff" stop-opacity="0.3" />
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0" />
+    </linearGradient>
+    <mask id="floorMask">
+      <rect width="1920" height="800" fill="url(#floorMaskGrad)" />
+    </mask>
+  </defs>
+
+  <!-- Background Base & Glows -->
+  <rect width="1920" height="800" fill="url(#bgGrad)" />
+  <rect width="1920" height="800" fill="url(#blueGlow)" />
+  <rect width="1920" height="800" fill="url(#greenGlow)" />
+  <rect width="1920" height="800" fill="url(#centerGlow)" />
+
+  <!-- Perspective Floor Grid -->
+  <g stroke="url(#floorGrad)" stroke-width="1.2" mask="url(#floorMask)">
+    <!-- Longitudinal lines converging to horizon (960, 390) -->
+    <line x1="960" y1="390" x2="-400" y2="800" />
+    <line x1="960" y1="390" x2="-250" y2="800" />
+    <line x1="960" y1="390" x2="-100" y2="800" />
+    <line x1="960" y1="390" x2="50" y2="800" />
+    <line x1="960" y1="390" x2="200" y2="800" />
+    <line x1="960" y1="390" x2="350" y2="800" />
+    <line x1="960" y1="390" x2="500" y2="800" />
+    <line x1="960" y1="390" x2="650" y2="800" />
+    <line x1="960" y1="390" x2="800" y2="800" />
+    <line x1="960" y1="390" x2="900" y2="800" />
+    <line x1="960" y1="390" x2="960" y2="800" />
+    <line x1="960" y1="390" x2="1020" y2="800" />
+    <line x1="960" y1="390" x2="1120" y2="800" />
+    <line x1="960" y1="390" x2="1270" y2="800" />
+    <line x1="960" y1="390" x2="1420" y2="800" />
+    <line x1="960" y1="390" x2="1570" y2="800" />
+    <line x1="960" y1="390" x2="1720" y2="800" />
+    <line x1="960" y1="390" x2="1870" y2="800" />
+    <line x1="960" y1="390" x2="2020" y2="800" />
+    <line x1="960" y1="390" x2="2170" y2="800" />
+    <line x1="960" y1="390" x2="2320" y2="800" />
+
+    <!-- Transverse floor lines with exponential perspective -->
+    <line x1="0" y1="395" x2="1920" y2="395" />
+    <line x1="0" y1="405" x2="1920" y2="405" />
+    <line x1="0" y1="418" x2="1920" y2="418" />
+    <line x1="0" y1="435" x2="1920" y2="435" />
+    <line x1="0" y1="456" x2="1920" y2="456" />
+    <line x1="0" y1="482" x2="1920" y2="482" />
+    <line x1="0" y1="515" x2="1920" y2="515" />
+    <line x1="0" y1="556" x2="1920" y2="556" />
+    <line x1="0" y1="608" x2="1920" y2="608" />
+    <line x1="0" y1="672" x2="1920" y2="672" />
+    <line x1="0" y1="750" x2="1920" y2="750" />
+  </g>
+
+  <!-- Left Wall Cyber Wireframe Grid (Curved Stadium Dome) -->
+  <g stroke="url(#leftGridGrad)" stroke-width="1.2">
+    <!-- Curved longitudinal arcs -->
+    <path d="M 0,0 Q 250,50 650,390" fill="none" />
+    <path d="M 0,50 Q 250,95 650,395" fill="none" />
+    <path d="M 0,105 Q 250,145 650,402" fill="none" />
+    <path d="M 0,165 Q 250,200 650,412" fill="none" />
+    <path d="M 0,230 Q 250,260 650,425" fill="none" />
+    <path d="M 0,300 Q 250,325 650,442" fill="none" />
+    <path d="M 0,380 Q 250,395 650,465" fill="none" />
+    <path d="M 0,470 Q 250,475 650,495" fill="none" />
+
+    <!-- Vertical ribs -->
+    <path d="M 60,0 Q 80,240 60,490" fill="none" />
+    <path d="M 130,0 Q 160,240 130,480" fill="none" />
+    <path d="M 210,0 Q 250,240 215,465" fill="none" />
+    <path d="M 300,0 Q 350,240 310,455" fill="none" />
+    <path d="M 400,0 Q 450,240 415,445" fill="none" />
+    <path d="M 510,0 Q 560,240 530,430" fill="none" />
+  </g>
+
+  <!-- Right Wall Cyber Wireframe Grid (Curved Stadium Dome) -->
+  <g stroke="url(#rightGridGrad)" stroke-width="1.2">
+    <!-- Curved longitudinal arcs -->
+    <path d="M 1920,0 Q 1670,50 1270,390" fill="none" />
+    <path d="M 1920,50 Q 1670,95 1270,395" fill="none" />
+    <path d="M 1920,105 Q 1670,145 1270,402" fill="none" />
+    <path d="M 1920,165 Q 1670,200 1270,412" fill="none" />
+    <path d="M 1920,230 Q 1670,260 1270,425" fill="none" />
+    <path d="M 1920,300 Q 1670,325 1270,442" fill="none" />
+    <path d="M 1920,380 Q 1670,395 1270,465" fill="none" />
+    <path d="M 1920,470 Q 1670,475 1270,495" fill="none" />
+
+    <!-- Vertical ribs -->
+    <path d="M 1860,0 Q 1840,240 1860,490" fill="none" />
+    <path d="M 1790,0 Q 1760,240 1790,480" fill="none" />
+    <path d="M 1710,0 Q 1670,240 1705,465" fill="none" />
+    <path d="M 1620,0 Q 1570,240 1610,455" fill="none" />
+    <path d="M 1520,0 Q 1470,240 1505,445" fill="none" />
+    <path d="M 1410,0 Q 1360,240 1390,430" fill="none" />
+  </g>
+
+  <!-- Soft Cyber Fog / Particles -->
+  <circle cx="960" cy="390" r="180" fill="#00e5ff" opacity="0.08" filter="blur(30px)" />
+</svg>

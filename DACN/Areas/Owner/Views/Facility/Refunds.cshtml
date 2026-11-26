@@ -1,0 +1,138 @@
+@model List<DACN.Models.Booking>
+@using DACN.Models.Enums
+@using DACN.Services
+@{
+    ViewData["Title"] = "Hoàn tiền";
+    var facilities = ViewBag.Facilities as List<DACN.Models.Facility> ?? new();
+    int? selectedFacilityId = ViewBag.SelectedFacilityId as int?;
+    bool done = ViewBag.Done == true;
+    decimal pendingTotal = ViewBag.PendingTotal ?? 0m;
+}
+
+<div class="page-header">
+    <div class="container">
+        <span class="eyebrow">Kênh chủ sân</span>
+        <h1>Hoàn tiền</h1>
+        <p class="sub">Đơn đã thanh toán bị hủy (khách hủy đúng hạn hoặc chủ sân hủy) cần chuyển trả lại tiền cho khách.</p>
+        <partial name="_ManageNav" />
+    </div>
+</div>
+
+<div class="container">
+    <div class="row g-3 mb-4">
+        <div class="col-md-6"><div class="card stat-card"><span class="icon-bubble amber"><i class="bi bi-arrow-counterclockwise"></i></span><div><div class="label">Tổng tiền đang chờ hoàn</div><div class="value">@pendingTotal.ToString("N0")<small class="fs-6">đ</small></div></div></div></div>
+        <div class="col-md-6"><div class="card stat-card"><span class="icon-bubble blue"><i class="bi bi-info-circle"></i></span><div><div class="label">Chính sách</div><div class="small text-ink">Khách hủy trước giờ chơi ≥ @BookingRules.FreeCancelHours tiếng hoặc chủ sân hủy → hoàn 100%.</div></div></div></div>
+    </div>
+
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <div class="d-flex gap-2">
+            <a asp-action="Refunds" asp-route-facilityId="@selectedFacilityId" class="chip @(!done ? "active" : "")">Chờ hoàn tiền</a>
+            <a asp-action="Refunds" asp-route-facilityId="@selectedFacilityId" asp-route-done="true" class="chip @(done ? "active" : "")">Đã hoàn</a>
+        </div>
+        @if (facilities.Count > 1)
+        {
+            <form method="get" asp-action="Refunds" class="m-0">
+                <input type="hidden" name="done" value="@done.ToString().ToLower()" />
+                <select name="facilityId" class="form-select form-select-sm" onchange="this.form.submit()" aria-label="Cụm sân">
+                    <option value="">Tất cả cụm sân</option>
+                    @foreach (var f in facilities)
+                    {
+                        <option value="@f.Id" selected="@(f.Id == selectedFacilityId)">@f.Name</option>
+                    }
+                </select>
+            </form>
+        }
+    </div>
+
+    <div class="panel">
+        <div class="table-wrap">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Đơn</th>
+                        <th>Khách hàng</th>
+                        <th>Lịch đã hủy</th>
+                        <th>Lý do / ghi chú</th>
+                        <th class="text-end">Số tiền hoàn</th>
+                        <th class="text-end">@(done ? "Đã hoàn lúc" : "Thao tác")</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.Any())
+                    {
+                        <tr><td colspan="6"><div class="empty-state py-4"><span class="icon-bubble lg green"><i class="bi bi-check2-all"></i></span><p class="mb-0">@(done ? "Chưa có khoản hoàn tiền nào." : "Không còn khoản nào cần hoàn. Tuyệt!")</p></div></td></tr>
+                    }
+                    @foreach (var b in Model)
+                    {
+                        var amount = b.RefundAmount ?? b.TotalAmount;
+                        <tr>
+                            <td><span class="kbd-tag">#BK-@b.Id</span></td>
+                            <td>
+                                <div class="fw-semibold text-ink">@(b.CustomerName ?? b.Customer?.FullName)</div>
+                                <div class="small text-muted">@(b.CustomerPhone ?? b.Customer?.PhoneNumber ?? "—")</div>
+                                @if (!string.IsNullOrEmpty(b.PaymentTransactionRef))
+                                {
+                                    <div class="small text-muted">GD gốc: @b.PaymentTransactionRef</div>
+                                }
+                            </td>
+                            <td>
+                                <div class="fw-semibold text-ink">@b.Court?.Name · @b.BookingDate.ToString("dd/MM/yyyy")</div>
+                                <div class="small text-muted">@BookingRules.Hm(b.StartTime) – @BookingRules.Hm(b.EndTime) · hủy @(b.CancelledAt?.ToLocalTime().ToString("dd/MM HH:mm") ?? "")</div>
+                            </td>
+                            <td class="small text-muted" style="max-width: 240px;">@(done ? b.RefundNote : (b.PaymentNote ?? "—"))</td>
+                            <td class="text-end fw-bold text-accent">@amount.ToString("N0")đ</td>
+                            <td class="text-end">
+                                @if (done)
+                                {
+                                    <span class="small text-muted">@b.RefundedAt?.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</span>
+                                }
+                                else
+                                {
+                                    <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#refundModal"
+                                            data-id="@b.Id" data-amount="@amount.ToString("N0")" data-name="@(b.CustomerName ?? b.Customer?.FullName)">
+                                        <i class="bi bi-cash-stack me-1"></i>Đã hoàn tiền
+                                    </button>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="refundModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form asp-action="MarkRefunded" method="post">
+                <input type="hidden" name="bookingId" id="refundBookingId" />
+                <div class="modal-body p-4">
+                    <div class="text-center mb-3">
+                        <span class="icon-bubble lg green mb-3"><i class="bi bi-cash-stack"></i></span>
+                        <h5 class="fw-bold mb-1">Xác nhận đã hoàn <span id="refundAmount" class="text-accent"></span></h5>
+                        <p class="small text-muted mb-0">cho <span id="refundName" class="fw-semibold text-ink"></span> · đơn <span id="refundCode"></span>. Khách sẽ nhận được thông báo.</p>
+                    </div>
+                    <label class="form-label small" for="refundNote">Ghi chú (mã giao dịch hoàn, kênh hoàn...)</label>
+                    <input type="text" name="note" id="refundNote" class="form-control" maxlength="300" placeholder="VD: Đã chuyển khoản VCB, mã FT2611..." />
+                </div>
+                <div class="modal-footer justify-content-center">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Để sau</button>
+                    <button type="submit" class="btn btn-primary">Xác nhận đã hoàn</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.getElementById('refundModal').addEventListener('show.bs.modal', function (e) {
+            const d = e.relatedTarget.dataset;
+            document.getElementById('refundBookingId').value = d.id;
+            document.getElementById('refundAmount').textContent = d.amount + 'đ';
+            document.getElementById('refundName').textContent = d.name;
+            document.getElementById('refundCode').textContent = '#BK-' + d.id;
+        });
+    </script>
+}

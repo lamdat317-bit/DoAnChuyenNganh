@@ -1,0 +1,80 @@
+@model DACN.Models.Facility
+@{
+    ViewData["Title"] = $"Dịch vụ · {Model.Name}";
+}
+
+<div class="page-header">
+    <div class="container" style="max-width: 980px;">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a asp-action="Index">Cụm sân</a></li>
+                <li class="breadcrumb-item active" aria-current="page">@Model.Name</li>
+            </ol>
+        </nav>
+        <h1>Dịch vụ &amp; tiện ích</h1>
+        <p class="sub">Nước uống, thuê đồ, áo pitch... khách có thể chọn thêm khi đặt sân.</p>
+    </div>
+</div>
+
+<div class="container" style="max-width: 980px;">
+    <div class="row g-4">
+        <div class="col-lg-5">
+            <div class="panel">
+                <div class="panel-header"><h5 class="panel-title"><i class="bi bi-plus-circle"></i> Thêm dịch vụ</h5></div>
+                <form asp-action="AddService" method="post" class="panel-body">
+                    <input type="hidden" name="facilityId" value="@Model.Id" />
+                    <div class="mb-3">
+                        <label class="form-label" for="svName">Tên dịch vụ</label>
+                        <input type="text" id="svName" name="name" class="form-control" placeholder="VD: Nước khoáng 500ml" required />
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-7">
+                            <label class="form-label" for="svPrice">Đơn giá</label>
+                            <div class="input-group"><input type="number" id="svPrice" name="price" step="1000" min="0" class="form-control" placeholder="10000" required /><span class="input-group-text">đ</span></div>
+                        </div>
+                        <div class="col-5">
+                            <label class="form-label" for="svUnit">Đơn vị</label>
+                            <input type="text" id="svUnit" name="unit" class="form-control" value="Lần" required />
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Thêm dịch vụ</button>
+                </form>
+            </div>
+        </div>
+        <div class="col-lg-7">
+            <div class="panel">
+                <div class="panel-header"><h5 class="panel-title"><i class="bi bi-bag-check"></i> Danh sách dịch vụ</h5><span class="badge-soft neutral">@Model.Services.Count</span></div>
+                <div class="table-wrap">
+                    <table class="table table-hover">
+                        <thead><tr><th>Dịch vụ</th><th class="text-end">Giá</th><th>Trạng thái</th><th></th></tr></thead>
+                        <tbody>
+                            @if (!Model.Services.Any())
+                            {
+                                <tr><td colspan="4" class="text-center text-muted py-4">Chưa có dịch vụ nào.</td></tr>
+                            }
+                            @foreach (var s in Model.Services.OrderByDescending(x => x.IsActive).ThenBy(x => x.Name))
+                            {
+                                <tr>
+                                    <td><div class="fw-semibold text-ink">@s.Name</div><div class="small text-muted">/@s.Unit</div></td>
+                                    <td class="text-end fw-bold">@s.Price.ToString("N0")đ</td>
+                                    <td><span class="badge-soft @(s.IsActive ? "success" : "neutral")">@(s.IsActive ? "Đang bán" : "Tạm ngưng")</span></td>
+                                    <td class="text-end">
+                                        @if (s.IsActive)
+                                        {
+                                            <form asp-action="DeleteService" method="post" class="m-0">
+                                                <input type="hidden" name="serviceId" value="@s.Id" />
+                                                <input type="hidden" name="facilityId" value="@Model.Id" />
+                                                <button type="submit" class="btn btn-light btn-sm text-danger" title="Xóa / tạm ngưng"><i class="bi bi-trash"></i></button>
+                                            </form>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="small text-muted mt-2"><i class="bi bi-info-circle me-1"></i>Dịch vụ đã có trong hóa đơn cũ sẽ được chuyển sang "Tạm ngưng" thay vì xóa hẳn.</div>
+        </div>
+    </div>
+</div>

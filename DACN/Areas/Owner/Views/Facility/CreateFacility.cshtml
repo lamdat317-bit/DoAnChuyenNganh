@@ -1,0 +1,115 @@
+﻿@model DACN.Models.ViewModels.CreateFacilityViewModel
+@{
+    ViewData["Title"] = "Thêm cụm sân";
+}
+
+<div class="page-header">
+    <div class="container" style="max-width: 900px;">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a asp-action="Index">Cụm sân</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Thêm mới</li>
+            </ol>
+        </nav>
+        <h1>Thêm cụm sân mới</h1>
+        <p class="sub">Hệ thống sẽ tạo sẵn một sân con, bảng giá mặc định và một vài dịch vụ cơ bản.</p>
+    </div>
+</div>
+
+<div class="container" style="max-width: 900px;">
+    <form asp-action="CreateFacility" method="post">
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger small" role="alert"></div>
+
+        <div class="panel mb-4">
+            <div class="panel-header"><h5 class="panel-title"><span class="icon-bubble sm green">1</span> Thông tin cơ sở</h5></div>
+            <div class="panel-body">
+                <div class="row g-3">
+                    <div class="col-md-8">
+                        <label asp-for="Name" class="form-label"></label>
+                        <input asp-for="Name" class="form-control" placeholder="VD: Sân bóng Chảo Lửa Cầu Giấy" />
+                        <span asp-validation-for="Name" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="SportTypeId" class="form-label"></label>
+                        <select asp-for="SportTypeId" class="form-select" asp-items="ViewBag.SportTypes"><option value="">Chọn môn</option></select>
+                        <span asp-validation-for="SportTypeId" class="text-danger small"></span>
+                    </div>
+                    <div class="col-12">
+                        <label asp-for="Address" class="form-label"></label>
+                        <input asp-for="Address" class="form-control" placeholder="Số nhà, đường, phường, quận, tỉnh/thành" />
+                        <span asp-validation-for="Address" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="CityId" class="form-label"></label>
+                        <select asp-for="CityId" class="form-select" asp-items="ViewBag.Cities"><option value="">Chọn tỉnh/thành</option></select>
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="DistrictName" class="form-label"></label>
+                        <input asp-for="DistrictName" class="form-control" placeholder="VD: Cầu Giấy" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Tọa độ GPS</label>
+                        <div class="input-group">
+                            <input asp-for="Latitude" class="form-control" placeholder="Vĩ độ" />
+                            <input asp-for="Longitude" class="form-control" placeholder="Kinh độ" />
+                        </div>
+                        <div class="form-text">Dùng để hiển thị bản đồ. Có thể bỏ trống.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel mb-4">
+            <div class="panel-header"><h5 class="panel-title"><span class="icon-bubble sm green">2</span> Giờ hoạt động &amp; mô tả</h5></div>
+            <div class="panel-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label asp-for="OpeningTime" class="form-label"></label>
+                        <input asp-for="OpeningTime" type="time" class="form-control" />
+                        <span asp-validation-for="OpeningTime" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="ClosingTime" class="form-label"></label>
+                        <input asp-for="ClosingTime" type="time" class="form-control" />
+                        <span asp-validation-for="ClosingTime" class="text-danger small"></span>
+                        <div class="form-text">Sân mở qua đêm: nhập giờ đóng nhỏ hơn giờ mở (vd 16:00 → 02:00). Đóng lúc nửa đêm: 00:00.</div>
+                    </div>
+                    <div class="col-12">
+                        <label asp-for="Description" class="form-label"></label>
+                        <textarea asp-for="Description" class="form-control" rows="3" placeholder="Mặt sân, đèn chiếu sáng, bãi xe, căng-tin..."></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel mb-4">
+            <div class="panel-header"><h5 class="panel-title"><span class="icon-bubble sm green">3</span> Sân con đầu tiên</h5></div>
+            <div class="panel-body">
+                <div class="row g-3">
+                    <div class="col-md-7">
+                        <label asp-for="InitialCourtName" class="form-label"></label>
+                        <input asp-for="InitialCourtName" class="form-control" placeholder="VD: Sân 5A" />
+                        <span asp-validation-for="InitialCourtName" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-5">
+                        <label asp-for="InitialPrice" class="form-label"></label>
+                        <div class="input-group">
+                            <input asp-for="InitialPrice" type="number" step="10000" min="0" class="form-control" />
+                            <span class="input-group-text">đ/giờ</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-text mt-2">Sau khi tạo, bạn có thể thêm sân con và chia khung giờ cao điểm trong trang quản lý.</div>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-end gap-2">
+            <a asp-action="Index" class="btn btn-light">Hủy</a>
+            <button type="submit" class="btn btn-primary btn-lg"><i class="bi bi-check2 me-1"></i> Tạo cụm sân</button>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
