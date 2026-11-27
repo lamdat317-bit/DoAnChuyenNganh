@@ -4,6 +4,7 @@
     ViewData["Title"] = "Lịch đặt của tôi";
     var activeFilter = ViewBag.ActiveFilter as string ?? "all";
     var reviewed = ViewBag.ReviewedBookingIds as HashSet<int> ?? new HashSet<int>();
+    var matchPosts = ViewBag.MatchPostByBooking as Dictionary<int, int> ?? new Dictionary<int, int>();
     var vi = new System.Globalization.CultureInfo("vi-VN");
     var tabs = new[]
     {
@@ -62,10 +63,10 @@
                 var isLateForFreeCancel = cancelBlockReason != null && !isCancelled
                                           && booking.Status != BookingStatus.Completed
                                           && DateTime.Now < DACN.Services.BookingRules.StartsAt(booking);
-                var endsAt = booking.BookingDate.ToDateTime(TimeOnly.FromTimeSpan(booking.EndTime));
-                var played = booking.Status == BookingStatus.Completed
-                             || (booking.Status == BookingStatus.Confirmed && isPaid && endsAt <= DateTime.Now);
-                var canReview = played && !isCancelled && !reviewed.Contains(booking.Id);
+                var endsAt = DACN.Services.BookingRules.EndsAt(booking);
+                // Chỉ hiện nút "Đánh giá" khi đã kết thúc giờ chơi
+                var played = DACN.Services.BookingRules.CanReview(booking, DateTime.Now);
+                var canReview = played && !reviewed.Contains(booking.Id);
                 var facilityName = booking.Court?.Facility?.Name ?? "Cụm sân";
 
                 <div class="col-lg-6">
@@ -125,8 +126,17 @@
                                     <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#reviewModal"
                                             data-booking-id="@booking.Id" data-facility="@facilityName"><i class="bi bi-star me-1"></i>Đánh giá</button>
                                 }
+                                else if (!isCancelled && !reviewed.Contains(booking.Id) && endsAt > DateTime.Now
+                                         && (booking.Status == BookingStatus.Confirmed || isPaid))
+                                {
+                                    <span class="small text-muted align-self-center"><i class="bi bi-hourglass-split me-1"></i>Đánh giá được sau @endsAt.ToString("HH:mm dd/MM")</span>
+                                }
                                 <a asp-action="Confirmation" asp-route-bookingId="@booking.Id" class="btn btn-light btn-sm"><i class="bi bi-qr-code me-1"></i>Vé</a>
-                                @if (!isCancelled && (booking.Status == BookingStatus.Confirmed || isPaid) && !played)
+                                @if (matchPosts.TryGetValue(booking.Id, out var postId))
+                                {
+                                    <a asp-controller="Teamwork" asp-action="Detail" asp-route-id="@postId" class="btn btn-light btn-sm"><i class="bi bi-people-fill me-1"></i>Xem kèo</a>
+                                }
+                                else if (DACN.Services.BookingRules.GetMatchPostBlockReason(booking, DateTime.Now) == null)
                                 {
                                     <a asp-controller="Teamwork" asp-action="Create" asp-route-bookingId="@booking.Id" class="btn btn-light btn-sm"><i class="bi bi-people me-1"></i>Tạo kèo</a>
                                 }

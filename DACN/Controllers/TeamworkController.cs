@@ -31,6 +31,15 @@ namespace DACN.Controllers
             return User.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
         }
 
+        /// <summary>Kèo (chưa bị hủy) đang gắn với đơn đặt sân này, nếu có — mỗi đơn chỉ 1 kèo.</summary>
+        private async Task<int?> FindActivePostIdForBookingAsync(int bookingId)
+        {
+            return await _unitOfWork.MatchPosts.Query()
+                .Where(p => p.BookingId == bookingId && p.Status != MatchPostStatus.Cancelled)
+                .Select(p => (int?)p.Id)
+                .FirstOrDefaultAsync();
+        }
+
         // 1. Bảng tin Kèo Thể Thao / Ghép Đội
         [HttpGet]
         [AllowAnonymous]
@@ -41,9 +50,9 @@ namespace DACN.Controllers
                 .Include(p => p.Creator)
                 .AsQueryable();
 
-            // Ẩn các kèo đã qua ngày thi đấu
-            var todayDate = DateOnly.FromDateTime(DateTime.Today);
-            query = query.Where(p => p.MatchDate >= todayDate && p.Status != MatchPostStatus.Cancelled);
+            // Tự ẩn các kèo đã qua giờ bắt đầu (không cần xóa thủ công)
+            query = DACN.Services.MatchPostQueries.NotStarted(query)
+                .Where(p => p.Status != MatchPostStatus.Cancelled);
 
             if (sportTypeId.HasValue && sportTypeId.Value > 0)
             {
@@ -174,9 +183,28 @@ namespace DACN.Controllers
                     .Include(b => b.Court)
                         .ThenInclude(c => c!.Facility)
                             .ThenInclude(f => f!.SportType)
-                    .FirstOrDefaultAsync(b => b.Id == bookingId.Value && b.CustomerId == me && b.Status != BookingStatus.Cancelled);
+                    .FirstOrDefaultAsync(b => b.Id == bookingId.Value && b.CustomerId == me);
 
-                if (booking != null)
+                if (booking == null)
+                {
+                    TempData["ErrorMessage"] = "Không tìm thấy đơn đặt sân của bạn.";
+                    return RedirectToAction("MyBookings", "Booking");
+                }
+
+                var blockReason = DACN.Services.BookingRules.GetMatchPostBlockReason(booking, DateTime.Now);
+                if (blockReason != null)
+                {
+                    TempData["ErrorMessage"] = blockReason;
+                    return RedirectToAction("MyBookings", "Booking");
+                }
+
+                var existingPostId = await FindActivePostIdForBookingAsync(booking.Id);
+                if (existingPostId.HasValue)
+                {
+                    TempData["ErrorMessage"] = "Đơn đặt sân này đã có kèo rồi. Mỗi đơn chỉ tạo được 1 kèo.";
+                    return RedirectToAction(nameof(Detail), new { id = existingPostId.Value });
+                }
+
                 {
                     model.BookingId = booking.Id;
                     model.FacilityId = booking.Court?.FacilityId;
@@ -206,13 +234,33 @@ namespace DACN.Controllers
                 ModelState.AddModelError(nameof(model.EndTime), "Giờ kết thúc phải sau giờ bắt đầu.");
             if (model.CurrentSlots >= model.TotalSlots)
                 ModelState.AddModelError(nameof(model.CurrentSlots), "Số người hiện có phải nhỏ hơn tổng số người cần.");
-            // Chỉ được gắn đơn đặt sân của chính mình
-            if (model.BookingId.HasValue
-                && !await _unitOfWork.Bookings.AnyAsync(b => b.Id == model.BookingId.Value && b.CustomerId == currentUser && b.Status != BookingStatus.Cancelled))
+            // Chỉ được gắn đơn đặt sân của chính mình, đã thanh toán, chưa hủy và chưa có kèo
+            if (model.BookingId.HasValue)
             {
-                ModelState.AddModelError(string.Empty, "Đơn đặt sân này không còn hiệu lực (đã hủy hoặc không phải của bạn) nên không thể tạo kèo từ đơn này.");
-                model.BookingId = null;
-                model.FacilityId = null;
+                var booking = await _unitOfWork.Bookings.Query()
+                    .FirstOrDefaultAsync(b => b.Id == model.BookingId.Value && b.CustomerId == currentUser);
+                if (booking == null)
+                {
+                    TempData["ErrorMessage"] = "Không tìm thấy đơn đặt sân của bạn.";
+                    return RedirectToAction("MyBookings", "Booking");
+                }
+
+                var blockReason = DACN.Services.BookingRules.GetMatchPostBlockReason(booking, DateTime.Now);
+                if (blockReason != null)
+                {
+                    TempData["ErrorMessage"] = blockReason;
+                    return RedirectToAction("MyBookings", "Booking");
+                }
+
+                var existingPostId = await FindActivePostIdForBookingAsync(booking.Id);
+                if (existingPostId.HasValue)
+                {
+                    TempData["ErrorMessage"] = "Đơn đặt sân này đã có kèo rồi. Mỗi đơn chỉ tạo được 1 kèo.";
+                    return RedirectToAction(nameof(Detail), new { id = existingPostId.Value });
+                }
+
+                // Lấy cụm sân từ chính đơn, không tin giá trị gửi lên từ form
+                model.FacilityId = (await _unitOfWork.Courts.GetByIdAsync(booking.CourtId))?.FacilityId;
             }
 
             if (!ModelState.IsValid)

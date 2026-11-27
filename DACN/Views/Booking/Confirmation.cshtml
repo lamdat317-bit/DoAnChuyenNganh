@@ -115,14 +115,39 @@
         </div>
     </div>
 
-    <div class="panel p-4 mb-4 d-flex flex-wrap align-items-center gap-3 no-print">
-        <span class="icon-bubble orange"><i class="bi bi-people"></i></span>
-        <div class="flex-grow-1" style="min-width: 220px;">
-            <div class="fw-bold text-ink">Thiếu người hoặc cần tìm đối?</div>
-            <div class="small text-muted">Tạo bài tuyển người với thông tin trận này chỉ trong 1 bước.</div>
+    @{
+        var existingPostId = ViewBag.ExistingMatchPostId as int?;
+        var matchBlockReason = DACN.Services.BookingRules.GetMatchPostBlockReason(Model, DateTime.Now);
+    }
+    @if (existingPostId.HasValue)
+    {
+        <div class="panel p-4 mb-4 d-flex flex-wrap align-items-center gap-3 no-print">
+            <span class="icon-bubble green"><i class="bi bi-people-fill"></i></span>
+            <div class="flex-grow-1" style="min-width: 220px;">
+                <div class="fw-bold text-ink">Đơn này đã có kèo ghép đội</div>
+                <div class="small text-muted">Mỗi đơn đặt sân chỉ tạo được 1 kèo. Xem và duyệt người tham gia tại đây.</div>
+            </div>
+            <a asp-controller="Teamwork" asp-action="Detail" asp-route-id="@existingPostId" class="btn btn-light"><i class="bi bi-arrow-right me-1"></i>Xem kèo</a>
         </div>
-        <a asp-controller="Teamwork" asp-action="Create" asp-route-bookingId="@Model.Id" class="btn btn-accent"><i class="bi bi-plus-lg me-1"></i>Tạo kèo</a>
-    </div>
+    }
+    else if (matchBlockReason == null)
+    {
+        <div class="panel p-4 mb-4 d-flex flex-wrap align-items-center gap-3 no-print">
+            <span class="icon-bubble orange"><i class="bi bi-people"></i></span>
+            <div class="flex-grow-1" style="min-width: 220px;">
+                <div class="fw-bold text-ink">Thiếu người hoặc cần tìm đối?</div>
+                <div class="small text-muted">Tạo bài tuyển người với thông tin trận này chỉ trong 1 bước.</div>
+            </div>
+            <a asp-controller="Teamwork" asp-action="Create" asp-route-bookingId="@Model.Id" class="btn btn-accent"><i class="bi bi-plus-lg me-1"></i>Tạo kèo</a>
+        </div>
+    }
+    else if (Model.Status != DACN.Models.Enums.BookingStatus.Cancelled && Model.PaymentStatus != DACN.Models.Enums.PaymentStatus.Paid)
+    {
+        <div class="panel p-4 mb-4 d-flex flex-wrap align-items-center gap-3 no-print">
+            <span class="icon-bubble orange"><i class="bi bi-people"></i></span>
+            <div class="flex-grow-1 small text-muted" style="min-width: 220px;">@matchBlockReason</div>
+        </div>
+    }
 
     <div class="d-flex flex-wrap justify-content-center gap-2 no-print">
         <a asp-action="MyBookings" class="btn btn-light"><i class="bi bi-ticket-perforated me-1"></i> Lịch đặt của tôi</a>

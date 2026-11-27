@@ -84,6 +84,8 @@ namespace DACN.Services
             var hotMatches = await _unitOfWork.MatchPosts.Query()
                 .Include(p => p.SportType)
                 .Include(p => p.Creator)
+                // Cùng điều kiện với trang Ghép đội: kèo đã qua giờ bắt đầu tự ẩn
+                .NotStarted()
                 .Where(p => p.Status == Models.Enums.MatchPostStatus.Open)
                 .OrderByDescending(p => p.CreatedAt)
                 .Take(4)

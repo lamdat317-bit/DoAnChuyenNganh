@@ -113,6 +113,21 @@ namespace DACN.Data
                     }
                 }
 
+                // Dữ liệu demo: nếu mọi kèo đang mở đều đã qua ngày thì dời các kèo đó lên những ngày tới,
+                // để trang Ghép đội không bị trống khi chạy lại project sau vài ngày.
+                var todayForPosts = DateOnly.FromDateTime(DateTime.Today);
+                if (context.MatchPosts.Any()
+                    && !DACN.Services.MatchPostQueries.NotStarted(context.MatchPosts).Any(p => p.Status != MatchPostStatus.Cancelled))
+                {
+                    var stalePosts = context.MatchPosts
+                        .Where(p => p.Status == MatchPostStatus.Open || p.Status == MatchPostStatus.Full)
+                        .OrderBy(p => p.MatchDate)
+                        .ToList();
+                    for (int i = 0; i < stalePosts.Count; i++)
+                        stalePosts[i].MatchDate = todayForPosts.AddDays(1 + i % 4);
+                    if (stalePosts.Count > 0) await context.SaveChangesAsync();
+                }
+
                 if (!context.MatchPosts.Any())
                 {
                     var existingCustomer = await userManager.FindByIdAsync("demo-customer-id") ?? context.Users.FirstOrDefault();

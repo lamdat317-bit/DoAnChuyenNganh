@@ -209,6 +209,7 @@
 </div>
 
 @section Scripts {
+<script src="~/lib/jsqr/jsQR.js"></script>
 <script>
 (function () {
     var startBtn = document.getElementById('scanStart'), stopBtn = document.getElementById('scanStop');
@@ -217,8 +218,40 @@
     var errBox = document.getElementById('scanError'), input = document.getElementById('codeInput'), form = document.getElementById('codeForm');
     var stream = null, timer = null, detector = null;
 
-    var supported = 'BarcodeDetector' in window && navigator.mediaDevices && navigator.mediaDevices.getUserMedia;
-    if (!supported) { startBtn.disabled = true; unsupported.classList.remove('d-none'); }
+    // BarcodeDetector chỉ có trên Chrome Android/macOS; Windows, Firefox, Safari dùng jsQR (giải mã bằng JS).
+    var hasCamera = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+    var hasNative = 'BarcodeDetector' in window;
+    var hasJsQr = typeof window.jsQR === 'function';
+    var canvas = document.createElement('canvas'), ctx = canvas.getContext('2d', { willReadFrequently: true });
+    if (!hasCamera || (!hasNative && !hasJsQr)) {
+        if (!window.isSecureContext) {
+            errBox.textContent = 'Camera chỉ hoạt động trên trang HTTPS hoặc localhost. Hãy nhập mã vé bằng tay.';
+            errBox.classList.remove('d-none');
+        } else { unsupported.classList.remove('d-none'); }
+        startBtn.disabled = true;
+    }
+
+    async function detectNative() {
+        try {
+            detector = detector || new BarcodeDetector({ formats: ['qr_code'] });
+            var codes = await detector.detect(video);
+            return codes.length ? (codes[0].rawValue || '') : null;
+        } catch (e) {
+            // Có BarcodeDetector nhưng không hỗ trợ qr_code → chuyển sang jsQR
+            if (hasJsQr) { hasNative = false; return detectJsQr(); }
+            return null;
+        }
+    }
+    function detectJsQr() {
+        var w = video.videoWidth, h = video.videoHeight;
+        if (!w || !h) return null;
+        var scale = Math.min(1, 640 / Math.max(w, h)); // thu nhỏ khung hình để giải mã nhanh
+        canvas.width = Math.round(w * scale); canvas.height = Math.round(h * scale);
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        var img = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        var r = window.jsQR(img.data, img.width, img.height, { inversionAttempts: 'dontInvert' });
+        return r ? r.data : null;
+    }
 
     function stop() {
         if (timer) { clearInterval(timer); timer = null; }
@@ -229,8 +262,14 @@
     startBtn.addEventListener('click', async function () {
         errBox.classList.add('d-none');
         try {
-            detector = detector || new BarcodeDetector({ formats: ['qr_code'] });
-            stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false });
+            } catch (e1) {
+                // Laptop chỉ có webcam trước: thử lại không ràng buộc camera
+                if (e1.name === 'OverconstrainedError' || e1.name === 'NotFoundError') {
+                    stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+                } else { throw e1; }
+            }
             video.srcObject = stream;
             await video.play();
             video.classList.remove('d-none'); frame.classList.remove('d-none'); placeholder.classList.add('d-none'); stopBtn.classList.remove('d-none');
@@ -239,9 +278,9 @@
                 if (busy || video.readyState < 2) return;
                 busy = true;
                 try {
-                    var codes = await detector.detect(video);
-                    if (codes.length) {
-                        var text = (codes[0].rawValue || '').trim();
+                    var raw = hasNative ? await detectNative() : detectJsQr();
+                    if (raw) {
+                        var text = raw.trim();
                         if (navigator.vibrate) navigator.vibrate(120);
                         stop();
                         input.value = text;
@@ -252,9 +291,14 @@
             }, 250);
         } catch (e) {
             stop();
-            errBox.textContent = location.protocol !== 'https:' && location.hostname !== 'localhost'
-                ? 'Camera chỉ hoạt động trên trang HTTPS. Hãy nhập mã vé bằng tay.'
-                : 'Không mở được camera (' + (e.name || 'lỗi') + '). Hãy cho phép quyền camera hoặc nhập mã bằng tay.';
+            var msgs = {
+                NotAllowedError: 'Bạn đã chặn quyền camera. Bấm biểu tượng ổ khóa trên thanh địa chỉ → cho phép Camera, rồi tải lại trang.',
+                NotFoundError: 'Không tìm thấy camera trên thiết bị này. Hãy nhập mã vé bằng tay.',
+                NotReadableError: 'Camera đang bị ứng dụng khác sử dụng (Zalo, Zoom, Camera...). Hãy tắt ứng dụng đó rồi thử lại.'
+            };
+            errBox.textContent = !window.isSecureContext
+                ? 'Camera chỉ hoạt động trên trang HTTPS hoặc localhost. Hãy nhập mã vé bằng tay.'
+                : (msgs[e.name] || ('Không mở được camera (' + (e.name || 'lỗi') + '). Hãy cho phép quyền camera hoặc nhập mã bằng tay.'));
             errBox.classList.remove('d-none');
         }
     });

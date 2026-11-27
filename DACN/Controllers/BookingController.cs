@@ -507,6 +507,11 @@ namespace DACN.Controllers
                 return NotFound();
             }
 
+            ViewBag.ExistingMatchPostId = await _unitOfWork.MatchPosts.Query()
+                .Where(p => p.BookingId == booking.Id && p.Status != MatchPostStatus.Cancelled)
+                .Select(p => (int?)p.Id)
+                .FirstOrDefaultAsync();
+
             return View(booking);
         }
 
@@ -524,6 +529,14 @@ namespace DACN.Controllers
                 .Where(r => bookingIds.Contains(r.BookingId))
                 .Select(r => r.BookingId)
                 .ToListAsync()).ToHashSet();
+
+            // Đơn nào đã có kèo (mỗi đơn chỉ 1 kèo) → hiện nút "Xem kèo" thay vì "Tạo kèo"
+            ViewBag.MatchPostByBooking = (await _unitOfWork.MatchPosts.Query()
+                .Where(p => p.BookingId != null && bookingIds.Contains(p.BookingId.Value) && p.Status != MatchPostStatus.Cancelled)
+                .Select(p => new { BookingId = p.BookingId!.Value, p.Id })
+                .ToListAsync())
+                .GroupBy(x => x.BookingId)
+                .ToDictionary(g => g.Key, g => g.First().Id);
 
             var today = DateOnly.FromDateTime(DateTime.Today);
 
@@ -576,13 +589,12 @@ namespace DACN.Controllers
                 return RedirectToAction(nameof(MyBookings));
             }
 
-            var endsAt = booking.BookingDate.ToDateTime(TimeOnly.FromTimeSpan(booking.EndTime));
-            bool played = booking.Status == BookingStatus.Completed
-                || (booking.Status == BookingStatus.Confirmed && booking.PaymentStatus == PaymentStatus.Paid && endsAt <= DateTime.Now);
-
-            if (!played)
+            if (!DACN.Services.BookingRules.CanReview(booking, DateTime.Now))
             {
-                TempData["ErrorMessage"] = "Bạn chỉ có thể đánh giá sau khi đã thanh toán và kết thúc giờ chơi.";
+                var endsAt = DACN.Services.BookingRules.EndsAt(booking);
+                TempData["ErrorMessage"] = endsAt > DateTime.Now && booking.Status != BookingStatus.Cancelled
+                    ? $"Chưa kết thúc giờ chơi. Bạn có thể đánh giá sau {endsAt:HH:mm} ngày {endsAt:dd/MM/yyyy}."
+                    : "Bạn chỉ có thể đánh giá sau khi đã thanh toán và kết thúc giờ chơi.";
                 return RedirectToAction(nameof(MyBookings));
             }
 

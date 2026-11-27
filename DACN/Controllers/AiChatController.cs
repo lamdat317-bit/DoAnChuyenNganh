@@ -347,9 +347,8 @@ namespace DACN.Controllers
             // =========================================================================
             if (Has("ghép đội", "tìm kèo", "kèo", "tìm bạn", "đối thủ", "team", "giao lưu", "ghep doi", "tim keo", "keo", "tim ban", "doi thu", "giao luu"))
             {
-                var todayDate = DateOnly.FromDateTime(DateTime.Today);
-                var hotPost = await _context.MatchPosts
-                    .Where(p => p.Status == DACN.Models.Enums.MatchPostStatus.Open && p.MatchDate >= todayDate)
+                var hotPost = await DACN.Services.MatchPostQueries.NotStarted(_context.MatchPosts)
+                    .Where(p => p.Status == DACN.Models.Enums.MatchPostStatus.Open)
                     .OrderByDescending(p => p.CreatedAt).FirstOrDefaultAsync();
                 var hotPostInfo = hotPost != null 
                     ? $"\n\n🔥 **Kèo nóng đang tuyển slot:**\n• Trận: *\"{hotPost.Title}\"*\n• Địa điểm: *{hotPost.VenueName}*\n• Ngày: *{hotPost.MatchDate:dd/MM/yyyy}* ({hotPost.StartTime:hh\\:mm} - {hotPost.EndTime:hh\\:mm})\n• Slot: *{hotPost.CurrentSlots}/{hotPost.TotalSlots} người* (Cần thêm {Math.Max(0, hotPost.TotalSlots - hotPost.CurrentSlots)} người)"

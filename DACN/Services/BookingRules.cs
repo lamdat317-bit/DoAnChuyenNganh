@@ -78,6 +78,37 @@ namespace DACN.Services
         public static DateTime StartsAt(Booking booking) =>
             booking.BookingDate.ToDateTime(TimeOnly.FromTimeSpan(booking.StartTime));
 
+        /// <summary>Thời điểm kết thúc giờ chơi (giờ địa phương). Cộng TimeSpan để không lỗi với ca kết thúc lúc 24:00.</summary>
+        public static DateTime EndsAt(Booking booking) =>
+            booking.BookingDate.ToDateTime(TimeOnly.MinValue) + booking.EndTime;
+
+        /// <summary>
+        /// Khách chỉ được đánh giá khi đã KẾT THÚC giờ chơi và đơn hợp lệ
+        /// (đã hoàn thành, hoặc đã xác nhận + thanh toán). Đơn hủy không được đánh giá.
+        /// </summary>
+        public static bool CanReview(Booking booking, DateTime nowLocal) =>
+            booking.Status != BookingStatus.Cancelled
+            && EndsAt(booking) <= nowLocal
+            && (booking.Status == BookingStatus.Completed
+                || (booking.Status == BookingStatus.Confirmed && booking.PaymentStatus == PaymentStatus.Paid));
+
+        /// <summary>
+        /// Lý do KHÔNG được tạo kèo ghép đội từ đơn này; null nếu được phép.
+        /// Chỉ đơn đã thanh toán, chưa hủy và chưa tới giờ bắt đầu mới tạo kèo được.
+        /// </summary>
+        public static string? GetMatchPostBlockReason(Booking booking, DateTime nowLocal)
+        {
+            if (booking.Status == BookingStatus.Cancelled)
+                return "Đơn đặt sân này đã bị hủy nên không thể tạo kèo.";
+            if (booking.PaymentStatus != PaymentStatus.Paid)
+                return booking.PaymentStatus == PaymentStatus.AwaitingVerification
+                    ? "Đơn đang chờ chủ sân xác nhận thanh toán. Bạn có thể tạo kèo sau khi thanh toán được xác nhận."
+                    : "Bạn cần thanh toán đơn đặt sân trước khi tạo kèo.";
+            if (StartsAt(booking) <= nowLocal)
+                return "Trận đấu của đơn này đã bắt đầu hoặc đã kết thúc nên không thể tạo kèo nữa.";
+            return null;
+        }
+
         /// <summary>
         /// Lý do khách KHÔNG được tự hủy đơn; trả về null nếu được phép hủy.
         /// (Chủ cụm sân không bị ràng buộc bởi quy tắc này.)
