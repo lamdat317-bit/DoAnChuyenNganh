@@ -34,6 +34,16 @@ namespace DACN.Models
         [Display(Name = "Số điện thoại liên hệ")]
         public string? ContactPhone { get; set; }
 
+        /// <summary>Kèo Tìm đối: tên đội đang xin nhận kèo (cả đội đăng ký, không phải từng người).</summary>
+        [StringLength(100)]
+        [Display(Name = "Tên đội")]
+        public string? TeamName { get; set; }
+
+        /// <summary>Kèo Tìm đối: số người của đội nhận kèo.</summary>
+        [Range(1, 50)]
+        [Display(Name = "Số người của đội")]
+        public int? TeamSize { get; set; }
+
         [StringLength(300)]
         [Display(Name = "Lời nhắn gửi đội trưởng")]
         public string? Message { get; set; }

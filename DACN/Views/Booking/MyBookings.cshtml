@@ -139,6 +139,7 @@
                                 else if (DACN.Services.BookingRules.GetMatchPostBlockReason(booking, DateTime.Now) == null)
                                 {
                                     <a asp-controller="Teamwork" asp-action="Create" asp-route-bookingId="@booking.Id" class="btn btn-light btn-sm"><i class="bi bi-people me-1"></i>Tạo kèo</a>
+                                    <a asp-controller="Teamwork" asp-action="Create" asp-route-bookingId="@booking.Id" asp-route-postType="@DACN.Models.Enums.MatchPostType.FindOpponent" class="btn btn-light btn-sm" title="Đội bạn đã đủ người, tìm một đội khác đá giao lưu"><i class="bi bi-shield me-1"></i>Tìm đối</a>
                                 }
                                 @if (cancelBlockReason == null)
                                 {

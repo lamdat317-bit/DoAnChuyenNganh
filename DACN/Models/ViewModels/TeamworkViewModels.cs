@@ -29,6 +29,16 @@ namespace DACN.Models.ViewModels
         public DateTime CreatedAt { get; set; }
         public int MissingSlots => Math.Max(0, TotalSlots - CurrentSlots);
         public int ProgressPercent => TotalSlots > 0 ? (int)((float)CurrentSlots / TotalSlots * 100) : 0;
+
+        // ===== Kèo Tìm đối (đội gặp đội) =====
+        public string? TeamName { get; set; }
+        /// <summary>Tên đội đã được chốt làm đối (null nếu chưa chốt).</summary>
+        public string? OpponentTeamName { get; set; }
+        /// <summary>Số đội đang xin nhận kèo, chờ chủ kèo chốt.</summary>
+        public int PendingTeamCount { get; set; }
+        public bool IsOpponentSearch => PostType == MatchPostType.FindOpponent;
+        public int OpponentSize => Math.Max(1, TotalSlots - CurrentSlots);
+        public string HostTeamName => DACN.Services.MatchTeams.HostTeamName(TeamName, CreatorName);
     }
 
     public class TeamworkIndexViewModel
@@ -38,6 +48,7 @@ namespace DACN.Models.ViewModels
         public int? SelectedSportTypeId { get; set; }
         public MatchPostType? SelectedPostType { get; set; }
         public MatchSkillLevel? SelectedSkillLevel { get; set; }
+        public DateOnly? SelectedDate { get; set; }
         public string? Keyword { get; set; }
 
         public int TotalOpenMatches { get; set; }
@@ -75,6 +86,11 @@ namespace DACN.Models.ViewModels
         [Required]
         [Display(Name = "Mục đích bài đăng")]
         public MatchPostType PostType { get; set; } = MatchPostType.FindTeammates;
+
+        /// <summary>Bắt buộc khi Tìm đối; không bắt buộc khi Tìm đồng đội.</summary>
+        [StringLength(100, ErrorMessage = "Tên đội không quá 100 ký tự")]
+        [Display(Name = "Tên đội của bạn")]
+        public string? TeamName { get; set; }
 
         [Required(ErrorMessage = "Ngày thi đấu không được để trống")]
         [Display(Name = "Ngày thi đấu")]
@@ -123,6 +139,12 @@ namespace DACN.Models.ViewModels
         public bool HasPendingRequest { get; set; }
         public List<MatchJoinRequest> AcceptedMembers { get; set; } = new();
         public List<MatchJoinRequest> PendingRequests { get; set; } = new();
+        /// <summary>Yêu cầu của người đang xem (nếu có), để rút lại.</summary>
+        public MatchJoinRequest? MyRequest { get; set; }
+
+        public bool IsOpponentSearch => Post.PostType == MatchPostType.FindOpponent;
+        /// <summary>Kèo Tìm đối: đội đã được chốt làm đối thủ.</summary>
+        public MatchJoinRequest? AcceptedOpponent => IsOpponentSearch ? AcceptedMembers.FirstOrDefault() : null;
     }
 
     public class MyMatchesViewModel

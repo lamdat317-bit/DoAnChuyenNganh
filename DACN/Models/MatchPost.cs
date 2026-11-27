@@ -61,6 +61,14 @@ namespace DACN.Models
         [Display(Name = "Loại kèo")]
         public MatchPostType PostType { get; set; } = MatchPostType.FindTeammates;
 
+        /// <summary>
+        /// Tên đội của người đăng. Bắt buộc với kèo Tìm đối (đội đã đủ người, tìm một đội khác).
+        /// Với kèo Tìm đối: <see cref="CurrentSlots"/> = số người đội mình, <see cref="TotalSlots"/> = tổng người hai đội.
+        /// </summary>
+        [StringLength(100)]
+        [Display(Name = "Tên đội")]
+        public string? TeamName { get; set; }
+
         [Required(ErrorMessage = "Ngày thi đấu không được để trống")]
         [Display(Name = "Ngày thi đấu")]
         public DateOnly MatchDate { get; set; }

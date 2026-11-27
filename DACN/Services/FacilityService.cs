@@ -109,7 +109,8 @@ namespace DACN.Services
                     Status = p.Status,
                     CreatorName = p.Creator != null ? p.Creator.FullName : "Đội trưởng",
                     CreatorPhone = p.ContactPhone,
-                    CreatedAt = p.CreatedAt
+                    CreatedAt = p.CreatedAt,
+                    TeamName = p.TeamName
                 })
                 .ToListAsync();
 

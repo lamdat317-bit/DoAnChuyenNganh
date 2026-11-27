@@ -2,6 +2,9 @@
 @using DACN.Models.Enums
 @{
     ViewData["Title"] = "Đăng kèo mới";
+    var opp = Model.PostType == MatchPostType.FindOpponent;
+    // Phần tử chỉ hiện ở 1 chế độ: data-for="teammates" hoặc data-for="opponent" (JS bật/tắt khi đổi loại kèo)
+    string Show(bool visible) => visible ? "" : "d-none";
 }
 
 <div class="page-header">
@@ -40,16 +43,20 @@
                         <label class="pay-method mb-0 h-100">
                             <input type="radio" asp-for="PostType" value="@MatchPostType.FindTeammates" class="form-check-input mt-0" />
                             <span class="icon-bubble sm green"><i class="bi bi-person-plus"></i></span>
-                            <span><span class="fw-semibold text-ink d-block">Tìm đồng đội</span><span class="small text-muted">Đội đang thiếu người</span></span>
+                            <span><span class="fw-semibold text-ink d-block">Tìm đồng đội</span><span class="small text-muted">Đội đang thiếu người, tuyển thêm từng người</span></span>
                         </label>
                     </div>
                     <div class="col-md-6">
                         <label class="pay-method mb-0 h-100">
                             <input type="radio" asp-for="PostType" value="@MatchPostType.FindOpponent" class="form-check-input mt-0" />
                             <span class="icon-bubble sm orange"><i class="bi bi-shield"></i></span>
-                            <span><span class="fw-semibold text-ink d-block">Tìm đối thủ</span><span class="small text-muted">Giao lưu giữa hai đội</span></span>
+                            <span><span class="fw-semibold text-ink d-block">Tìm đối (đội gặp đội)</span><span class="small text-muted">Đã có đội sẵn, tìm một đội khác giao lưu</span></span>
                         </label>
                     </div>
+                </div>
+                <div class="alert alert-warning small d-flex gap-2 align-items-start @Show(opp)" data-for="opponent">
+                    <i class="bi bi-shield-check fs-5"></i>
+                    <div>Các đội khác sẽ bấm <strong>Nhận kèo</strong> kèm tên đội và số người. Bạn xem danh sách rồi <strong>chốt 1 đội</strong>; các đội còn lại tự nhận thông báo.</div>
                 </div>
                 <div class="row g-3">
                     <div class="col-md-5">
@@ -60,8 +67,20 @@
                         <span asp-validation-for="SportTypeId" class="text-danger small"></span>
                     </div>
                     <div class="col-md-7">
+                        <label asp-for="TeamName" class="form-label">
+                            Tên đội của bạn
+                            <span class="text-danger @Show(opp)" data-for="opponent">*</span>
+                            <span class="text-muted small fw-normal @Show(!opp)" data-for="teammates">(không bắt buộc)</span>
+                        </label>
+                        <input asp-for="TeamName" class="form-control" placeholder="VD: FC Anh Em, Team Pickle Q7..." maxlength="100" />
+                        <span asp-validation-for="TeamName" class="text-danger small"></span>
+                    </div>
+                    <div class="col-12">
                         <label asp-for="Title" class="form-label"></label>
-                        <input asp-for="Title" class="form-control" placeholder="VD: Sân 7 tối thứ 5 thiếu 2 người" />
+                        <input asp-for="Title" class="form-control"
+                               data-ph-teammates="VD: Sân 7 tối thứ 5 thiếu 2 người"
+                               data-ph-opponent="VD: FC Anh Em tìm đối sân 7 tối thứ 6, đá giao lưu"
+                               placeholder="@(opp ? "VD: FC Anh Em tìm đối sân 7 tối thứ 6, đá giao lưu" : "VD: Sân 7 tối thứ 5 thiếu 2 người")" />
                         <span asp-validation-for="Title" class="text-danger small"></span>
                     </div>
                 </div>
@@ -105,16 +124,22 @@
             <div class="panel-header"><h5 class="panel-title"><span class="icon-bubble sm green">3</span> Đội hình &amp; trình độ</h5></div>
             <div class="panel-body">
                 <div class="row g-3">
-                    <div class="col-md-4">
+                    <div class="col-md-4 @Show(!opp)" data-for="teammates">
                         <label asp-for="TotalSlots" class="form-label"></label>
                         <input asp-for="TotalSlots" type="number" class="form-control" min="2" max="50" />
                         <div class="form-text">Tổng số người cần</div>
                         <span asp-validation-for="TotalSlots" class="text-danger small"></span>
                     </div>
                     <div class="col-md-4">
-                        <label asp-for="CurrentSlots" class="form-label"></label>
+                        <label asp-for="CurrentSlots" class="form-label">
+                            <span class="@Show(!opp)" data-for="teammates">Số thành viên hiện có</span>
+                            <span class="@Show(opp)" data-for="opponent">Số người mỗi đội</span>
+                        </label>
                         <input asp-for="CurrentSlots" type="number" class="form-control" min="1" max="50" />
-                        <div class="form-text">Đã có bao nhiêu người</div>
+                        <div class="form-text">
+                            <span class="@Show(!opp)" data-for="teammates">Đã có bao nhiêu người</span>
+                            <span class="@Show(opp)" data-for="opponent">VD: 7 nếu đá sân 7 (7 đấu 7), 2 nếu đánh đôi</span>
+                        </div>
                         <span asp-validation-for="CurrentSlots" class="text-danger small"></span>
                     </div>
                     <div class="col-md-4">
@@ -153,7 +178,10 @@
                     </div>
                     <div class="col-12">
                         <label asp-for="Description" class="form-label"></label>
-                        <textarea asp-for="Description" class="form-control" rows="4" placeholder="Phong cách chơi, màu áo, yêu cầu riêng..."></textarea>
+                        <textarea asp-for="Description" class="form-control" rows="4"
+                                  data-ph-teammates="Phong cách chơi, màu áo, yêu cầu riêng..."
+                                  data-ph-opponent="Đội bạn đá thế nào (độ tuổi, phong cách, màu áo), cách chia tiền sân, kèo nước..."
+                                  placeholder="@(opp ? "Đội bạn đá thế nào (độ tuổi, phong cách, màu áo), cách chia tiền sân, kèo nước..." : "Phong cách chơi, màu áo, yêu cầu riêng...")"></textarea>
                         <span asp-validation-for="Description" class="text-danger small"></span>
                     </div>
                 </div>
@@ -169,4 +197,33 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script>
+        (function () {
+            const radios = document.querySelectorAll('input[name="PostType"]');
+            const total = document.getElementById('TotalSlots');
+            const current = document.getElementById('CurrentSlots');
+
+            function mode() {
+                const r = document.querySelector('input[name="PostType"]:checked');
+                return r && r.value === '@MatchPostType.FindOpponent' ? 'opponent' : 'teammates';
+            }
+
+            function apply(changed) {
+                const m = mode();
+                document.querySelectorAll('[data-for]').forEach(el => el.classList.toggle('d-none', el.dataset.for !== m));
+                document.querySelectorAll('[data-ph-' + m + ']').forEach(el => el.placeholder = el.getAttribute('data-ph-' + m));
+                if (!changed) return;
+                const t = parseInt(total.value, 10) || 0, c = parseInt(current.value, 10) || 0;
+                if (m === 'opponent' && c < 2 && t >= 2) {
+                    current.value = t;            // "Tổng 7 người" → đội mình 7 người, 7 đấu 7
+                } else if (m === 'teammates' && c >= t) {
+                    total.value = Math.max(2, c); // quay lại tuyển người: đội đang có 1 người
+                    current.value = 1;
+                }
+            }
+
+            radios.forEach(r => r.addEventListener('change', () => apply(true)));
+            apply(false);
+        })();
+    </script>
 }

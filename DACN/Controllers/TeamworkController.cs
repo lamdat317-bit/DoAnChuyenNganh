@@ -6,6 +6,7 @@ using DACN.Models;
 using DACN.Models.Enums;
 using DACN.Models.ViewModels;
 using DACN.Repositories;
+using DACN.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
@@ -43,16 +44,25 @@ namespace DACN.Controllers
         // 1. Bảng tin Kèo Thể Thao / Ghép Đội
         [HttpGet]
         [AllowAnonymous]
-        public async Task<IActionResult> Index(int? sportTypeId, MatchPostType? postType, MatchSkillLevel? skillLevel, string? keyword)
+        public async Task<IActionResult> Index(int? sportTypeId, MatchPostType? postType, MatchSkillLevel? skillLevel, string? keyword, DateOnly? date)
         {
             var query = _unitOfWork.MatchPosts.Query()
                 .Include(p => p.SportType)
                 .Include(p => p.Creator)
+                .Include(p => p.JoinRequests)
+                    .ThenInclude(r => r.User)
                 .AsQueryable();
 
             // Tự ẩn các kèo đã qua giờ bắt đầu (không cần xóa thủ công)
             query = DACN.Services.MatchPostQueries.NotStarted(query)
                 .Where(p => p.Status != MatchPostStatus.Cancelled);
+
+            // Số liệu tổng (thẻ thống kê + tab nhanh) không phụ thuộc bộ lọc đang chọn
+            var openPosts = DACN.Services.MatchPostQueries.NotStarted(_unitOfWork.MatchPosts.Query())
+                .Where(p => p.Status == MatchPostStatus.Open);
+            int totalOpen = await openPosts.CountAsync();
+            int totalTeammates = await openPosts.CountAsync(p => p.PostType == MatchPostType.FindTeammates);
+            int totalOpponent = await openPosts.CountAsync(p => p.PostType == MatchPostType.FindOpponent);
 
             if (sportTypeId.HasValue && sportTypeId.Value > 0)
             {
@@ -69,11 +79,17 @@ namespace DACN.Controllers
                 query = query.Where(p => p.SkillLevel == skillLevel.Value || p.SkillLevel == MatchSkillLevel.All);
             }
 
+            if (date.HasValue)
+            {
+                query = query.Where(p => p.MatchDate == date.Value);
+            }
+
             if (!string.IsNullOrWhiteSpace(keyword))
             {
                 var lower = keyword.Trim().ToLower();
                 query = query.Where(p => p.Title.ToLower().Contains(lower) ||
                                          p.VenueName.ToLower().Contains(lower) ||
+                                         (p.TeamName != null && p.TeamName.ToLower().Contains(lower)) ||
                                          (p.VenueAddress != null && p.VenueAddress.ToLower().Contains(lower)));
             }
 
@@ -103,7 +119,12 @@ namespace DACN.Controllers
                 Status = p.Status,
                 CreatorName = p.Creator?.FullName ?? "Đội trưởng",
                 CreatorPhone = p.ContactPhone,
-                CreatedAt = p.CreatedAt
+                CreatedAt = p.CreatedAt,
+                TeamName = p.TeamName,
+                OpponentTeamName = p.IsOpponentSearch()
+                    ? p.JoinRequests.Where(r => r.Status == JoinRequestStatus.Accepted).Select(r => r.TeamDisplayName()).FirstOrDefault()
+                    : null,
+                PendingTeamCount = p.IsOpponentSearch() ? p.JoinRequests.Count(r => r.Status == JoinRequestStatus.Pending) : 0
             }).ToList();
 
             var vm = new TeamworkIndexViewModel
@@ -113,10 +134,11 @@ namespace DACN.Controllers
                 SelectedSportTypeId = sportTypeId,
                 SelectedPostType = postType,
                 SelectedSkillLevel = skillLevel,
+                SelectedDate = date,
                 Keyword = keyword,
-                TotalOpenMatches = posts.Count(p => p.Status == MatchPostStatus.Open),
-                TotalTeammateRecruiting = posts.Count(p => p.PostType == MatchPostType.FindTeammates && p.Status == MatchPostStatus.Open),
-                TotalOpponentSearching = posts.Count(p => p.PostType == MatchPostType.FindOpponent && p.Status == MatchPostStatus.Open)
+                TotalOpenMatches = totalOpen,
+                TotalTeammateRecruiting = totalTeammates,
+                TotalOpponentSearching = totalOpponent
             };
 
             return View(vm);
@@ -162,7 +184,9 @@ namespace DACN.Controllers
                 HasJoined = hasJoined,
                 HasPendingRequest = hasPendingRequest,
                 AcceptedMembers = acceptedMembers,
-                PendingRequests = pendingRequests
+                PendingRequests = pendingRequests,
+                MyRequest = string.IsNullOrEmpty(currentUserId) ? null
+                    : post.JoinRequests.FirstOrDefault(r => r.UserId == currentUserId && r.Status != JoinRequestStatus.Rejected)
             };
 
             return View(vm);
@@ -170,9 +194,17 @@ namespace DACN.Controllers
 
         // 3. Màn hình Đăng Kèo Mới (Hỗ trợ 1-Click từ Đơn Đặt Sân)
         [HttpGet]
-        public async Task<IActionResult> Create(int? bookingId)
+        public async Task<IActionResult> Create(int? bookingId, MatchPostType? postType)
         {
             var model = new CreateMatchPostViewModel();
+            if (postType == MatchPostType.FindOpponent)
+            {
+                // Có đội sẵn, tìm đội khác: mặc định đá 7 đấu 7, hai đội chia đôi tiền sân
+                model.PostType = MatchPostType.FindOpponent;
+                model.CurrentSlots = 7;
+                model.TotalSlots = 14;
+                model.CostSharingNote = "Hai đội chia đôi tiền sân";
+            }
             var sportTypes = await _unitOfWork.SportTypes.GetAllAsync();
             ViewBag.SportTypes = new SelectList(sportTypes, "Id", "Name");
 
@@ -217,6 +249,13 @@ namespace DACN.Controllers
                     model.Title = $"Kèo {booking.Court?.Facility?.SportType?.Name ?? "thể thao"} tại {booking.Court?.Facility?.Name} ngày {booking.BookingDate:dd/MM}";
                     model.CostPerPerson = Math.Round(booking.TotalAmount / 7, 0);
                     model.CostSharingNote = $"Tổng tiền sân {booking.TotalAmount:N0} đ chia đều";
+
+                    if (model.PostType == MatchPostType.FindOpponent)
+                    {
+                        model.Title = $"Tìm đối {booking.Court?.Facility?.SportType?.Name ?? "giao lưu"} tại {booking.Court?.Facility?.Name} ngày {booking.BookingDate:dd/MM}";
+                        model.CostPerPerson = Math.Round(booking.TotalAmount / Math.Max(1, model.TotalSlots), 0);
+                        model.CostSharingNote = $"Tổng tiền sân {booking.TotalAmount:N0} đ, hai đội chia đôi";
+                    }
                 }
             }
 
@@ -232,8 +271,22 @@ namespace DACN.Controllers
                 ModelState.AddModelError(nameof(model.MatchDate), "Ngày thi đấu không được ở quá khứ.");
             if (model.EndTime <= model.StartTime)
                 ModelState.AddModelError(nameof(model.EndTime), "Giờ kết thúc phải sau giờ bắt đầu.");
-            if (model.CurrentSlots >= model.TotalSlots)
+
+            bool isOpponent = model.PostType == MatchPostType.FindOpponent;
+            if (isOpponent)
+            {
+                // Tìm đối: đội mình đã đủ người → chỉ cần "số người mỗi đội"; tổng = 2 đội
+                ModelState.Remove(nameof(model.TotalSlots));
+                if (string.IsNullOrWhiteSpace(model.TeamName))
+                    ModelState.AddModelError(nameof(model.TeamName), "Vui lòng nhập tên đội của bạn để các đội khác biết bạn là ai.");
+                if (model.CurrentSlots > MatchTeams.MaxPlayersPerTeam)
+                    ModelState.AddModelError(nameof(model.CurrentSlots), $"Mỗi đội tối đa {MatchTeams.MaxPlayersPerTeam} người.");
+                model.TotalSlots = model.CurrentSlots * 2;
+            }
+            else if (model.CurrentSlots >= model.TotalSlots)
+            {
                 ModelState.AddModelError(nameof(model.CurrentSlots), "Số người hiện có phải nhỏ hơn tổng số người cần.");
+            }
             // Chỉ được gắn đơn đặt sân của chính mình, đã thanh toán, chưa hủy và chưa có kèo
             if (model.BookingId.HasValue)
             {
@@ -283,6 +336,7 @@ namespace DACN.Controllers
                 VenueAddress = model.VenueAddress,
                 Description = model.Description,
                 PostType = model.PostType,
+                TeamName = string.IsNullOrWhiteSpace(model.TeamName) ? null : model.TeamName.Trim(),
                 MatchDate = model.MatchDate,
                 StartTime = model.StartTime,
                 EndTime = model.EndTime,
@@ -299,14 +353,17 @@ namespace DACN.Controllers
             await _unitOfWork.MatchPosts.AddAsync(post);
             await _unitOfWork.CompleteAsync();
 
-            TempData["SuccessMessage"] = "Đăng bài tìm kèo thành công! Hãy chia sẻ để bạn bè và các tay chơi khác cùng tham gia.";
+            TempData["SuccessMessage"] = isOpponent
+                ? "Đã đăng kèo tìm đối! Các đội khác sẽ gửi lời nhận kèo, bạn chọn 1 đội phù hợp để chốt."
+                : "Đăng bài tìm kèo thành công! Hãy chia sẻ để bạn bè và các tay chơi khác cùng tham gia.";
             return RedirectToAction(nameof(Detail), new { id = post.Id });
         }
 
         // 4. Xin Tham Gia Kèo (Join Request)
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Join(int matchPostId, string? preferredPosition, string? contactPhone, string? message)
+        public async Task<IActionResult> Join(int matchPostId, string? preferredPosition, string? contactPhone, string? message,
+            string? teamName, int? teamSize)
         {
             var post = await _unitOfWork.MatchPosts.Query()
                 .Include(p => p.JoinRequests)
@@ -318,9 +375,22 @@ namespace DACN.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            if (post.Status != MatchPostStatus.Open || post.CurrentSlots >= post.TotalSlots)
+            bool isOpponent = post.IsOpponentSearch();
+            bool isClosed = post.Status != MatchPostStatus.Open
+                || (isOpponent
+                    ? post.JoinRequests.Any(r => r.Status == JoinRequestStatus.Accepted) // đã chốt được 1 đội
+                    : post.CurrentSlots >= post.TotalSlots);
+            if (isClosed)
             {
-                TempData["ErrorMessage"] = "Rất tiếc! Kèo này hiện đã đủ người hoặc tạm đóng.";
+                TempData["ErrorMessage"] = isOpponent
+                    ? "Rất tiếc! Kèo này đã chốt được đối hoặc đang tạm đóng."
+                    : "Rất tiếc! Kèo này hiện đã đủ người hoặc tạm đóng.";
+                return RedirectToAction(nameof(Detail), new { id = matchPostId });
+            }
+
+            if (isOpponent && string.IsNullOrWhiteSpace(teamName))
+            {
+                TempData["ErrorMessage"] = "Vui lòng nhập tên đội của bạn để nhận kèo.";
                 return RedirectToAction(nameof(Detail), new { id = matchPostId });
             }
 
@@ -339,9 +409,15 @@ namespace DACN.Controllers
             }
 
             var existingRequest = post.JoinRequests.FirstOrDefault(r => r.UserId == currentUserId);
+            // Kèo Tìm đối: đội từng bị từ chối / bị hủy chốt được gửi lại khi kèo mở lại
+            if (existingRequest != null && isOpponent && existingRequest.Status == JoinRequestStatus.Rejected)
+            {
+                _unitOfWork.MatchJoinRequests.Remove(existingRequest);
+                existingRequest = null;
+            }
             if (existingRequest != null)
             {
-                TempData["ErrorMessage"] = "Bạn đã gửi yêu cầu gia nhập kèo này rồi.";
+                TempData["ErrorMessage"] = isOpponent ? "Bạn đã gửi lời nhận kèo này rồi." : "Bạn đã gửi yêu cầu gia nhập kèo này rồi.";
                 return RedirectToAction(nameof(Detail), new { id = matchPostId });
             }
 
@@ -353,20 +429,39 @@ namespace DACN.Controllers
             {
                 MatchPostId = matchPostId,
                 UserId = currentUserId,
-                PreferredPosition = preferredPosition,
+                PreferredPosition = isOpponent ? null : preferredPosition,
                 ContactPhone = string.IsNullOrWhiteSpace(contactPhone) ? null : contactPhone.Trim(),
-                Message = message ?? "Xin chào Đội trưởng, cho mình đăng ký 1 slot nhé!",
+                Message = !string.IsNullOrWhiteSpace(message) ? message.Trim()
+                    : isOpponent ? "Đội mình muốn nhận kèo giao lưu, liên hệ mình nhé!"
+                    : "Xin chào Đội trưởng, cho mình đăng ký 1 slot nhé!",
                 Status = JoinRequestStatus.Pending,
                 CreatedAt = DateTime.UtcNow
             };
 
+            if (isOpponent)
+            {
+                request.TeamName = teamName!.Trim();
+                if (request.TeamName.Length > 100) request.TeamName = request.TeamName[..100];
+                request.TeamSize = Math.Clamp(teamSize ?? post.OpponentSize(), 1, MatchTeams.MaxPlayersPerTeam);
+            }
+
             await _unitOfWork.MatchJoinRequests.AddAsync(request);
             await _unitOfWork.CompleteAsync();
-            await _notifications.NotifyUserAsync(post.CreatorId, $"Có người xin vào kèo \"{post.Title}\"",
-                $"{User.FindFirstValue("FullName") ?? "Một người chơi"}{(string.IsNullOrWhiteSpace(preferredPosition) ? "" : $" (vị trí {preferredPosition})")}: {request.Message}",
-                $"/Teamwork/Detail/{post.Id}", "bi-person-plus", "blue");
 
-            TempData["SuccessMessage"] = "Gửi yêu cầu tham gia thành công! Đội trưởng sẽ nhận được thông báo và duyệt slot của bạn.";
+            if (isOpponent)
+            {
+                await _notifications.NotifyUserAsync(post.CreatorId, $"Đội \"{request.TeamName}\" muốn nhận kèo \"{post.Title}\"",
+                    $"{User.FindFirstValue("FullName") ?? "Đội trưởng"} · {request.TeamSize} người · {request.ContactPhone ?? "chưa có SĐT"}: {request.Message}",
+                    $"/Teamwork/Detail/{post.Id}", "bi-shield", "orange");
+                TempData["SuccessMessage"] = "Đã gửi lời nhận kèo! Đội trưởng bên kia sẽ xem và chốt đối, bạn sẽ nhận được thông báo.";
+            }
+            else
+            {
+                await _notifications.NotifyUserAsync(post.CreatorId, $"Có người xin vào kèo \"{post.Title}\"",
+                    $"{User.FindFirstValue("FullName") ?? "Một người chơi"}{(string.IsNullOrWhiteSpace(preferredPosition) ? "" : $" (vị trí {preferredPosition})")}: {request.Message}",
+                    $"/Teamwork/Detail/{post.Id}", "bi-person-plus", "blue");
+                TempData["SuccessMessage"] = "Gửi yêu cầu tham gia thành công! Đội trưởng sẽ nhận được thông báo và duyệt slot của bạn.";
+            }
             return RedirectToAction(nameof(Detail), new { id = matchPostId });
         }
 
@@ -376,7 +471,11 @@ namespace DACN.Controllers
         public async Task<IActionResult> ApproveRequest(int requestId, bool accept)
         {
             var request = await _unitOfWork.MatchJoinRequests.Query()
+                .Include(r => r.User)
                 .Include(r => r.MatchPost)
+                    .ThenInclude(p => p!.JoinRequests)
+                .Include(r => r.MatchPost)
+                    .ThenInclude(p => p!.Creator)
                 .FirstOrDefaultAsync(r => r.Id == requestId);
 
             if (request == null || request.MatchPost == null)
@@ -390,6 +489,11 @@ namespace DACN.Controllers
             {
                 TempData["ErrorMessage"] = "Chỉ Đội trưởng tạo kèo mới có quyền duyệt thành viên.";
                 return RedirectToAction(nameof(Detail), new { id = request.MatchPostId });
+            }
+
+            if (request.MatchPost.IsOpponentSearch())
+            {
+                return await ReviewOpponentTeamAsync(request, accept);
             }
 
             // Chỉ duyệt yêu cầu đang chờ — tránh bấm 2 lần làm cộng slot 2 lần
@@ -432,6 +536,76 @@ namespace DACN.Controllers
             return RedirectToAction(nameof(Detail), new { id = request.MatchPostId });
         }
 
+        /// <summary>
+        /// Kèo Tìm đối: chủ kèo chốt đúng 1 đội. Chốt xong kèo chuyển sang Đã đủ và các đội còn chờ được báo từ chối.
+        /// Gọi với accept=false trên đội đã chốt nghĩa là hủy chốt → mở lại kèo để nhận đội khác.
+        /// </summary>
+        private async Task<IActionResult> ReviewOpponentTeamAsync(MatchJoinRequest request, bool accept)
+        {
+            var post = request.MatchPost!;
+            var teamName = request.TeamDisplayName();
+            var when = $"ngày {post.MatchDate:dd/MM} lúc {BookingRules.Hm(post.StartTime)} tại {post.VenueName}";
+
+            // Hủy chốt đội đã nhận (đội bên kia báo bận, không liên lạc được...)
+            if (request.Status == JoinRequestStatus.Accepted && !accept)
+            {
+                request.Status = JoinRequestStatus.Rejected;
+                if (post.Status == MatchPostStatus.Full) post.Status = MatchPostStatus.Open;
+                await _unitOfWork.CompleteAsync();
+                await _notifications.NotifyUserAsync(request.UserId, $"Kèo \"{post.Title}\" đã hủy chốt với đội bạn",
+                    $"Đội trưởng {post.HostTeamName()} đã hủy chốt trận {when}. Hãy tìm kèo khác nhé!",
+                    $"/Teamwork/Detail/{post.Id}", "bi-x-circle", "slate");
+                TempData["SuccessMessage"] = $"Đã hủy chốt với {teamName}. Kèo được mở lại để nhận đội khác.";
+                return RedirectToAction(nameof(Detail), new { id = post.Id });
+            }
+
+            if (request.Status != JoinRequestStatus.Pending)
+            {
+                TempData["ErrorMessage"] = "Lời nhận kèo này đã được xử lý trước đó.";
+                return RedirectToAction(nameof(Detail), new { id = post.Id });
+            }
+
+            if (!accept)
+            {
+                request.Status = JoinRequestStatus.Rejected;
+                await _unitOfWork.CompleteAsync();
+                await _notifications.NotifyUserAsync(request.UserId, $"Kèo \"{post.Title}\" chưa phù hợp với đội bạn",
+                    "Đội trưởng bên kia đã từ chối lời nhận kèo. Hãy thử tìm đối khác nhé!",
+                    $"/Teamwork/Detail/{post.Id}", "bi-x-circle", "slate");
+                TempData["SuccessMessage"] = $"Đã từ chối {teamName}.";
+                return RedirectToAction(nameof(Detail), new { id = post.Id });
+            }
+
+            if (post.JoinRequests.Any(r => r.Status == JoinRequestStatus.Accepted && r.Id != request.Id))
+            {
+                TempData["ErrorMessage"] = "Kèo đã chốt đối rồi. Hãy hủy chốt đội hiện tại trước khi chọn đội khác.";
+                return RedirectToAction(nameof(Detail), new { id = post.Id });
+            }
+
+            request.Status = JoinRequestStatus.Accepted;
+            post.Status = MatchPostStatus.Full;
+            var others = post.JoinRequests
+                .Where(r => r.Id != request.Id && r.Status == JoinRequestStatus.Pending)
+                .ToList();
+            foreach (var r in others) r.Status = JoinRequestStatus.Rejected;
+            await _unitOfWork.CompleteAsync();
+
+            await _notifications.NotifyUserAsync(request.UserId, $"Đội bạn đã được chốt kèo \"{post.Title}\"",
+                $"{teamName} gặp {post.HostTeamName()} {when}. Liên hệ đội trưởng: {post.ContactPhone}.",
+                $"/Teamwork/Detail/{post.Id}", "bi-shield-check", "green");
+            foreach (var r in others)
+            {
+                await _notifications.NotifyUserAsync(r.UserId, $"Kèo \"{post.Title}\" đã có đối",
+                    "Đội trưởng đã chốt với một đội khác. Hãy thử tìm đối khác nhé!",
+                    $"/Teamwork/Detail/{post.Id}", "bi-x-circle", "slate");
+            }
+
+            TempData["SuccessMessage"] = others.Count > 0
+                ? $"Đã chốt đối với {teamName}! {others.Count} đội còn lại đã được báo kèo đã có đối."
+                : $"Đã chốt đối với {teamName}!";
+            return RedirectToAction(nameof(Detail), new { id = post.Id });
+        }
+
         // 6. Quản Lý Kèo Của Tôi
         [HttpGet]
         public async Task<IActionResult> MyMatches()
@@ -447,6 +621,7 @@ namespace DACN.Controllers
                 .ToListAsync();
 
             var myJoinedRequests = await _unitOfWork.MatchJoinRequests.Query()
+                .Include(r => r.User)
                 .Include(r => r.MatchPost)
                     .ThenInclude(p => p!.SportType)
                 .Include(r => r.MatchPost)
@@ -486,7 +661,9 @@ namespace DACN.Controllers
             post.Status = post.Status == MatchPostStatus.Open ? MatchPostStatus.Full : MatchPostStatus.Open;
             await _unitOfWork.CompleteAsync();
 
-            TempData["SuccessMessage"] = $"Đã cập nhật trạng thái kèo sang: [{(post.Status == MatchPostStatus.Open ? "Đang mở tuyển" : "Đã chốt danh sách")}]";
+            TempData["SuccessMessage"] = post.IsOpponentSearch()
+                ? $"Đã cập nhật trạng thái kèo sang: [{(post.Status == MatchPostStatus.Open ? "Đang nhận đối" : "Tạm ngừng nhận đối")}]"
+                : $"Đã cập nhật trạng thái kèo sang: [{(post.Status == MatchPostStatus.Open ? "Đang mở tuyển" : "Đã chốt danh sách")}]";
             return RedirectToAction(nameof(Detail), new { id });
         }
 
@@ -511,20 +688,38 @@ namespace DACN.Controllers
                 return RedirectToAction(nameof(MyMatches));
             }
 
-            // Thành viên đã được nhận mà rút lui -> trả lại 1 slot cho kèo
-            if (request.Status == JoinRequestStatus.Accepted && request.MatchPost != null)
+            var post = request.MatchPost;
+            bool isOpponent = post?.IsOpponentSearch() == true;
+            bool acceptedTeamLeft = isOpponent && request.Status == JoinRequestStatus.Accepted;
+
+            if (acceptedTeamLeft)
             {
-                request.MatchPost.CurrentSlots = Math.Max(1, request.MatchPost.CurrentSlots - 1);
-                if (request.MatchPost.Status == MatchPostStatus.Full && request.MatchPost.CurrentSlots < request.MatchPost.TotalSlots)
+                // Kèo Tìm đối: đội đã được chốt mà rút lui → mở lại kèo để nhận đội khác
+                if (post!.Status == MatchPostStatus.Full) post.Status = MatchPostStatus.Open;
+            }
+            // Thành viên đã được nhận mà rút lui -> trả lại 1 slot cho kèo
+            else if (request.Status == JoinRequestStatus.Accepted && post != null)
+            {
+                post.CurrentSlots = Math.Max(1, post.CurrentSlots - 1);
+                if (post.Status == MatchPostStatus.Full && post.CurrentSlots < post.TotalSlots)
                 {
-                    request.MatchPost.Status = MatchPostStatus.Open;
+                    post.Status = MatchPostStatus.Open;
                 }
             }
 
             _unitOfWork.MatchJoinRequests.Remove(request);
             await _unitOfWork.CompleteAsync();
 
-            TempData["SuccessMessage"] = "Đã hủy yêu cầu tham gia kèo thành công.";
+            if (acceptedTeamLeft)
+            {
+                await _notifications.NotifyUserAsync(post!.CreatorId, $"Đội \"{request.TeamName ?? "đối thủ"}\" đã rút khỏi kèo",
+                    $"Kèo \"{post.Title}\" đã được mở lại để nhận đội khác.",
+                    $"/Teamwork/Detail/{post.Id}", "bi-shield-exclamation", "amber");
+            }
+
+            TempData["SuccessMessage"] = isOpponent
+                ? "Đã rút lời nhận kèo của đội bạn."
+                : "Đã hủy yêu cầu tham gia kèo thành công.";
             return RedirectToAction(nameof(MyMatches));
         }
 

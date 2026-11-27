@@ -214,11 +214,6 @@ a { text-decoration: none; }
 @media (max-width: 575.98px) { .hero-search .field + .field { border-left: 0; border-top: 1px solid var(--line); } .hero-search .btn { width: 100%; } }
 .hero-visual { position: relative; }
 .hero-visual .hero-img { width: 100%; border-radius: 24px; box-shadow: var(--shadow-lg); aspect-ratio: 4/3.2; object-fit: cover; }
-.hero-float {
-  position: absolute; background: var(--surface); border-radius: 14px; box-shadow: var(--shadow-lg); padding: .7rem .9rem;
-  display: flex; align-items: center; gap: .65rem; font-size: .85rem; border: 1px solid var(--line);
-}
-.hero-float .ico { width: 38px; height: 38px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; font-size: 1.1rem; }
 .hero-stats { display: flex; gap: 2rem; flex-wrap: wrap; }
 .hero-stats .num { font-size: 1.6rem; font-weight: 800; color: var(--ink); line-height: 1.1; }
 .hero-stats .lbl { font-size: .82rem; color: var(--muted); }
@@ -463,6 +458,20 @@ a { text-decoration: none; }
 .match-meta i { color: var(--brand); width: 16px; }
 .slot-progress { height: 8px; border-radius: 99px; background: var(--line-2); overflow: hidden; }
 .slot-progress > div { height: 100%; background: linear-gradient(90deg, var(--brand), #22c55e); border-radius: 99px; }
+
+/* Kèo Tìm đối: đội gặp đội */
+.vs-board { display: grid; grid-template-columns: 1fr auto 1fr; gap: 1rem; align-items: stretch; }
+.vs-team { border: 1px solid var(--line); border-radius: 16px; padding: 1.1rem; text-align: center; background: var(--surface); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .3rem; min-width: 0; }
+.vs-team.home { border-color: var(--brand-200); background: var(--brand-50); }
+.vs-team.away { border-color: var(--accent); background: var(--accent-50); }
+.vs-team.waiting { border-style: dashed; background: var(--surface-2); color: var(--muted); }
+.vs-team .team-name { font-weight: 800; color: var(--ink); font-size: 1.08rem; overflow-wrap: anywhere; }
+.vs-badge { align-self: center; width: 52px; height: 52px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: 900; letter-spacing: .02em; color: #fff; background: linear-gradient(135deg, var(--brand), var(--accent)); box-shadow: var(--shadow); }
+@media (max-width: 575.98px) { .vs-board { grid-template-columns: 1fr; } .vs-badge { justify-self: center; } }
+.vs-line { display: flex; align-items: center; gap: .45rem; font-size: .86rem; min-width: 0; }
+.vs-line .name { font-weight: 700; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vs-line .vs { flex-shrink: 0; font-size: .7rem; font-weight: 800; color: var(--accent); background: var(--accent-50); border-radius: 6px; padding: .05rem .35rem; }
+.vs-line .tbd { color: var(--muted); font-style: italic; white-space: nowrap; }
 
 /* ---------- Owner schedule board ---------- */
 .schedule-board { overflow-x: auto; max-width: 100%; }
@@ -977,8 +986,6 @@ body { font-size: 1rem; line-height: 1.65; }
 .hero-stats { gap: 3rem; }
 .hero-stats .num { font-size: 2.1rem; }
 .hero-stats .lbl { font-size: .92rem; }
-.hero-float { font-size: .95rem; padding: .85rem 1.1rem; }
-.hero-float .ico { width: 44px; height: 44px; }
 
 /* Thẻ môn thể thao */
 .sport-tile { padding: 1.35rem; gap: 1.1rem; }

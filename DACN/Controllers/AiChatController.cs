@@ -351,7 +351,9 @@ namespace DACN.Controllers
                     .Where(p => p.Status == DACN.Models.Enums.MatchPostStatus.Open)
                     .OrderByDescending(p => p.CreatedAt).FirstOrDefaultAsync();
                 var hotPostInfo = hotPost != null 
-                    ? $"\n\n🔥 **Kèo nóng đang tuyển slot:**\n• Trận: *\"{hotPost.Title}\"*\n• Địa điểm: *{hotPost.VenueName}*\n• Ngày: *{hotPost.MatchDate:dd/MM/yyyy}* ({hotPost.StartTime:hh\\:mm} - {hotPost.EndTime:hh\\:mm})\n• Slot: *{hotPost.CurrentSlots}/{hotPost.TotalSlots} người* (Cần thêm {Math.Max(0, hotPost.TotalSlots - hotPost.CurrentSlots)} người)"
+                    ? $"\n\n🔥 **Kèo nóng đang tuyển slot:**\n• Trận: *\"{hotPost.Title}\"*\n• Địa điểm: *{hotPost.VenueName}*\n• Ngày: *{hotPost.MatchDate:dd/MM/yyyy}* ({hotPost.StartTime:hh\\:mm} - {hotPost.EndTime:hh\\:mm})\n• " + (hotPost.PostType == DACN.Models.Enums.MatchPostType.FindOpponent
+                        ? $"Đội hình: *{DACN.Services.MatchTeams.Format(hotPost.CurrentSlots, Math.Max(1, hotPost.TotalSlots - hotPost.CurrentSlots))}* (đội *{hotPost.TeamName ?? "chủ kèo"}* đang chờ đối)"
+                        : $"Slot: *{hotPost.CurrentSlots}/{hotPost.TotalSlots} người* (Cần thêm {Math.Max(0, hotPost.TotalSlots - hotPost.CurrentSlots)} người)")
                     : "";
 
                 return Ok(new ChatResponse
@@ -360,6 +362,7 @@ namespace DACN.Controllers
                         "Bạn bị thiếu người đá bóng hoặc đội của bạn muốn tìm đối thủ giao lưu cọ xát?\n\n" +
                         "• **Tìm kèo & Xin gia nhập:** Xem danh sách các bài đăng đang thiếu slot gần bạn, nhấn *'Xem & Gia nhập'* để tham gia.\n" +
                         "• **Đăng bài tuyển người:** Nếu bạn đã đặt sân nhưng thiếu người, bạn chỉ cần bấm *'+ Đăng kèo mới'* để tuyển thành viên chia tiền sân cùng.\n" +
+                        "• **Có đội sẵn, tìm đối (đội gặp đội):** Bấm *'Có đội sẵn? Tìm đối'* để đăng kèo kèm tên đội và số người mỗi đội. Các đội khác bấm *'Nhận kèo'*, bạn chọn 1 đội để chốt. Hoặc vào tab *'Đội gặp đội'* để nhận kèo của đội khác.\n" +
                         "• **1-Click tạo kèo:** Đơn đặt sân đã thanh toán có thể chuyển thành bài đăng tìm kèo chỉ với 1 thao tác!" + hotPostInfo,
                     ActionUrl = "/Teamwork/Index",
                     ActionText = "Vào Sảnh Ghép Đội ngay",
