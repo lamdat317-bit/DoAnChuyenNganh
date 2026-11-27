@@ -140,7 +140,6 @@ namespace DACN.Controllers
 
             if (result.Succeeded)
             {
-<<<<<<< HEAD
                 if (await _userManager.IsLockedOutAsync(user))
             {
                 TempData["ErrorMessage"] = "Tài khoản mẫu này đang bị khóa.";
@@ -148,9 +147,6 @@ namespace DACN.Controllers
             }
 
             await _signInManager.SignInAsync(user, isPersistent: true);
-=======
-                await _signInManager.SignInAsync(user, isPersistent: true);
->>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
                 TempData["SuccessMessage"] = "Đăng ký tài khoản thành công! Bạn đã được đăng nhập.";
                 return RedirectToAction("Index", "Home");
             }
@@ -190,15 +186,9 @@ namespace DACN.Controllers
                 var token = await _userManager.GeneratePasswordResetTokenAsync(user);
                 var link = Url.Action(nameof(ResetPassword), "Account", new { email = user.Email, token }, Request.Scheme)!;
                 var enc = System.Net.WebUtility.HtmlEncode(link);
-<<<<<<< HEAD
                 var sent = await emailSender.SendAsync(user.Email!, "Đặt lại mật khẩu DatSan247",
                     $@"<div style=""font-family:Segoe UI,Arial,sans-serif;max-width:520px;margin:auto;border:1px solid #e5e9f0;border-radius:12px;overflow:hidden"">
 <div style=""background:#16a34a;color:#fff;padding:16px 20px;font-weight:700;font-size:18px"">DatSan247</div>
-=======
-                var sent = await emailSender.SendAsync(user.Email!, "Đặt lại mật khẩu SanBong.vn",
-                    $@"<div style=""font-family:Segoe UI,Arial,sans-serif;max-width:520px;margin:auto;border:1px solid #e5e9f0;border-radius:12px;overflow:hidden"">
-<div style=""background:#16a34a;color:#fff;padding:16px 20px;font-weight:700;font-size:18px"">SanBong.vn</div>
->>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
 <div style=""padding:20px;color:#0f172a""><p>Xin chào {System.Net.WebUtility.HtmlEncode(user.FullName)},</p>
 <p>Bạn (hoặc ai đó) vừa yêu cầu đặt lại mật khẩu. Bấm nút dưới đây để tạo mật khẩu mới — link có hiệu lực trong 2 giờ:</p>
 <p style=""text-align:center;margin:24px 0""><a href=""{enc}"" style=""background:#16a34a;color:#fff;padding:12px 22px;border-radius:8px;text-decoration:none;font-weight:600"">Đặt lại mật khẩu</a></p>
@@ -275,13 +265,8 @@ namespace DACN.Controllers
 
             string email = role?.ToLower() switch
             {
-<<<<<<< HEAD
                 "owner" => "owner@datsan247.vn",
                 "admin" => "admin@datsan247.vn",
-=======
-                "owner" => "owner@sanbong.vn",
-                "admin" => "admin@sanbong.vn",
->>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
                 _ => "customer@gmail.com"
             };
 
@@ -292,15 +277,12 @@ namespace DACN.Controllers
                 return RedirectToAction(nameof(Login));
             }
 
-<<<<<<< HEAD
             if (await _userManager.IsLockedOutAsync(user))
             {
                 TempData["ErrorMessage"] = "Tài khoản mẫu này đang bị khóa.";
                 return RedirectToAction(nameof(Login));
             }
 
-=======
->>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
             await _signInManager.SignInAsync(user, isPersistent: true);
             TempData["SuccessMessage"] = $"Đã đăng nhập nhanh với vai trò: {user.FullName}";
             return RedirectByRole(user);

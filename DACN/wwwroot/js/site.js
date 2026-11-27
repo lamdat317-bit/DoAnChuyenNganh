@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 ﻿/* ==========================================================================
    DATSAN247 — tương tác giao diện dùng chung
    - Header đổ bóng khi cuộn, nút lên đầu trang
@@ -237,9 +236,3 @@
     });
     document.querySelectorAll('.venue-gallery a').forEach(function (a) { a.addEventListener('click', function (e) { e.preventDefault(); }); });
 })();
-=======
-﻿// Please see documentation at https://learn.microsoft.com/aspnet/core/client-side/bundling-and-minification
-// for details on configuring this project to bundle and minify static web assets.
-
-// Write your JavaScript code.
->>>>>>> ffbb85a62983d539c74f270981df849bea20ac70

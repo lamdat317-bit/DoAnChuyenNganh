@@ -21,11 +21,7 @@ namespace DACN.Services
     /// <summary>
     /// Gửi email qua SMTP (vd Gmail: smtp.gmail.com, cổng 587, dùng "Mật khẩu ứng dụng").
     /// Cấu hình trong appsettings.json:
-<<<<<<< HEAD
     /// "Smtp": { "Host": "smtp.gmail.com", "Port": 587, "User": "...", "Password": "...", "From": "...", "FromName": "DatSan247" }
-=======
-    /// "Smtp": { "Host": "smtp.gmail.com", "Port": 587, "User": "...", "Password": "...", "From": "...", "FromName": "SanBong.vn" }
->>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
     /// Chưa cấu hình thì email chỉ được lưu lại trong bảng EmailMessages (Admin xem tại Quản trị → Hộp thư hệ thống).
     /// </summary>
     public class SmtpEmailSender : IAppEmailSender
@@ -52,17 +48,10 @@ namespace DACN.Services
             {
                 try
                 {
-<<<<<<< HEAD
                     var from = _config["Smtp:From"] ?? _config["Smtp:User"] ?? "no-reply@datsan247.vn";
                     using var message = new MailMessage
                     {
                         From = new MailAddress(from, _config["Smtp:FromName"] ?? "DatSan247"),
-=======
-                    var from = _config["Smtp:From"] ?? _config["Smtp:User"] ?? "no-reply@sanbong.vn";
-                    using var message = new MailMessage
-                    {
-                        From = new MailAddress(from, _config["Smtp:FromName"] ?? "SanBong.vn"),
->>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
                         Subject = subject,
                         Body = htmlBody,
                         IsBodyHtml = true

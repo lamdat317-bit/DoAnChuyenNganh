@@ -2,7 +2,6 @@
 @{
     ViewData["Title"] = "Tìm & đặt sân";
     string? selectedSort = ViewBag.SelectedSortBy as string;
-<<<<<<< HEAD
     string? keyword = ViewBag.Keyword as string;
     int? selectedSport = ViewBag.SelectedSportTypeId as int?;
     int? selectedCity = ViewBag.SelectedCityId as int?;
@@ -34,12 +33,6 @@
 }
 
 <div class="page-header page-header-hero">
-=======
-    bool hasFilter = !string.IsNullOrEmpty(ViewBag.Keyword as string) || ViewBag.SelectedSportTypeId != null || ViewBag.SelectedCityId != null;
-}
-
-<div class="page-header">
->>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
     <div class="container">
         <nav aria-label="breadcrumb">
             <ol class="breadcrumb">
@@ -52,7 +45,6 @@
                 <h1>Tìm sân thể thao</h1>
                 <p class="sub">Lọc theo môn, khu vực và giá để tìm sân phù hợp, xem lịch trống và đặt ngay.</p>
             </div>
-<<<<<<< HEAD
             <div class="d-flex gap-2">
                 @if (User.Identity?.IsAuthenticated == true)
                 {
@@ -60,15 +52,11 @@
                 }
                 <a asp-controller="Teamwork" asp-action="Index" class="btn btn-light"><i class="bi bi-people me-1"></i> Tìm kèo ghép đội</a>
             </div>
-=======
-            <a asp-controller="Teamwork" asp-action="Index" class="btn btn-light"><i class="bi bi-people me-1"></i> Tìm kèo ghép đội</a>
->>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
         </div>
     </div>
 </div>
 
 <div class="container">
-<<<<<<< HEAD
     <!-- Sport chips -->
     <div class="chip-scroll mb-3" role="tablist" aria-label="Lọc theo môn">
         <a class="chip @(selectedSport == null ? "active" : "")" asp-action="Index" asp-all-route-data="RouteWith(null, 1)">
@@ -89,39 +77,21 @@
                 <div class="input-group">
                     <span class="input-group-text"><i class="bi bi-search"></i></span>
                     <input type="text" name="keyword" value="@keyword" class="form-control" placeholder="Tên sân, đường, quận..." />
-=======
-    <form method="get" asp-action="Index" class="filter-bar mb-4">
-        <div class="row g-2 align-items-end">
-            <div class="col-lg-4 col-md-6">
-                <label class="form-label small">Từ khóa</label>
-                <div class="input-group">
-                    <span class="input-group-text"><i class="bi bi-search"></i></span>
-                    <input type="text" name="keyword" value="@ViewBag.Keyword" class="form-control" placeholder="Tên sân, đường, quận..." />
->>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
                 </div>
             </div>
             <div class="col-lg-2 col-md-6">
                 <label class="form-label small">Môn thể thao</label>
-<<<<<<< HEAD
                 <select name="sportTypeId" class="form-select" asp-items="ViewBag.SportTypes" data-autosubmit>
-=======
-                <select name="sportTypeId" class="form-select" asp-items="ViewBag.SportTypes">
->>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
                     <option value="">Tất cả</option>
                 </select>
             </div>
             <div class="col-lg-2 col-md-4">
                 <label class="form-label small">Tỉnh / thành</label>
-<<<<<<< HEAD
                 <select name="cityId" class="form-select" asp-items="ViewBag.Cities" data-autosubmit>
-=======
-                <select name="cityId" class="form-select" asp-items="ViewBag.Cities">
->>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
                     <option value="">Toàn quốc</option>
                 </select>
             </div>
             <div class="col-lg-2 col-md-4">
-<<<<<<< HEAD
                 <label class="form-label small">Mức giá / giờ</label>
                 <select class="form-select" id="priceRange" data-autosubmit>
                     @foreach (var p in priceOptions)
@@ -136,10 +106,6 @@
             <div class="col-lg-2 col-md-4">
                 <label class="form-label small">Sắp xếp</label>
                 <select name="sortBy" class="form-select" data-autosubmit>
-=======
-                <label class="form-label small">Sắp xếp</label>
-                <select name="sortBy" class="form-select">
->>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
                     <option value="">Mặc định</option>
                     <option value="rating" selected="@(selectedSort == "rating" ? "selected" : null)">Đánh giá cao nhất</option>
                     <option value="price_asc" selected="@(selectedSort == "price_asc" ? "selected" : null)">Giá thấp → cao</option>
@@ -147,22 +113,12 @@
                     <option value="courts" selected="@(selectedSort == "courts" ? "selected" : null)">Nhiều sân nhất</option>
                 </select>
             </div>
-<<<<<<< HEAD
             <div class="col-lg-1 col-md-12 d-flex gap-2">
                 <button type="submit" class="btn btn-primary flex-grow-1" title="Lọc"><i class="bi bi-funnel"></i><span class="d-lg-none ms-1">Lọc</span></button>
-=======
-            <div class="col-lg-2 col-md-4 d-flex gap-2">
-                <button type="submit" class="btn btn-primary flex-grow-1"><i class="bi bi-funnel me-1"></i> Lọc</button>
-                @if (hasFilter || !string.IsNullOrEmpty(selectedSort))
-                {
-                    <a asp-action="Index" class="btn btn-light btn-icon" style="height:auto;width:44px" title="Xóa bộ lọc"><i class="bi bi-x-lg"></i></a>
-                }
->>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
             </div>
         </div>
     </form>
 
-<<<<<<< HEAD
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
         <div class="text-muted small">
             Tìm thấy <strong class="text-ink">@totalCount</strong> cụm sân
@@ -179,10 +135,6 @@
                 <button type="button" class="btn btn-light" data-view="map" title="Xem trên bản đồ"><i class="bi bi-map"></i><span class="d-none d-sm-inline ms-1">Bản đồ</span></button>
             </div>
         </div>
-=======
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <div class="text-muted small">Tìm thấy <strong class="text-ink">@Model.Count</strong> cụm sân</div>
->>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
     </div>
 
     @if (!Model.Any())
@@ -196,7 +148,6 @@
     }
     else
     {
-<<<<<<< HEAD
         <!-- Chế độ bản đồ -->
         <div class="panel map-panel mb-4" id="mapView" hidden>
             <div class="map-toolbar">
@@ -215,17 +166,10 @@
             @foreach (var facility in Model)
             {
                 <div class="col-md-6 col-lg-4 venue-col" data-reveal>
-=======
-        <div class="row g-4">
-            @foreach (var facility in Model)
-            {
-                <div class="col-md-6 col-lg-4">
->>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
                     <partial name="_VenueCard" model="facility" />
                 </div>
             }
         </div>
-<<<<<<< HEAD
 
         @if (totalPages > 1)
         {
@@ -419,7 +363,3 @@
         })();
     </script>
 }
-=======
-    }
-</div>
->>>>>>> ffbb85a62983d539c74f270981df849bea20ac70

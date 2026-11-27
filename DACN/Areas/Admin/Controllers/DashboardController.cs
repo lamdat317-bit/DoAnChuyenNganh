@@ -43,11 +43,7 @@ namespace DACN.Areas.Admin.Controllers
                 .Include(b => b.Court)
                 .ToListAsync();
 
-<<<<<<< HEAD
             static bool IsRevenue(Booking b) => BookingRules.RevenueOf(b) > 0;
-=======
-            static bool IsRevenue(Booking b) => b.PaymentStatus == PaymentStatus.Paid && b.Status != BookingStatus.Cancelled;
->>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
 
             var today = DateOnly.FromDateTime(DateTime.Today);
             var monthStart = new DateOnly(today.Year, today.Month, 1);
@@ -63,13 +59,8 @@ namespace DACN.Areas.Admin.Controllers
                 TotalCourts = facilities.Sum(f => f.Courts.Count),
                 TotalBookings = bookings.Count,
                 BookingsThisMonth = bookings.Count(b => b.BookingDate >= monthStart),
-<<<<<<< HEAD
                 RevenueThisMonth = bookings.Where(b => b.BookingDate >= monthStart).Where(IsRevenue).Sum(BookingRules.RevenueOf),
                 RevenueAllTime = bookings.Where(IsRevenue).Sum(BookingRules.RevenueOf),
-=======
-                RevenueThisMonth = bookings.Where(b => b.BookingDate >= monthStart).Where(IsRevenue).Sum(b => b.TotalAmount),
-                RevenueAllTime = bookings.Where(IsRevenue).Sum(b => b.TotalAmount),
->>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
                 TotalReviews = reviews.Count,
                 AverageRating = reviews.Count > 0 ? reviews.Average(r => r.Rating) : 0
             };
@@ -81,11 +72,7 @@ namespace DACN.Areas.Admin.Controllers
                 vm.MonthlyRevenue.Add(new ChartPoint
                 {
                     Label = m.ToString("MM/yyyy"),
-<<<<<<< HEAD
                     Value = month.Where(IsRevenue).Sum(BookingRules.RevenueOf),
-=======
-                    Value = month.Where(IsRevenue).Sum(b => b.TotalAmount),
->>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
                     Count = month.Count
                 });
             }
@@ -93,11 +80,7 @@ namespace DACN.Areas.Admin.Controllers
             vm.BookingsBySport = bookings
                 .Where(b => b.Court != null && facilityById.ContainsKey(b.Court.FacilityId))
                 .GroupBy(b => facilityById[b.Court!.FacilityId].SportType?.Name ?? "Khác")
-<<<<<<< HEAD
                 .Select(g => new ChartPoint { Label = g.Key, Count = g.Count(), Value = g.Where(IsRevenue).Sum(BookingRules.RevenueOf) })
-=======
-                .Select(g => new ChartPoint { Label = g.Key, Count = g.Count(), Value = g.Where(IsRevenue).Sum(b => b.TotalAmount) })
->>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
                 .OrderByDescending(p => p.Count)
                 .ToList();
 
@@ -114,11 +97,7 @@ namespace DACN.Areas.Admin.Controllers
                     OwnerEmail = f.Owner?.Email,
                     CourtCount = f.Courts.Count,
                     BookingCount = fb.Count,
-<<<<<<< HEAD
                     Revenue = fb.Where(IsRevenue).Sum(BookingRules.RevenueOf),
-=======
-                    Revenue = fb.Where(IsRevenue).Sum(b => b.TotalAmount),
->>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
                     ReviewCount = f.Reviews.Count,
                     AverageRating = f.Reviews.Count > 0 ? f.Reviews.Average(r => r.Rating) : 0
                 };

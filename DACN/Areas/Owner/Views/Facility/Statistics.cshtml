@@ -202,12 +202,8 @@
         const monthly = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.MonthlyRevenue, json));
         const hours = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.BookingsByHour, json));
 
-<<<<<<< HEAD
         const DARK = document.documentElement.getAttribute('data-bs-theme') === 'dark';
         const BRAND = '#16a34a', GRID = DARK ? '#1f2a3d' : '#eef1f5', INK = DARK ? '#8b98ad' : '#64748b', AXIS = DARK ? '#2a364b' : '#e5e9f0';
-=======
-        const BRAND = '#16a34a', GRID = '#eef1f5', INK = '#64748b';
->>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
         const vnd = v => Number(v).toLocaleString('vi-VN') + 'đ';
         const shortVnd = v => v >= 1e6 ? (v / 1e6).toLocaleString('vi-VN', { maximumFractionDigits: 1 }) + 'tr' : v >= 1e3 ? (v / 1e3).toFixed(0) + 'k' : v;
 
@@ -245,11 +241,7 @@
                         }
                     },
                     scales: {
-<<<<<<< HEAD
                         x: { grid: { display: false }, border: { color: AXIS }, ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 12 } },
-=======
-                        x: { grid: { display: false }, border: { color: '#e5e9f0' }, ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 12 } },
->>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
                         y: { beginAtZero: true, grid: { color: GRID }, border: { display: false }, ticks: { callback: opts.yTick, maxTicksLimit: 5, precision: 0 } }
                     }
                 }

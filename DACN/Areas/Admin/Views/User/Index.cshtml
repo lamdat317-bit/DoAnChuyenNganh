@@ -63,11 +63,7 @@
                     }
                     @foreach (var u in Model)
                     {
-<<<<<<< HEAD
                         var isSystem = u.Email == "admin@datsan247.vn" || u.Id == meId;
-=======
-                        var isSystem = u.Email == "admin@sanbong.vn" || u.Id == meId;
->>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
                         var locked = u.LockoutEnd.HasValue && u.LockoutEnd.Value > DateTimeOffset.UtcNow;
                         <tr class="@(locked ? "opacity-75" : "")">
                             <td>
@@ -122,11 +118,7 @@
                                             }
                                             <li><hr class="dropdown-divider" /></li>
                                             <li>
-<<<<<<< HEAD
                                                 <form asp-action="ToggleLock" method="post" class="m-0" data-confirm-message="@(locked ? "Mở khóa" : "Khóa") tài khoản @(u.Email)?">
-=======
-                                                <form asp-action="ToggleLock" method="post" class="m-0">
->>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
                                                     <input type="hidden" name="id" value="@u.Id" />
                                                     <button type="submit" class="dropdown-item"><i class="bi @(locked ? "bi-unlock" : "bi-lock")"></i>@(locked ? "Mở khóa" : "Khóa tài khoản")</button>
                                                 </form>
@@ -155,11 +147,7 @@
                 <div class="modal-body">
                     <div class="mb-3"><label class="form-label" for="cmName">Họ và tên</label><input type="text" id="cmName" name="FullName" class="form-control" required /></div>
                     <div class="row g-2 mb-3">
-<<<<<<< HEAD
                         <div class="col-7"><label class="form-label" for="cmEmail">Email đăng nhập</label><input type="email" id="cmEmail" name="Email" class="form-control" placeholder="owner@datsan247.vn" required /></div>
-=======
-                        <div class="col-7"><label class="form-label" for="cmEmail">Email đăng nhập</label><input type="email" id="cmEmail" name="Email" class="form-control" placeholder="owner@sanbong.vn" required /></div>
->>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
                         <div class="col-5"><label class="form-label" for="cmPhone">Điện thoại</label><input type="tel" id="cmPhone" name="PhoneNumber" class="form-control" required /></div>
                     </div>
                     <div class="mb-3"><label class="form-label" for="cmPw">Mật khẩu ban đầu</label><input type="password" id="cmPw" name="Password" class="form-control" required minlength="6" placeholder="Tối thiểu 6 ký tự" /></div>

@@ -58,10 +58,7 @@
                 var isCancelled = booking.Status == BookingStatus.Cancelled;
                 var isPaid = booking.PaymentStatus == PaymentStatus.Paid;
                 var cancelBlockReason = DACN.Services.BookingRules.GetCustomerCancelBlockReason(booking, DateTime.Now);
-<<<<<<< HEAD
                 var refundPercent = DACN.Services.BookingRules.CustomerRefundPercent(booking, DateTime.Now);
-=======
->>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
                 var isLateForFreeCancel = cancelBlockReason != null && !isCancelled
                                           && booking.Status != BookingStatus.Completed
                                           && DateTime.Now < DACN.Services.BookingRules.StartsAt(booking);
@@ -138,11 +135,7 @@
                                     <button type="button" class="btn btn-light btn-sm text-danger ms-auto" data-bs-toggle="modal" data-bs-target="#cancelModal"
                                             data-booking-id="@booking.Id"
                                             data-summary="@facilityName · @(booking.Court?.Name) · @booking.BookingDate.ToString("dd/MM/yyyy") @DACN.Services.BookingRules.Hm(booking.StartTime)–@DACN.Services.BookingRules.Hm(booking.EndTime)"
-<<<<<<< HEAD
                                             data-paid="@(booking.PaymentStatus is PaymentStatus.Paid or PaymentStatus.AwaitingVerification ? "1" : "0")" data-amount="@booking.TotalAmount.ToString("N0")" data-percent="@refundPercent" data-refund="@DACN.Services.BookingRules.RefundAmountFor(booking.TotalAmount, refundPercent).ToString("N0")"><i class="bi bi-x-circle me-1"></i>Hủy</button>
-=======
-                                            data-paid="@(booking.PaymentStatus is PaymentStatus.Paid or PaymentStatus.AwaitingVerification ? "1" : "0")" data-amount="@booking.TotalAmount.ToString("N0")"><i class="bi bi-x-circle me-1"></i>Hủy</button>
->>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
                                 }
                                 else if (isLateForFreeCancel)
                                 {
@@ -169,11 +162,7 @@
                     <p class="text-muted small mb-2" id="cancelSummary"></p>
                     <div class="alert alert-warning small text-start mb-0">
                         Khung giờ sẽ được mở lại ngay cho người khác.
-<<<<<<< HEAD
                         <span id="cancelPaidNote" class="d-none"><br />Đơn đã thanh toán: bạn được hoàn <strong id="cancelRefundAmount"></strong> <span id="cancelRefundRule"></span>. Chủ sân sẽ chuyển khoản lại và bạn theo dõi trạng thái ngay tại đây.</span>
-=======
-                        <span id="cancelPaidNote" class="d-none"><br />Đơn đã thanh toán: bạn được hoàn <strong id="cancelRefundAmount"></strong> (hủy trước giờ chơi ít nhất @DACN.Services.BookingRules.FreeCancelHours tiếng). Chủ sân sẽ chuyển khoản lại và bạn theo dõi trạng thái ngay tại đây.</span>
->>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
                     </div>
                     <textarea name="reason" class="form-control mt-3" rows="2" maxlength="200" placeholder="Lý do hủy (không bắt buộc)"></textarea>
                 </div>
@@ -230,14 +219,10 @@
             document.getElementById('cancelBookingId').value = btn.dataset.bookingId;
             document.getElementById('cancelSummary').textContent = '#BK-' + btn.dataset.bookingId + ' · ' + btn.dataset.summary;
             document.getElementById('cancelPaidNote').classList.toggle('d-none', btn.dataset.paid !== '1');
-<<<<<<< HEAD
             document.getElementById('cancelRefundAmount').textContent = (btn.dataset.refund || btn.dataset.amount || '') + 'đ';
             document.getElementById('cancelRefundRule').textContent = btn.dataset.percent === '100'
                 ? '(100%, hủy trước giờ chơi ít nhất @DACN.Services.BookingRules.FreeCancelHours tiếng)'
                 : '(' + btn.dataset.percent + '% của ' + btn.dataset.amount + 'đ, vì hủy trong vòng @DACN.Services.BookingRules.FreeCancelHours tiếng trước giờ chơi)';
-=======
-            document.getElementById('cancelRefundAmount').textContent = (btn.dataset.amount || '') + 'đ';
->>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
         });
         document.getElementById('reviewModal').addEventListener('show.bs.modal', function (e) {
             const btn = e.relatedTarget;

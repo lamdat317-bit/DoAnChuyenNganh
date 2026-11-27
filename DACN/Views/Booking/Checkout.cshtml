@@ -2,11 +2,7 @@
 @{
     ViewData["Title"] = "Thanh toán đơn #BK-" + Model.Id;
     var transferCode = $"BK{Model.Id}";
-<<<<<<< HEAD
     var vietQrUrl = $"https://img.vietqr.io/image/VietinBank-10287462828-compact2.png?amount={(long)Model.TotalAmount}&addInfo={transferCode}&accountName=DATSAN247";
-=======
-    var vietQrUrl = $"https://img.vietqr.io/image/VietinBank-10287462828-compact2.png?amount={(long)Model.TotalAmount}&addInfo={transferCode}&accountName=SANBONG%20VN";
->>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
     var defaultTxnRef = $"VTB-{DateTime.UtcNow:yyyyMMddHHmmss}-{Model.Id}";
     var remainingSeconds = DACN.Services.BookingRules.HoldRemainingSeconds(Model, DateTime.UtcNow);
     var initialTimerDisplay = $"{remainingSeconds / 60:D2}:{remainingSeconds % 60:D2}";
@@ -57,11 +53,7 @@
                                 <span class="v"><span id="stkValue">10287462828</span>
                                     <button type="button" class="btn btn-light btn-sm py-0 px-2 ms-1" onclick="copyText('10287462828', this)" title="Sao chép"><i class="bi bi-clipboard"></i></button></span>
                             </div>
-<<<<<<< HEAD
                             <div class="summary-row"><span class="k">Chủ tài khoản</span><span class="v">DATSAN247</span></div>
-=======
-                            <div class="summary-row"><span class="k">Chủ tài khoản</span><span class="v">SANBONG VN</span></div>
->>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
                             <div class="summary-row align-items-center">
                                 <span class="k">Số tiền</span>
                                 <span class="v text-accent">@Model.TotalAmount.ToString("N0")đ

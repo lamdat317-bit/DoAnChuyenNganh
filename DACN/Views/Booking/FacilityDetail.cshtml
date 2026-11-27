@@ -1,12 +1,8 @@
 ﻿@model DACN.Models.Facility
 @{
     ViewData["Title"] = Model.Name;
-<<<<<<< HEAD
     var photoIds = (ViewBag.PhotoIds as List<int>) ?? new List<int>();
     var coverImg = photoIds.Any() ? DACN.Services.FacilityService.PhotoUrl(photoIds[0]) : DACN.Services.FacilityService.GetSportCoverImage(Model.SportType?.Name, Model.Id);
-=======
-    var coverImg = DACN.Services.FacilityService.GetSportCoverImage(Model.SportType?.Name);
->>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
     var inv = System.Globalization.CultureInfo.InvariantCulture;
     var hasCoordinates = Model.Latitude.HasValue && Model.Longitude.HasValue && Model.Latitude.Value != 0;
     var mapEmbedUrl = hasCoordinates
@@ -26,7 +22,6 @@
 }
 
 <!-- Cover -->
-<<<<<<< HEAD
 @if (photoIds.Any())
 {
     var shown = photoIds.Take(5).ToList();
@@ -80,11 +75,6 @@ else
 }
 
 <div class="container" style="margin-top: @(photoIds.Any() ? "1.25rem" : "-90px");">
-=======
-<div style="height: 260px; background: linear-gradient(180deg, rgba(15,23,42,.05), rgba(15,23,42,.55)), url('@coverImg') center/cover, #14532d;"></div>
-
-<div class="container" style="margin-top: -90px;">
->>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
     <div class="panel p-4 mb-4 position-relative">
         <nav aria-label="breadcrumb">
             <ol class="breadcrumb">
@@ -118,16 +108,12 @@ else
                     <span class="text-muted"><i class="bi bi-grid-3x3-gap me-1"></i>@Model.Courts.Count sân</span>
                 </div>
             </div>
-<<<<<<< HEAD
             <div class="text-lg-end" data-venue-id="@Model.Id" data-venue-name="@Model.Name" data-venue-img="@coverImg"
                  data-venue-addr="@Model.Address" data-venue-price="@minPrice.ToString("N0")" data-venue-sport="@(Model.SportType?.Name ?? "Thể thao")" data-track-recent>
                 <div class="d-flex gap-2 justify-content-lg-end mb-2">
                     <button type="button" class="btn btn-light btn-sm fav-btn-inline" data-fav-id="@Model.Id"><i class="bi bi-heart"></i> <span>Lưu</span></button>
                     <button type="button" class="btn btn-light btn-sm" data-share data-share-title="@Model.Name"><i class="bi bi-share"></i> Chia sẻ</button>
                 </div>
-=======
-            <div class="text-lg-end">
->>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
                 <div class="small text-muted">Giá chỉ từ</div>
                 <div class="price fs-3 mb-2">@minPrice.ToString("N0")đ<small>/giờ</small></div>
                 @if (activeCourts.Any())
@@ -321,11 +307,7 @@ else
                         </div>
                         <ul class="list-check small mb-3">
                             <li><i class="bi bi-check-circle-fill"></i> Giữ chỗ ngay sau khi thanh toán</li>
-<<<<<<< HEAD
                             <li><i class="bi bi-check-circle-fill"></i> Hủy trước giờ chơi ≥ @DACN.Services.BookingRules.FreeCancelHours tiếng hoàn 100%, sát giờ hoàn @DACN.Services.BookingRules.LateCancelRefundPercent%</li>
-=======
-                            <li><i class="bi bi-check-circle-fill"></i> Hủy miễn phí trước giờ chơi ít nhất 6 tiếng</li>
->>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
                             <li><i class="bi bi-check-circle-fill"></i> Mang giày phù hợp mặt sân</li>
                         </ul>
                         <div class="d-flex align-items-center gap-3 p-3 rounded-3" style="background: var(--line-2);">

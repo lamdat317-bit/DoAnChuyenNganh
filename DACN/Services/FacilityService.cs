@@ -42,7 +42,6 @@ namespace DACN.Services
                 .Include(f => f.Courts)
                     .ThenInclude(c => c.TimeSlots)
                 .Include(f => f.Reviews)
-<<<<<<< HEAD
                 .OrderByDescending(f => f.Reviews.Count)
                 .ThenBy(f => f.Id)
                 .Take(6)
@@ -50,11 +49,6 @@ namespace DACN.Services
 
             var covers = await GetCoverMapAsync(facilities.Select(f => f.Id));
 
-=======
-                .Take(8)
-                .ToListAsync();
-
->>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
             var facilityCards = facilities.Select(f =>
             {
                 var allSlots = f.Courts.SelectMany(c => c.TimeSlots).ToList();
@@ -70,11 +64,7 @@ namespace DACN.Services
                     IconCss = f.SportType?.IconCss,
                     CityName = f.City?.Name,
                     DistrictName = f.DistrictName,
-<<<<<<< HEAD
                     ImageUrl = covers.TryGetValue(f.Id, out var coverId) ? PhotoUrl(coverId) : GetSportCoverImage(f.SportType?.Name, f.Id),
-=======
-                    ImageUrl = GetSportCoverImage(f.SportType?.Name),
->>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
                     CourtCount = f.Courts.Count,
                     FirstCourtId = f.Courts.FirstOrDefault(c => c.IsActive)?.Id ?? f.Courts.FirstOrDefault()?.Id ?? 0,
                     MinPrice = minPrice,
@@ -131,7 +121,6 @@ namespace DACN.Services
             };
         }
 
-<<<<<<< HEAD
         // Bộ ảnh bìa theo môn (Unsplash). Mỗi cụm sân chọn 1 ảnh theo Id để danh sách không bị trùng ảnh.
         private static readonly string[] FootballCovers =
         {
@@ -179,24 +168,6 @@ namespace DACN.Services
             if (lower.Contains("tennis") || lower.Contains("quần vợt")) return Pick(TennisCovers, seed);
 
             return Url("1529900748604-07564a03e7a6");
-=======
-        public static string GetSportCoverImage(string? sportName)
-        {
-            if (string.IsNullOrEmpty(sportName))
-                return "https://images.unsplash.com/photo-1529900748604-07564a03e7a6?auto=format&fit=crop&w=800&q=80";
-
-            var lower = sportName.ToLower();
-            if (lower.Contains("bóng đá") || lower.Contains("football") || lower.Contains("soccer"))
-                return "https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=800&q=80";
-            if (lower.Contains("pickleball"))
-                return "https://images.unsplash.com/photo-1622163642998-1ea32b0bbc67?auto=format&fit=crop&w=800&q=80";
-            if (lower.Contains("cầu lông") || lower.Contains("badminton"))
-                return "https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?auto=format&fit=crop&w=800&q=80";
-            if (lower.Contains("tennis") || lower.Contains("quần vợt"))
-                return "https://images.unsplash.com/photo-1595435934249-5df7ed86e1c0?auto=format&fit=crop&w=800&q=80";
-
-            return "https://images.unsplash.com/photo-1529900748604-07564a03e7a6?auto=format&fit=crop&w=800&q=80";
->>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
         }
 
         public async Task<List<FacilityCardDto>> SearchFacilitiesAsync(int? sportTypeId, string? keyword, int? cityId = null, string? sortBy = null)
@@ -227,10 +198,7 @@ namespace DACN.Services
             }
 
             var list = await query.ToListAsync();
-<<<<<<< HEAD
             var covers = await GetCoverMapAsync(list.Select(f => f.Id));
-=======
->>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
 
             var dtos = list.Select(f =>
             {
@@ -247,11 +215,7 @@ namespace DACN.Services
                     IconCss = f.SportType?.IconCss,
                     CityName = f.City?.Name,
                     DistrictName = f.DistrictName,
-<<<<<<< HEAD
                     ImageUrl = covers.TryGetValue(f.Id, out var coverId) ? PhotoUrl(coverId) : GetSportCoverImage(f.SportType?.Name, f.Id),
-=======
-                    ImageUrl = GetSportCoverImage(f.SportType?.Name),
->>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
                     CourtCount = f.Courts.Count,
                     FirstCourtId = f.Courts.FirstOrDefault(c => c.IsActive)?.Id ?? f.Courts.FirstOrDefault()?.Id ?? 0,
                     MinPrice = minPrice,

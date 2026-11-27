@@ -44,7 +44,6 @@ namespace DACN.Services
             booking.Status != BookingStatus.Cancelled && !IsHoldExpired(booking, utcNow);
 
         /// <summary>
-<<<<<<< HEAD
         /// Khách tự hủy đơn đã thanh toán khi còn ít nhất ngần này giờ trước giờ thi đấu thì được hoàn 100%.
         /// Hủy sát giờ hơn (nhưng chưa tới giờ) vẫn được, hoàn <see cref="LateCancelRefundPercent"/>%.
         /// Chủ sân / Admin hủy thì luôn hoàn 100%.
@@ -75,13 +74,6 @@ namespace DACN.Services
         public static decimal RefundAmountFor(decimal total, int percent) =>
             percent >= 100 ? total : Math.Round(total * percent / 100m / 1000m, MidpointRounding.AwayFromZero) * 1000m;
 
-=======
-        /// Khách chỉ được TỰ hủy (miễn phí) đơn đã xác nhận / đã thanh toán khi còn ít nhất ngần này giờ trước giờ thi đấu.
-        /// Sau mốc này phải liên hệ chủ sân. Đơn giữ chỗ chưa thanh toán thì hủy được bất cứ lúc nào trước giờ đá.
-        /// </summary>
-        public const int FreeCancelHours = 6;
-
->>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
         /// <summary>Thời điểm bắt đầu trận (giờ địa phương).</summary>
         public static DateTime StartsAt(Booking booking) =>
             booking.BookingDate.ToDateTime(TimeOnly.FromTimeSpan(booking.StartTime));
@@ -108,16 +100,7 @@ namespace DACN.Services
                 return "Đã đến hoặc quá giờ thi đấu nên không thể tự hủy đơn. Vui lòng liên hệ chủ sân.";
             }
 
-<<<<<<< HEAD
             // Trước giờ thi đấu khách luôn được tự hủy; hủy sát giờ chỉ bị giảm phần tiền hoàn (xem CustomerRefundPercent).
-=======
-            bool isCommitted = booking.PaymentStatus != PaymentStatus.Unpaid || booking.Status == BookingStatus.Confirmed;
-            if (isCommitted && startAt - nowLocal < TimeSpan.FromHours(FreeCancelHours))
-            {
-                return $"Đã quá hạn hủy miễn phí (trước giờ thi đấu ít nhất {FreeCancelHours} tiếng, tức trước {startAt.AddHours(-FreeCancelHours):HH:mm dd/MM}). Vui lòng liên hệ chủ sân để được hỗ trợ.";
-            }
-
->>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
             return null;
         }
 

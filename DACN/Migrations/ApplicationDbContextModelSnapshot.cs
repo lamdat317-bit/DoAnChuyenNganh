@@ -112,7 +112,6 @@ namespace DACN.Migrations
                     b.Property<DateTime?>("CancelledAt")
                         .HasColumnType("datetime2");
 
-<<<<<<< HEAD
                     b.Property<string>("CheckInCode")
                         .HasMaxLength(12)
                         .HasColumnType("nvarchar(12)");
@@ -124,8 +123,6 @@ namespace DACN.Migrations
                         .HasMaxLength(450)
                         .HasColumnType("nvarchar(450)");
 
-=======
->>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
                     b.Property<int>("CourtId")
                         .HasColumnType("int");
 
@@ -202,13 +199,10 @@ namespace DACN.Migrations
 
                     b.HasKey("Id");
 
-<<<<<<< HEAD
                     b.HasIndex("CheckInCode")
                         .IsUnique()
                         .HasFilter("[CheckInCode] IS NOT NULL");
 
-=======
->>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
                     b.HasIndex("CustomerId");
 
                     b.HasIndex("Status");
@@ -460,7 +454,6 @@ namespace DACN.Migrations
                     b.ToTable("Facilities");
                 });
 
-<<<<<<< HEAD
             modelBuilder.Entity("DACN.Models.FacilityImage", b =>
                 {
                     b.Property<int>("Id")
@@ -501,8 +494,6 @@ namespace DACN.Migrations
                     b.ToTable("FacilityImages");
                 });
 
-=======
->>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
             modelBuilder.Entity("DACN.Models.FacilityService", b =>
                 {
                     b.Property<int>("Id")
@@ -538,7 +529,6 @@ namespace DACN.Migrations
                     b.ToTable("FacilityServices");
                 });
 
-<<<<<<< HEAD
             modelBuilder.Entity("DACN.Models.FavoriteFacility", b =>
                 {
                     b.Property<int>("Id")
@@ -567,8 +557,6 @@ namespace DACN.Migrations
                     b.ToTable("FavoriteFacilities");
                 });
 
-=======
->>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
             modelBuilder.Entity("DACN.Models.MatchJoinRequest", b =>
                 {
                     b.Property<int>("Id")
@@ -1121,7 +1109,6 @@ namespace DACN.Migrations
                     b.Navigation("SportType");
                 });
 
-<<<<<<< HEAD
             modelBuilder.Entity("DACN.Models.FacilityImage", b =>
                 {
                     b.HasOne("DACN.Models.Facility", "Facility")
@@ -1133,8 +1120,6 @@ namespace DACN.Migrations
                     b.Navigation("Facility");
                 });
 
-=======
->>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
             modelBuilder.Entity("DACN.Models.FacilityService", b =>
                 {
                     b.HasOne("DACN.Models.Facility", "Facility")
@@ -1146,7 +1131,6 @@ namespace DACN.Migrations
                     b.Navigation("Facility");
                 });
 
-<<<<<<< HEAD
             modelBuilder.Entity("DACN.Models.FavoriteFacility", b =>
                 {
                     b.HasOne("DACN.Models.Facility", "Facility")
@@ -1166,8 +1150,6 @@ namespace DACN.Migrations
                     b.Navigation("User");
                 });
 
-=======
->>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
             modelBuilder.Entity("DACN.Models.MatchJoinRequest", b =>
                 {
                     b.HasOne("DACN.Models.MatchPost", "MatchPost")

@@ -504,10 +504,7 @@ namespace DACN.Services
                 return BookingResult.Success(booking, $"Đã xác nhận thanh toán đơn #BK-{bookingId}.");
             }
 
-<<<<<<< HEAD
             await CloseLinkedMatchPostsAsync(booking);
-=======
->>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
             await _notifications.NotifyUserAsync(booking.CustomerId, $"Biên lai đơn #BK-{booking.Id} bị từ chối",
                 $"{booking.PaymentNote}. Đơn đã bị hủy ({where}). Nếu bạn đã chuyển tiền, vui lòng liên hệ chủ sân.",
                 $"/Booking/Confirmation?bookingId={booking.Id}", "bi-x-octagon", "red", sendEmail: true);
@@ -547,13 +544,8 @@ namespace DACN.Services
                 return BookingResult.Failure($"Đơn #BK-{bookingId} đã hoàn thành, không thể hủy.");
             }
 
-<<<<<<< HEAD
             // Khách tự hủy: được hủy bất cứ lúc nào trước giờ đá; hủy sát giờ (dưới
             // BookingRules.FreeCancelHours tiếng) chỉ được hoàn một phần. Chủ cụm sân không bị giới hạn.
-=======
-            // Khách tự hủy: không hủy khi đã đến giờ đá; đơn đã xác nhận / đã thanh toán phải hủy trước
-            // ít nhất BookingRules.FreeCancelHours tiếng. Chủ cụm sân không bị giới hạn.
->>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
             if (!isOwner)
             {
                 var blockReason = BookingRules.GetCustomerCancelBlockReason(booking, DateTime.Now);
@@ -564,12 +556,8 @@ namespace DACN.Services
             }
 
             bool byCustomer = isCustomer && !isOwner;
-<<<<<<< HEAD
             int refundPercent = byCustomer ? BookingRules.CustomerRefundPercent(booking, DateTime.Now) : 100;
             bool needsRefund = ApplyCancellation(booking, reason, cancelledByOwner: !byCustomer, refundPercent);
-=======
-            bool needsRefund = ApplyCancellation(booking, reason, cancelledByOwner: !byCustomer);
->>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
             try
             {
                 await _unitOfWork.CompleteAsync();
@@ -580,10 +568,7 @@ namespace DACN.Services
                 return BookingResult.Failure("Đơn đặt sân vừa được cập nhật ở nơi khác. Vui lòng tải lại trang và thử lại.");
             }
 
-<<<<<<< HEAD
             await CloseLinkedMatchPostsAsync(booking);
-=======
->>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
             await NotifyCancellationAsync(booking, byCustomer, needsRefund);
 
             var message = needsRefund
@@ -592,7 +577,6 @@ namespace DACN.Services
             return BookingResult.Success(booking, message);
         }
 
-<<<<<<< HEAD
         /// <summary>
         /// Đơn đặt sân bị hủy → đóng các kèo ghép đội tạo từ đơn đó (không còn sân để chơi)
         /// và báo cho những người đã xin / đã được nhận vào kèo.
@@ -622,10 +606,6 @@ namespace DACN.Services
 
         /// <summary>Đánh dấu hủy; nếu khách đã trả tiền thì tạo yêu cầu hoàn tiền. Trả về true nếu cần hoàn tiền.</summary>
         private static bool ApplyCancellation(Booking booking, string? reason, bool cancelledByOwner, int refundPercent = 100)
-=======
-        /// <summary>Đánh dấu hủy; nếu khách đã trả tiền thì tạo yêu cầu hoàn tiền. Trả về true nếu cần hoàn tiền.</summary>
-        private static bool ApplyCancellation(Booking booking, string? reason, bool cancelledByOwner)
->>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
         {
             booking.Status = BookingStatus.Cancelled;
             booking.CancelledAt = DateTime.UtcNow;
@@ -637,7 +617,6 @@ namespace DACN.Services
             if (booking.PaymentStatus == PaymentStatus.Paid || booking.PaymentStatus == PaymentStatus.AwaitingVerification)
             {
                 booking.PaymentStatus = PaymentStatus.RefundPending;
-<<<<<<< HEAD
                 // Hủy đúng hạn / do chủ sân hủy → hoàn 100%; khách hủy sát giờ → hoàn theo LateCancelRefundPercent
                 booking.RefundAmount = BookingRules.RefundAmountFor(booking.TotalAmount, refundPercent);
                 if (refundPercent < 100)
@@ -647,9 +626,6 @@ namespace DACN.Services
                     if (note.Length + tag.Length + 1 > 500) note = note[..Math.Max(0, 500 - tag.Length - 2)] + "…";
                     booking.PaymentNote = (note + " " + tag).Trim();
                 }
-=======
-                booking.RefundAmount = booking.TotalAmount; // Hủy đúng hạn / do chủ sân hủy → hoàn 100%
->>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
                 return true;
             }
             return false;
@@ -732,7 +708,6 @@ namespace DACN.Services
                 return BookingResult.Failure("Đơn đặt sân không tồn tại.");
             }
 
-<<<<<<< HEAD
             // Màn hình chủ sân chỉ được xác nhận "đã thu tiền"; các trạng thái hoàn tiền đi qua luồng Hủy / Hoàn tiền riêng
             if (paymentStatus.HasValue && paymentStatus.Value != PaymentStatus.Paid)
             {
@@ -751,8 +726,6 @@ namespace DACN.Services
                 return BookingResult.Failure($"Đơn #BK-{bookingId} chưa tới giờ chơi nên chưa thể đánh dấu hoàn thành.");
             }
 
-=======
->>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
             var now = DateTime.UtcNow;
             bool wasActive = BookingRules.IsActiveNow(booking, now);
             bool wasCancelled = booking.Status == BookingStatus.Cancelled;
@@ -828,10 +801,7 @@ namespace DACN.Services
 
             if (status == BookingStatus.Cancelled && !wasCancelled)
             {
-<<<<<<< HEAD
                 await CloseLinkedMatchPostsAsync(booking);
-=======
->>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
                 await NotifyCancellationAsync(booking, cancelledByCustomer: false, needsRefund);
                 return BookingResult.Success(booking, needsRefund
                     ? $"Đã hủy đơn #BK-{bookingId}. Đơn đã thanh toán nên được chuyển sang mục Hoàn tiền ({booking.RefundAmount:N0}đ)."
@@ -848,11 +818,7 @@ namespace DACN.Services
             var threshold = BookingRules.HoldThreshold(DateTime.UtcNow);
             var note = ExpiredHoldNote;
 
-<<<<<<< HEAD
             int released = await _unitOfWork.Context.Bookings
-=======
-            return await _unitOfWork.Context.Bookings
->>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
                 .Where(b => b.Status == BookingStatus.Pending
                          && b.PaymentStatus == PaymentStatus.Unpaid
                          && b.CreatedAt < threshold)
@@ -860,7 +826,6 @@ namespace DACN.Services
                     .SetProperty(b => b.Status, BookingStatus.Cancelled)
                     .SetProperty(b => b.PaymentNote, b => b.PaymentNote ?? note),
                     cancellationToken);
-<<<<<<< HEAD
 
             // Kèo ghép đội gắn với đơn đã bị hủy (kể cả đơn giữ chỗ vừa hết hạn) → đóng kèo
             await _unitOfWork.Context.MatchPosts
@@ -869,8 +834,6 @@ namespace DACN.Services
                 .ExecuteUpdateAsync(s => s.SetProperty(p => p.Status, MatchPostStatus.Cancelled), cancellationToken);
 
             return released;
-=======
->>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
         }
     }
 }
