@@ -1,0 +1,72 @@
+@model DACN.Models.NotificationConfig
+@{
+    ViewData["Title"] = "Cài đặt thông báo";
+    var facilities = ViewBag.Facilities as List<DACN.Models.Facility> ?? new();
+    var facility = (DACN.Models.Facility)ViewBag.Facility;
+}
+
+<div class="page-header">
+    <div class="container">
+        <span class="eyebrow">Kênh chủ sân</span>
+        <h1>Cài đặt thông báo</h1>
+        <p class="sub">Nhận thông báo đơn mới, chuyển khoản cần xác nhận, khách hủy đơn... ngay trên điện thoại qua Telegram.</p>
+        <partial name="_ManageNav" />
+    </div>
+</div>
+
+<div class="container">
+    <div class="row g-4">
+        <div class="col-lg-7">
+            <div class="panel">
+                <div class="panel-header">
+                    <h5 class="panel-title"><i class="bi bi-telegram"></i> Telegram · @facility.Name</h5>
+                    @if (facilities.Count > 1)
+                    {
+                        <select class="form-select form-select-sm" style="max-width: 220px" aria-label="Chọn cụm sân"
+                                onchange="location.href='@Url.Action("NotificationSettings")?facilityId=' + this.value">
+                            @foreach (var f in facilities)
+                            {
+                                <option value="@f.Id" selected="@(f.Id == facility.Id)">@f.Name</option>
+                            }
+                        </select>
+                    }
+                </div>
+                <div class="panel-body">
+                    <form asp-action="NotificationSettings" method="post">
+                        <input type="hidden" name="facilityId" value="@facility.Id" />
+                        <div class="mb-3">
+                            <label class="form-label" for="tgToken">Bot Token</label>
+                            <input type="text" name="telegramBotToken" id="tgToken" class="form-control font-monospace" value="@Model.TelegramBotToken" placeholder="123456789:AAH..." autocomplete="off" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="tgChat">Chat ID</label>
+                            <input type="text" name="telegramChatId" id="tgChat" class="form-control font-monospace" value="@Model.TelegramChatId" placeholder="VD: 987654321 hoặc -100123... (nhóm)" autocomplete="off" />
+                        </div>
+                        <div class="form-check form-switch mb-4">
+                            <input class="form-check-input" type="checkbox" name="notifyOnNewBooking" value="true" id="tgNew" checked="@Model.NotifyOnNewBooking" />
+                            <label class="form-check-label" for="tgNew">Báo cả khi có đơn đặt mới <span class="text-muted small">(các việc cần xử lý như xác nhận chuyển khoản, hoàn tiền luôn được báo)</span></label>
+                        </div>
+                        <div class="d-flex flex-wrap gap-2">
+                            <button type="submit" name="submit" value="save" class="btn btn-primary"><i class="bi bi-save me-1"></i>Lưu cài đặt</button>
+                            <button type="submit" name="submit" value="test" class="btn btn-light"><i class="bi bi-send me-1"></i>Lưu &amp; gửi tin thử</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-5">
+            <div class="panel">
+                <div class="panel-header"><h5 class="panel-title"><i class="bi bi-question-circle"></i> Cách lấy Bot Token &amp; Chat ID</h5></div>
+                <div class="panel-body small">
+                    <ol class="ps-3 mb-3 d-grid gap-2">
+                        <li>Mở Telegram, tìm <strong>@@BotFather</strong>, gõ <span class="kbd-tag">/newbot</span> và đặt tên → nhận <strong>Bot Token</strong>.</li>
+                        <li>Mở bot vừa tạo và bấm <strong>Start</strong> (hoặc thêm bot vào nhóm nhân viên).</li>
+                        <li>Tìm <strong>@@userinfobot</strong> để lấy <strong>Chat ID</strong> của bạn (nhóm: ID bắt đầu bằng <span class="kbd-tag">-100</span>).</li>
+                        <li>Dán vào ô bên cạnh, bấm <em>Lưu &amp; gửi tin thử</em>.</li>
+                    </ol>
+                    <div class="alert alert-info mb-0"><i class="bi bi-bell me-1"></i>Dù không cài Telegram, bạn vẫn nhận mọi thông báo trong chuông <i class="bi bi-bell"></i> trên thanh menu.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

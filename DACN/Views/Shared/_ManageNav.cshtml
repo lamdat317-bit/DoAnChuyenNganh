@@ -1,0 +1,31 @@
+﻿@using DACN.Services
+@{
+    var area = ViewContext.RouteData.Values["area"]?.ToString() ?? "";
+    var ctrl = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
+    var act = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
+    string A(string a, string c, params string[] actions) =>
+        area == a && ctrl == c && (actions.Length == 0 || actions.Contains(act)) ? "active" : "";
+}
+<nav class="manage-nav">
+    @if (area == "Owner")
+    {
+        <a class="@A("Owner", "Facility", "Index", "CreateFacility", "EditFacility", "ManageTimeSlots", "ManageServices", "ManagePhotos")" asp-area="Owner" asp-controller="Facility" asp-action="Index"><i class="bi bi-buildings"></i> Cụm sân</a>
+        <a class="@A("Owner", "Facility", "ScheduleBoard")" asp-area="Owner" asp-controller="Facility" asp-action="ScheduleBoard"><i class="bi bi-calendar3-range"></i> Bảng lịch</a>
+        <a class="@A("Owner", "Facility", "Bookings")" asp-area="Owner" asp-controller="Facility" asp-action="Bookings"><i class="bi bi-receipt"></i> Đơn đặt sân</a>
+        <a class="@A("Owner", "Facility", "CheckIn")" asp-area="Owner" asp-controller="Facility" asp-action="CheckIn"><i class="bi bi-qr-code-scan"></i> Soát vé</a>
+        <a class="@A("Owner", "Facility", "Statistics")" asp-area="Owner" asp-controller="Facility" asp-action="Statistics"><i class="bi bi-graph-up"></i> Thống kê</a>
+        <a class="@A("Owner", "Facility", "Reviews")" asp-area="Owner" asp-controller="Facility" asp-action="Reviews"><i class="bi bi-star"></i> Đánh giá</a>
+        <a class="@A("Owner", "Facility", "Refunds")" asp-area="Owner" asp-controller="Facility" asp-action="Refunds"><i class="bi bi-arrow-counterclockwise"></i> Hoàn tiền</a>
+        <a class="@A("Owner", "Facility", "NotificationSettings")" asp-area="Owner" asp-controller="Facility" asp-action="NotificationSettings"><i class="bi bi-telegram"></i> Thông báo</a>
+    }
+    else
+    {
+        <a class="@A("Admin", "Dashboard")" asp-area="Admin" asp-controller="Dashboard" asp-action="Index"><i class="bi bi-speedometer2"></i> Tổng quan</a>
+        <a class="@A("Admin", "User")" asp-area="Admin" asp-controller="User" asp-action="Index"><i class="bi bi-people"></i> Người dùng</a>
+        <a class="@A("Admin", "Facilities", "Index")" asp-area="Admin" asp-controller="Facilities" asp-action="Index"><i class="bi bi-patch-check"></i> Duyệt cụm sân</a>
+        <a class="@A("Admin", "Bank")" asp-area="Admin" asp-controller="Bank" asp-action="Index"><i class="bi bi-bank"></i> Sổ cái giao dịch</a>
+        <a class="@A("Admin", "Facilities", "Emails")" asp-area="Admin" asp-controller="Facilities" asp-action="Emails"><i class="bi bi-envelope"></i> Hộp thư</a>
+        <a asp-area="Owner" asp-controller="Facility" asp-action="Index"><i class="bi bi-buildings"></i> Quản lý cụm sân</a>
+        <a asp-area="Owner" asp-controller="Facility" asp-action="Statistics"><i class="bi bi-graph-up"></i> Doanh thu chi tiết</a>
+    }
+</nav>

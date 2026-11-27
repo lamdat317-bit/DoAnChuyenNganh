@@ -1,0 +1,264 @@
+@model DACN.Models.ViewModels.RevenueStatisticsViewModel
+@{
+    ViewData["Title"] = "Thống kê doanh thu";
+    var growth = Model.RevenueGrowthPercent;
+    var maxCourt = Model.RevenueByCourt.Any() ? Model.RevenueByCourt.Max(c => c.Value) : 0;
+    var ranges = new[] { (7, "7 ngày"), (30, "30 ngày"), (90, "90 ngày"), (365, "12 tháng") };
+    var json = new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase };
+}
+
+<div class="page-header">
+    <div class="container">
+        <div class="d-flex flex-wrap justify-content-between align-items-end gap-3">
+            <div>
+                <span class="eyebrow">Kênh chủ sân</span>
+                <h1>Thống kê doanh thu</h1>
+                <p class="sub">Doanh thu chỉ tính các đơn đã thanh toán và không bị hủy.</p>
+            </div>
+            <form method="get" asp-action="Statistics" class="d-flex flex-wrap gap-2 align-items-center">
+                <select name="facilityId" class="form-select form-select-sm" style="min-width: 200px;" onchange="this.form.submit()" aria-label="Cụm sân">
+                    <option value="">Tất cả cụm sân</option>
+                    @foreach (var f in Model.Facilities)
+                    {
+                        <option value="@f.Id" selected="@(f.Id == Model.SelectedFacilityId)">@f.Name</option>
+                    }
+                </select>
+                <input type="hidden" name="range" value="@Model.RangeDays" />
+            </form>
+        </div>
+        <partial name="_ManageNav" />
+    </div>
+</div>
+
+<div class="container">
+    <div class="d-flex flex-wrap gap-2 mb-4">
+        @foreach (var (days, label) in ranges)
+        {
+            <a asp-action="Statistics" asp-route-facilityId="@Model.SelectedFacilityId" asp-route-range="@days" class="chip @(Model.RangeDays == days ? "active" : "")">@label</a>
+        }
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-xl-3">
+            <div class="card stat-card">
+                <span class="icon-bubble green"><i class="bi bi-cash-stack"></i></span>
+                <div>
+                    <div class="label">Doanh thu</div>
+                    <div class="value">@Model.TotalRevenue.ToString("N0")<small class="fs-6">đ</small></div>
+                    <div class="delta @(growth >= 0 ? "up" : "down")"><i class="bi @(growth >= 0 ? "bi-arrow-up-right" : "bi-arrow-down-right")"></i> @Math.Abs(growth).ToString("0.#")% so với kỳ trước</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-xl-3">
+            <div class="card stat-card">
+                <span class="icon-bubble blue"><i class="bi bi-receipt"></i></span>
+                <div>
+                    <div class="label">Đơn đã thanh toán</div>
+                    <div class="value">@Model.PaidBookings <small class="fs-6 text-muted fw-semibold">/ @Model.TotalBookings</small></div>
+                    <div class="small text-muted">Trung bình @Model.AverageBookingValue.ToString("N0")đ/đơn</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-xl-3">
+            <div class="card stat-card">
+                <span class="icon-bubble red"><i class="bi bi-x-circle"></i></span>
+                <div>
+                    <div class="label">Tỉ lệ hủy</div>
+                    <div class="value">@Model.CancellationRate.ToString("0.#")%</div>
+                    <div class="small text-muted">@Model.CancelledBookings đơn bị hủy</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-xl-3">
+            <div class="card stat-card">
+                <span class="icon-bubble amber"><i class="bi bi-hourglass-split"></i></span>
+                <div>
+                    <div class="label">Chờ thu tiền</div>
+                    <div class="value">@Model.PendingAmount.ToString("N0")<small class="fs-6">đ</small></div>
+                    <div class="small text-muted">Đơn chưa thanh toán</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="panel mb-4">
+        <div class="panel-header">
+            <h5 class="panel-title"><i class="bi bi-bar-chart"></i> Doanh thu @(Model.RangeDays > 90 ? "theo tuần" : "theo ngày") · @Model.RangeDays ngày qua</h5>
+        </div>
+        <div class="panel-body">
+            @if (Model.TotalRevenue == 0)
+            {
+                <div class="empty-state py-4"><p class="mb-0">Chưa có doanh thu trong khoảng thời gian này.</p></div>
+            }
+            else
+            {
+                <div class="chart-box"><canvas id="dailyChart" aria-label="Biểu đồ doanh thu theo ngày" role="img"></canvas></div>
+            }
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-lg-7">
+            <div class="panel h-100">
+                <div class="panel-header">
+                    <h5 class="panel-title"><i class="bi bi-calendar3"></i> Doanh thu 12 tháng</h5>
+                    <button class="btn btn-light btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#monthlyTable"><i class="bi bi-table me-1"></i>Dạng bảng</button>
+                </div>
+                <div class="panel-body">
+                    <div class="chart-box sm"><canvas id="monthlyChart" aria-label="Biểu đồ doanh thu theo tháng" role="img"></canvas></div>
+                    <div class="collapse mt-3" id="monthlyTable">
+                        <div class="table-wrap">
+                            <table class="table table-sm">
+                                <thead><tr><th>Tháng</th><th class="text-end">Số đơn</th><th class="text-end">Doanh thu</th></tr></thead>
+                                <tbody>
+                                    @foreach (var m in Model.MonthlyRevenue.AsEnumerable().Reverse())
+                                    {
+                                        <tr><td>@m.Label</td><td class="text-end">@m.Count</td><td class="text-end fw-semibold">@m.Value.ToString("N0")đ</td></tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-5">
+            <div class="panel h-100">
+                <div class="panel-header"><h5 class="panel-title"><i class="bi bi-grid-3x3-gap"></i> Doanh thu theo sân</h5></div>
+                <div class="panel-body">
+                    @if (!Model.RevenueByCourt.Any())
+                    {
+                        <div class="text-muted small">Chưa có dữ liệu.</div>
+                    }
+                    @foreach (var c in Model.RevenueByCourt)
+                    {
+                        var pct = maxCourt > 0 ? (double)(c.Value / maxCourt * 100) : 0;
+                        <div class="hbar" title="@c.Label: @c.Value.ToString("N0")đ · @c.Count đơn">
+                            <span class="text-truncate text-ink fw-semibold">@c.Label</span>
+                            <div class="track"><span style="width:@pct.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)%"></span></div>
+                            <span class="text-end small fw-semibold" style="min-width: 90px;">@c.Value.ToString("N0")đ</span>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-7">
+            <div class="panel h-100">
+                <div class="panel-header"><h5 class="panel-title"><i class="bi bi-clock"></i> Khung giờ được đặt nhiều</h5><span class="small text-muted">Số lượt đặt theo giờ bắt đầu</span></div>
+                <div class="panel-body">
+                    @if (!Model.BookingsByHour.Any())
+                    {
+                        <div class="text-muted small">Chưa có dữ liệu.</div>
+                    }
+                    else
+                    {
+                        <div class="chart-box sm"><canvas id="hourChart" aria-label="Biểu đồ lượt đặt theo giờ" role="img"></canvas></div>
+                    }
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-5">
+            <div class="panel h-100">
+                <div class="panel-header"><h5 class="panel-title"><i class="bi bi-trophy"></i> Khách hàng thân thiết</h5></div>
+                @if (!Model.TopCustomers.Any())
+                {
+                    <div class="panel-body text-muted small">Chưa có dữ liệu.</div>
+                }
+                else
+                {
+                    <div class="table-wrap">
+                        <table class="table">
+                            <thead><tr><th>Khách</th><th class="text-end">Lượt</th><th class="text-end">Chi tiêu</th></tr></thead>
+                            <tbody>
+                                @foreach (var (cus, i) in Model.TopCustomers.Select((c, i) => (c, i)))
+                                {
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center gap-2">
+                                                <span class="avatar avatar-sm">@(i + 1)</span>
+                                                <div class="min-w-0"><div class="fw-semibold text-ink text-truncate">@cus.Name</div><div class="small text-muted">@cus.Phone</div></div>
+                                            </div>
+                                        </td>
+                                        <td class="text-end">@cus.Bookings</td>
+                                        <td class="text-end fw-bold">@cus.Spent.ToString("N0")đ</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/lib/chartjs/chart.umd.min.js"></script>
+    <script>
+        const daily = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.DailyRevenue, json));
+        const monthly = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.MonthlyRevenue, json));
+        const hours = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.BookingsByHour, json));
+
+        const DARK = document.documentElement.getAttribute('data-bs-theme') === 'dark';
+        const BRAND = '#16a34a', GRID = DARK ? '#1f2a3d' : '#eef1f5', INK = DARK ? '#8b98ad' : '#64748b', AXIS = DARK ? '#2a364b' : '#e5e9f0';
+        const vnd = v => Number(v).toLocaleString('vi-VN') + 'đ';
+        const shortVnd = v => v >= 1e6 ? (v / 1e6).toLocaleString('vi-VN', { maximumFractionDigits: 1 }) + 'tr' : v >= 1e3 ? (v / 1e3).toFixed(0) + 'k' : v;
+
+        Chart.defaults.font.family = "'Be Vietnam Pro', system-ui, sans-serif";
+        Chart.defaults.font.size = 12;
+        Chart.defaults.color = INK;
+
+        function barChart(id, rows, valueKey, opts) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            new Chart(el, {
+                type: 'bar',
+                data: {
+                    labels: rows.map(r => r.label),
+                    datasets: [{
+                        data: rows.map(r => r[valueKey]),
+                        backgroundColor: BRAND,
+                        hoverBackgroundColor: '#15803d',
+                        borderRadius: { topLeft: 4, topRight: 4 },
+                        borderSkipped: 'bottom',
+                        maxBarThickness: 28,
+                        categoryPercentage: 0.8,
+                        barPercentage: 0.9
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: '#0f172a', padding: 10, cornerRadius: 8, displayColors: false,
+                            callbacks: opts.tooltip
+                        }
+                    },
+                    scales: {
+                        x: { grid: { display: false }, border: { color: AXIS }, ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 12 } },
+                        y: { beginAtZero: true, grid: { color: GRID }, border: { display: false }, ticks: { callback: opts.yTick, maxTicksLimit: 5, precision: 0 } }
+                    }
+                }
+            });
+        }
+
+        barChart('dailyChart', daily, 'value', {
+            yTick: shortVnd,
+            tooltip: { label: c => vnd(c.raw), afterLabel: c => daily[c.dataIndex].count + ' đơn' }
+        });
+        barChart('monthlyChart', monthly, 'value', {
+            yTick: shortVnd,
+            tooltip: { title: c => 'Tháng ' + c[0].label, label: c => vnd(c.raw), afterLabel: c => monthly[c.dataIndex].count + ' đơn' }
+        });
+        barChart('hourChart', hours, 'count', {
+            yTick: v => v,
+            tooltip: { title: c => 'Bắt đầu lúc ' + c[0].label, label: c => c.raw + ' lượt đặt', afterLabel: c => vnd(hours[c.dataIndex].value) }
+        });
+    </script>
+}

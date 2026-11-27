@@ -1,0 +1,178 @@
+﻿@model List<DACN.Models.Facility>
+@{
+    ViewData["Title"] = "Quản lý cụm sân";
+    var isAdmin = User.IsInRole(DACN.Services.AppRoles.Admin);
+}
+
+<div class="page-header">
+    <div class="container">
+        <div class="d-flex flex-wrap justify-content-between align-items-end gap-3">
+            <div>
+                <span class="eyebrow">@(isAdmin ? "Quản trị · toàn hệ thống" : "Kênh chủ sân")</span>
+                <h1>Cụm sân của @(isAdmin ? "hệ thống" : "tôi")</h1>
+                <p class="sub">Quản lý sân con, bảng giá theo khung giờ, dịch vụ và lịch đặt.</p>
+            </div>
+            <div class="d-flex gap-2"><a asp-action="CheckIn" class="btn btn-light"><i class="bi bi-qr-code-scan me-1"></i> Soát vé</a><a asp-action="CreateFacility" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i> Thêm cụm sân</a></div>
+        </div>
+        <partial name="_ManageNav" />
+    </div>
+</div>
+
+<div class="container">
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-lg-3"><div class="card stat-card"><span class="icon-bubble green"><i class="bi bi-buildings"></i></span><div><div class="label">Cụm sân</div><div class="value">@ViewBag.TotalFacilities</div></div></div></div>
+        <div class="col-6 col-lg-3"><div class="card stat-card"><span class="icon-bubble blue"><i class="bi bi-grid-3x3-gap"></i></span><div><div class="label">Sân con</div><div class="value">@ViewBag.TotalCourts</div></div></div></div>
+        <div class="col-6 col-lg-3"><div class="card stat-card"><span class="icon-bubble amber"><i class="bi bi-calendar2-check"></i></span><div><div class="label">Lượt đặt hôm nay</div><div class="value">@ViewBag.TodayBookingsCount</div></div></div></div>
+        <div class="col-6 col-lg-3"><div class="card stat-card"><span class="icon-bubble orange"><i class="bi bi-cash-stack"></i></span><div><div class="label">Doanh thu hôm nay</div><div class="value">@(((decimal)ViewBag.TodayRevenue).ToString("N0"))<small class="fs-6">đ</small></div></div></div></div>
+    </div>
+
+    @if (!Model.Any())
+    {
+        <div class="panel empty-state">
+            <span class="icon-bubble lg green"><i class="bi bi-building-add"></i></span>
+            <h5>Bạn chưa có cụm sân nào</h5>
+            <p>Tạo cụm sân đầu tiên. Hệ thống sẽ tự tạo sẵn một sân con và bảng giá mặc định.</p>
+            <div class="d-flex gap-2"><a asp-action="CheckIn" class="btn btn-light"><i class="bi bi-qr-code-scan me-1"></i> Soát vé</a><a asp-action="CreateFacility" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i> Thêm cụm sân</a></div>
+        </div>
+    }
+
+    @foreach (var facility in Model)
+    {
+        var activeCount = facility.Courts.Count(c => c.IsActive);
+        <div class="panel mb-4">
+            <div class="panel-header">
+                <div class="min-w-0">
+                    <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+                        <h5 class="mb-0 fw-bold text-ink">@facility.Name</h5>
+                        <span class="badge-soft success"><i class="@(facility.SportType?.IconCss ?? "bi bi-activity")"></i> @facility.SportType?.Name</span>
+                        @if (facility.ApprovalStatus == DACN.Models.Enums.FacilityApprovalStatus.Pending)
+                        {
+                            <span class="badge-soft warning"><i class="bi bi-hourglass-split"></i> Chờ Admin duyệt</span>
+                        }
+                        else if (facility.ApprovalStatus == DACN.Models.Enums.FacilityApprovalStatus.Rejected)
+                        {
+                            <span class="badge-soft danger"><i class="bi bi-x-octagon"></i> Bị từ chối</span>
+                        }
+                    </div>
+                    @if (facility.ApprovalStatus == DACN.Models.Enums.FacilityApprovalStatus.Rejected && !string.IsNullOrEmpty(facility.ApprovalNote))
+                    {
+                        <div class="small text-danger mb-1"><i class="bi bi-info-circle me-1"></i>Lý do: @facility.ApprovalNote — sửa thông tin để gửi duyệt lại.</div>
+                    }
+                    else if (facility.ApprovalStatus == DACN.Models.Enums.FacilityApprovalStatus.Pending)
+                    {
+                        <div class="small text-muted mb-1">Khách chưa thấy cụm sân này. Bạn vẫn có thể thiết lập sân, bảng giá và đặt tại quầy trong lúc chờ duyệt.</div>
+                    }
+                    <div class="small text-muted">
+                        <i class="bi bi-geo-alt me-1"></i>@facility.Address
+                        <span class="mx-2">·</span><i class="bi bi-clock me-1"></i>@DACN.Services.BookingRules.OpenHoursText(facility)
+                    </div>
+                </div>
+                <div class="d-flex flex-wrap gap-2">
+                    <a asp-action="ScheduleBoard" asp-route-facilityId="@facility.Id" class="btn btn-primary btn-sm"><i class="bi bi-calendar3-range me-1"></i>Bảng lịch</a>
+                    <a asp-action="ManagePhotos" asp-route-facilityId="@facility.Id" class="btn btn-light btn-sm"><i class="bi bi-images me-1"></i>Ảnh sân</a>
+                    <a asp-action="ManageServices" asp-route-facilityId="@facility.Id" class="btn btn-light btn-sm"><i class="bi bi-cup-hot me-1"></i>Dịch vụ (@facility.Services.Count)</a>
+                    <a asp-action="Statistics" asp-route-facilityId="@facility.Id" class="btn btn-light btn-sm"><i class="bi bi-graph-up me-1"></i>Thống kê</a>
+                    <div class="dropdown">
+                        <button class="btn btn-light btn-sm btn-icon" data-bs-toggle="dropdown" aria-label="Thêm"><i class="bi bi-three-dots"></i></button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" asp-action="EditFacility" asp-route-id="@facility.Id"><i class="bi bi-pencil"></i>Sửa thông tin</a></li>
+                            <li><a class="dropdown-item" asp-action="ManagePhotos" asp-route-facilityId="@facility.Id"><i class="bi bi-images"></i>Ảnh sân</a></li>
+                            <li><a class="dropdown-item" asp-area="" asp-controller="Booking" asp-action="FacilityDetail" asp-route-id="@facility.Id" target="_blank"><i class="bi bi-box-arrow-up-right"></i>Xem trang khách</a></li>
+                            <li><hr class="dropdown-divider" /></li>
+                            <li><button class="dropdown-item text-danger" data-bs-toggle="modal" data-bs-target="#deleteFacilityModal" data-id="@facility.Id" data-name="@facility.Name"><i class="bi bi-trash text-danger"></i>Xóa cụm sân</button></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="panel-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="small fw-semibold text-muted">SÂN CON · @activeCount/@facility.Courts.Count đang hoạt động</div>
+                    <button type="button" class="btn btn-soft btn-sm" data-bs-toggle="modal" data-bs-target="#addCourtModal" data-id="@facility.Id" data-name="@facility.Name"><i class="bi bi-plus-lg me-1"></i>Thêm sân con</button>
+                </div>
+                <div class="row g-2">
+                    @foreach (var court in facility.Courts.OrderBy(c => c.Name))
+                    {
+                        var slots = court.TimeSlots.ToList();
+                        var priceText = slots.Any()
+                            ? (slots.Min(s => s.Price) == slots.Max(s => s.Price) ? $"{slots.Min(s => s.Price):N0}đ" : $"{slots.Min(s => s.Price):N0}–{slots.Max(s => s.Price):N0}đ")
+                            : "Chưa có giá";
+                        <div class="col-md-6 col-xl-4">
+                            <div class="court-row h-100">
+                                <span class="status-dot @(court.IsActive ? "on" : "off")"></span>
+                                <div class="flex-grow-1 min-w-0">
+                                    <div class="fw-semibold text-ink text-truncate">@court.Name</div>
+                                    <div class="small text-muted">@slots.Count khung giờ · @priceText</div>
+                                </div>
+                                <a asp-action="ManageTimeSlots" asp-route-courtId="@court.Id" class="btn btn-light btn-sm" title="Bảng giá"><i class="bi bi-tags"></i></a>
+                                <form asp-action="ToggleCourtStatus" method="post" class="m-0">
+                                    <input type="hidden" name="courtId" value="@court.Id" />
+                                    <button type="submit" class="btn btn-light btn-sm" title="@(court.IsActive ? "Tạm ngưng sân" : "Mở lại sân")">
+                                        <i class="bi @(court.IsActive ? "bi-pause-circle" : "bi-play-circle text-success")"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<!-- Add court modal (dùng chung) -->
+<div class="modal fade" id="addCourtModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form asp-action="AddCourt" method="post">
+                <input type="hidden" name="facilityId" id="addCourtFacilityId" />
+                <div class="modal-header">
+                    <h5 class="modal-title">Thêm sân con · <span id="addCourtFacilityName" class="text-success"></span></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                </div>
+                <div class="modal-body">
+                    <label class="form-label" for="newCourtName">Tên sân con</label>
+                    <input type="text" id="newCourtName" name="name" class="form-control" placeholder="VD: Sân 5C, Sân Pickleball 03" required />
+                    <div class="form-text">Sân mới được tạo kèm khung giờ mặc định theo giờ mở cửa của cụm sân.</div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-primary">Thêm sân</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Delete facility modal (dùng chung) -->
+<div class="modal fade" id="deleteFacilityModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form asp-action="DeleteFacility" method="post">
+                <input type="hidden" name="id" id="deleteFacilityId" />
+                <div class="modal-body p-4 text-center">
+                    <span class="icon-bubble lg red mb-3"><i class="bi bi-exclamation-triangle"></i></span>
+                    <h5 class="fw-bold">Xóa cụm sân <span id="deleteFacilityName"></span>?</h5>
+                    <p class="small text-muted mb-0">Chỉ xóa được khi cụm sân chưa từng có đơn đặt. Nếu đã có lịch sử, hãy tạm ngưng các sân con thay vì xóa.</p>
+                </div>
+                <div class="modal-footer justify-content-center">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-danger">Xóa vĩnh viễn</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.getElementById('addCourtModal').addEventListener('show.bs.modal', function (e) {
+            document.getElementById('addCourtFacilityId').value = e.relatedTarget.dataset.id;
+            document.getElementById('addCourtFacilityName').textContent = e.relatedTarget.dataset.name;
+        });
+        document.getElementById('addCourtModal').addEventListener('shown.bs.modal', function () { document.getElementById('newCourtName').focus(); });
+        document.getElementById('deleteFacilityModal').addEventListener('show.bs.modal', function (e) {
+            document.getElementById('deleteFacilityId').value = e.relatedTarget.dataset.id;
+            document.getElementById('deleteFacilityName').textContent = e.relatedTarget.dataset.name;
+        });
+    </script>
+}

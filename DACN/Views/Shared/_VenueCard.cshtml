@@ -1,0 +1,52 @@
+@model DACN.Models.ViewModels.FacilityCardDto
+@{
+    var img = Model.ImageUrl ?? "https://images.unsplash.com/photo-1529900748604-07564a03e7a6?auto=format&fit=crop&w=800&q=70";
+}
+<div class="card venue-card card-hover"
+     data-venue-id="@Model.Id" data-venue-name="@Model.Name" data-venue-img="@img"
+     data-venue-addr="@Model.Address" data-venue-price="@Model.MinPrice.ToString("N0")" data-venue-sport="@Model.SportTypeName">
+    <div class="cover">
+        <a asp-area="" asp-controller="Booking" asp-action="FacilityDetail" asp-route-id="@Model.Id" class="d-block h-100" tabindex="-1" aria-hidden="true">
+            <img src="@img" alt="@Model.Name" loading="lazy" />
+        </a>
+        <div class="tags">
+            <span class="glass-tag"><i class="@(Model.IconCss ?? "bi bi-tag") text-success"></i> @Model.SportTypeName</span>
+            <div class="d-flex gap-1 align-items-center">
+                @if (Model.ReviewCount > 0)
+                {
+                    <span class="glass-tag"><i class="bi bi-star-fill" style="color:#f59e0b"></i> @Model.AverageRating.ToString("0.0")</span>
+                }
+                <button type="button" class="fav-btn" data-fav-id="@Model.Id" aria-label="Lưu vào yêu thích" title="Lưu vào yêu thích">
+                    <i class="bi bi-heart"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+    <div class="body">
+        <div class="title"><a asp-area="" asp-controller="Booking" asp-action="FacilityDetail" asp-route-id="@Model.Id">@Model.Name</a></div>
+        <div class="addr text-truncate" title="@Model.Address"><i class="bi bi-geo-alt me-1"></i>@Model.Address</div>
+        <div class="meta">
+            <span><i class="bi bi-grid-3x3-gap"></i> @Model.CourtCount sân</span>
+            <span><i class="bi bi-clock"></i> @Model.OpeningHours</span>
+            @if (Model.ReviewCount > 0)
+            {
+                <span><i class="bi bi-chat-square-text"></i> @Model.ReviewCount đánh giá</span>
+            }
+            else
+            {
+                <span><i class="bi bi-stars"></i> Sân mới</span>
+            }
+        </div>
+        <div class="foot">
+            <div class="price">@Model.MinPrice.ToString("N0")đ<small>/giờ</small></div>
+            @if (Model.FirstCourtId > 0)
+            {
+                <a asp-area="" asp-controller="Booking" asp-action="Matrix" asp-route-courtId="@Model.FirstCourtId" class="btn btn-primary btn-sm"><i class="bi bi-calendar-check me-1"></i>Đặt sân</a>
+            }
+            else
+            {
+                <span class="badge-soft neutral">Tạm ngưng</span>
+            }
+        </div>
+    </div>
+</div>

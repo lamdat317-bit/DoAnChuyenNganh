@@ -1,0 +1,89 @@
+﻿@model DACN.Models.ViewModels.LoginViewModel
+@{
+    ViewData["Title"] = "Đăng nhập";
+    bool showDemo = ViewBag.ShowDemoAccounts == true;
+}
+
+<div class="auth-wrap">
+    <div class="container" style="max-width: 980px;">
+        <div class="auth-card">
+            <div class="auth-side">
+                <div>
+                    <a class="brand-logo text-white mb-5" asp-area="" asp-controller="Home" asp-action="Index">
+                        <span class="brand-mark"><i class="bi bi-dribbble"></i></span>
+                        <span>DatSan<span style="color:#86efac">247</span></span>
+                    </a>
+                    <h2 class="mt-4">Chào mừng trở lại!</h2>
+                    <p>Đăng nhập để giữ chỗ, thanh toán và quản lý lịch chơi của bạn.</p>
+                </div>
+                <ul class="list-unstyled d-grid gap-2 mb-0">
+                    <li><span class="check"><i class="bi bi-check-lg"></i></span>Lịch trống cập nhật theo thời gian thực</li>
+                    <li><span class="check"><i class="bi bi-check-lg"></i></span>Thanh toán nhanh bằng VietQR</li>
+                    <li><span class="check"><i class="bi bi-check-lg"></i></span>Tìm đồng đội, ghép kèo dễ dàng</li>
+                </ul>
+            </div>
+
+            <div class="auth-form">
+                <h3 class="fw-bold mb-1">Đăng nhập</h3>
+                <p class="text-muted mb-4">Chưa có tài khoản? <a asp-action="Register" class="fw-semibold">Đăng ký miễn phí</a></p>
+
+                <form asp-action="Login" asp-route-returnUrl="@ViewData["ReturnUrl"]" method="post">
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2 small" role="alert"></div>
+
+                    <div class="mb-3">
+                        <label asp-for="EmailOrUsername" class="form-label"></label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+                            <input asp-for="EmailOrUsername" class="form-control" placeholder="name@gmail.com" autocomplete="username" autofocus />
+                        </div>
+                        <span asp-validation-for="EmailOrUsername" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Password" class="form-label"></label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-lock"></i></span>
+                            <input asp-for="Password" class="form-control" placeholder="••••••••" autocomplete="current-password" id="loginPassword" />
+                            <button type="button" class="btn btn-light border" onclick="togglePwd('loginPassword', this)" aria-label="Hiện mật khẩu"><i class="bi bi-eye"></i></button>
+                        </div>
+                        <span asp-validation-for="Password" class="text-danger small"></span>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div class="form-check m-0">
+                            <input asp-for="RememberMe" class="form-check-input" />
+                            <label asp-for="RememberMe" class="form-check-label small"></label>
+                        </div>
+                        <a asp-action="ForgotPassword" class="small fw-semibold">Quên mật khẩu?</a>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 btn-lg">Đăng nhập</button>
+                </form>
+
+                @if (showDemo)
+                {
+                    <div class="mt-4 pt-4 border-top">
+                        <div class="small fw-semibold text-muted mb-2"><i class="bi bi-lightning-charge me-1"></i>Tài khoản demo (mật khẩu: <span class="kbd-tag">Password@123</span>)</div>
+                        <div class="d-grid gap-2">
+                            <a asp-action="QuickLogin" asp-route-role="customer" class="demo-account"><span class="icon-bubble sm green"><i class="bi bi-person"></i></span><div><div class="fw-semibold text-ink">Khách hàng</div><div class="small text-muted">customer@gmail.com</div></div></a>
+                            <a asp-action="QuickLogin" asp-route-role="owner" class="demo-account"><span class="icon-bubble sm blue"><i class="bi bi-buildings"></i></span><div><div class="fw-semibold text-ink">Chủ sân</div><div class="small text-muted">owner@datsan247.vn</div></div></a>
+                            <a asp-action="QuickLogin" asp-route-role="admin" class="demo-account"><span class="icon-bubble sm red"><i class="bi bi-shield-check"></i></span><div><div class="fw-semibold text-ink">Quản trị viên</div><div class="small text-muted">admin@datsan247.vn</div></div></a>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        function togglePwd(id, btn) {
+            const input = document.getElementById(id);
+            const show = input.type === 'password';
+            input.type = show ? 'text' : 'password';
+            btn.innerHTML = show ? '<i class="bi bi-eye-slash"></i>' : '<i class="bi bi-eye"></i>';
+        }
+    </script>
+}

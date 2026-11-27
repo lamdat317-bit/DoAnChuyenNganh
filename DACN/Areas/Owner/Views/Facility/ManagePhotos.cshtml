@@ -1,0 +1,160 @@
+@model DACN.Models.Facility
+@{
+    ViewData["Title"] = $"Ảnh sân · {Model.Name}";
+    var photos = (List<DACN.Models.FacilityPhotoItem>)ViewBag.Photos;
+    int max = (int)ViewBag.MaxPhotos;
+    int remaining = max - photos.Count;
+}
+
+<div class="page-header">
+    <div class="container" style="max-width: 1100px;">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a asp-action="Index">Cụm sân</a></li>
+                <li class="breadcrumb-item active" aria-current="page">@Model.Name</li>
+            </ol>
+        </nav>
+        <div class="d-flex flex-wrap justify-content-between align-items-end gap-3">
+            <div>
+                <h1>Ảnh sân</h1>
+                <p class="sub">Ảnh thật giúp khách tin tưởng và đặt sân nhiều hơn. Ảnh bìa hiển thị trên thẻ sân và đầu trang chi tiết.</p>
+            </div>
+            <a asp-area="" asp-controller="Booking" asp-action="FacilityDetail" asp-route-id="@Model.Id" target="_blank" class="btn btn-light"><i class="bi bi-box-arrow-up-right me-1"></i>Xem trang khách</a>
+        </div>
+    </div>
+</div>
+
+<div class="container" style="max-width: 1100px;">
+    <div class="panel mb-4">
+        <div class="panel-header">
+            <h5 class="panel-title"><i class="bi bi-cloud-arrow-up"></i> Tải ảnh lên</h5>
+            <span class="small text-muted">@photos.Count / @max ảnh</span>
+        </div>
+        <div class="panel-body">
+            @if (remaining > 0)
+            {
+                <form asp-action="UploadPhotos" method="post" enctype="multipart/form-data" id="photoUploadForm">
+                    <input type="hidden" name="facilityId" value="@Model.Id" />
+                    <label class="photo-drop" for="photoFiles" id="photoDrop">
+                        <i class="bi bi-images"></i>
+                        <strong>Kéo thả ảnh vào đây hoặc bấm để chọn</strong>
+                        <span>JPG, PNG hoặc WebP · tối đa 5MB mỗi ảnh · còn thêm được @remaining ảnh</span>
+                        <input type="file" id="photoFiles" name="files" accept="image/jpeg,image/png,image/webp" multiple class="visually-hidden" />
+                    </label>
+                    <div class="photo-preview" id="photoPreview"></div>
+                    <div class="d-flex justify-content-end gap-2 mt-3">
+                        <button type="button" class="btn btn-light d-none" id="photoClear">Bỏ chọn</button>
+                        <button type="submit" class="btn btn-primary" id="photoSubmit" disabled><i class="bi bi-upload me-1"></i>Tải lên</button>
+                    </div>
+                </form>
+            }
+            else
+            {
+                <div class="text-muted"><i class="bi bi-info-circle me-1"></i>Đã đủ @max ảnh. Xóa bớt ảnh cũ để tải ảnh mới.</div>
+            }
+        </div>
+    </div>
+
+    @if (!photos.Any())
+    {
+        <div class="panel empty-state">
+            <span class="icon-bubble lg green"><i class="bi bi-image"></i></span>
+            <h5>Chưa có ảnh nào</h5>
+            <p>Khi chưa có ảnh, trang sân dùng ảnh minh họa theo môn thể thao. Ảnh đầu tiên bạn tải lên sẽ tự thành ảnh bìa.</p>
+        </div>
+    }
+    else
+    {
+        <div class="row g-3">
+            @for (int i = 0; i < photos.Count; i++)
+            {
+                var p = photos[i];
+                <div class="col-sm-6 col-lg-4">
+                    <div class="photo-card @(p.IsCover ? "is-cover" : "")">
+                        <a href="/Booking/FacilityImage/@p.Id" target="_blank" class="photo-thumb">
+                            <img src="/Booking/FacilityImage/@p.Id" alt="@(p.FileName ?? "Ảnh sân")" loading="lazy" />
+                            @if (p.IsCover)
+                            {
+                                <span class="photo-badge"><i class="bi bi-star-fill"></i> Ảnh bìa</span>
+                            }
+                        </a>
+                        <div class="photo-meta">
+                            <div class="min-w-0">
+                                <div class="small fw-semibold text-ink text-truncate">@(p.FileName ?? $"Ảnh #{p.Id}")</div>
+                                <div class="small text-muted">@((p.Size / 1024.0).ToString("N0")) KB</div>
+                            </div>
+                            <div class="d-flex gap-1 flex-shrink-0">
+                                @if (!p.IsCover)
+                                {
+                                    <form asp-action="SetCoverPhoto" method="post" class="m-0">
+                                        <input type="hidden" name="photoId" value="@p.Id" />
+                                        <button class="btn btn-light btn-sm" title="Đặt làm ảnh bìa"><i class="bi bi-star"></i></button>
+                                    </form>
+                                }
+                                @if (i > 0)
+                                {
+                                    <form asp-action="MovePhoto" method="post" class="m-0">
+                                        <input type="hidden" name="photoId" value="@p.Id" /><input type="hidden" name="direction" value="-1" />
+                                        <button class="btn btn-light btn-sm" title="Lên trước"><i class="bi bi-arrow-left"></i></button>
+                                    </form>
+                                }
+                                @if (i < photos.Count - 1)
+                                {
+                                    <form asp-action="MovePhoto" method="post" class="m-0">
+                                        <input type="hidden" name="photoId" value="@p.Id" /><input type="hidden" name="direction" value="1" />
+                                        <button class="btn btn-light btn-sm" title="Ra sau"><i class="bi bi-arrow-right"></i></button>
+                                    </form>
+                                }
+                                <form asp-action="DeletePhoto" method="post" class="m-0" data-confirm-message="Xóa ảnh này? Không thể khôi phục.">
+                                    <input type="hidden" name="photoId" value="@p.Id" />
+                                    <button class="btn btn-light btn-sm text-danger" title="Xóa ảnh"><i class="bi bi-trash"></i></button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@section Scripts {
+<script>
+(function () {
+    var input = document.getElementById('photoFiles');
+    if (!input) return;
+    var drop = document.getElementById('photoDrop'), preview = document.getElementById('photoPreview');
+    var submit = document.getElementById('photoSubmit'), clear = document.getElementById('photoClear');
+    var MAX = 5 * 1024 * 1024, LIMIT = @remaining;
+
+    function render() {
+        preview.innerHTML = '';
+        var files = Array.from(input.files), ok = 0;
+        files.forEach(function (f, i) {
+            var item = document.createElement('div');
+            item.className = 'photo-preview-item';
+            var bad = f.size > MAX ? 'Lớn hơn 5MB' : (!/^image\/(jpeg|png|webp)$/.test(f.type) ? 'Sai định dạng' : (i >= LIMIT ? 'Vượt số ảnh' : ''));
+            if (!bad) {
+                ok++;
+                var img = document.createElement('img');
+                img.src = URL.createObjectURL(f);
+                img.onload = function () { URL.revokeObjectURL(img.src); };
+                item.appendChild(img);
+            } else {
+                item.classList.add('is-bad');
+                var s = document.createElement('span'); s.textContent = bad; item.appendChild(s);
+            }
+            preview.appendChild(item);
+        });
+        submit.disabled = ok === 0;
+        submit.innerHTML = '<i class="bi bi-upload me-1"></i>Tải lên' + (ok ? ' ' + ok + ' ảnh' : '');
+        clear.classList.toggle('d-none', files.length === 0);
+    }
+    input.addEventListener('change', render);
+    clear.addEventListener('click', function () { input.value = ''; render(); });
+    ['dragenter', 'dragover'].forEach(function (ev) { drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.add('is-over'); }); });
+    ['dragleave', 'drop'].forEach(function (ev) { drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.remove('is-over'); }); });
+    drop.addEventListener('drop', function (e) { if (e.dataTransfer.files.length) { input.files = e.dataTransfer.files; render(); } });
+})();
+</script>
+}

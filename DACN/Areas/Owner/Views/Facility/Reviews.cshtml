@@ -1,0 +1,90 @@
+@model List<DACN.Models.Review>
+@{
+    ViewData["Title"] = "Đánh giá của khách";
+    var facilities = ViewBag.Facilities as List<DACN.Models.Facility> ?? new();
+    int? selected = ViewBag.SelectedFacilityId as int?;
+    var avg = Model.Any() ? Model.Average(r => r.Rating) : 0;
+    var unreplied = Model.Count(r => string.IsNullOrWhiteSpace(r.OwnerReply));
+    string Ini(string? n) => string.Concat((n ?? "?").Split(' ', StringSplitOptions.RemoveEmptyEntries).TakeLast(2).Select(w => char.ToUpper(w[0])));
+}
+
+<div class="page-header">
+    <div class="container">
+        <div class="d-flex flex-wrap justify-content-between align-items-end gap-3">
+            <div>
+                <span class="eyebrow">Kênh chủ sân</span>
+                <h1>Đánh giá của khách</h1>
+                <p class="sub">Đọc nhận xét và phản hồi khách hàng. Phản hồi sẽ hiển thị công khai trên trang cụm sân.</p>
+            </div>
+            <form method="get" asp-action="Reviews">
+                <select name="facilityId" class="form-select form-select-sm" style="min-width: 220px;" onchange="this.form.submit()" aria-label="Cụm sân">
+                    <option value="">Tất cả cụm sân</option>
+                    @foreach (var f in facilities)
+                    {
+                        <option value="@f.Id" selected="@(f.Id == selected)">@f.Name</option>
+                    }
+                </select>
+            </form>
+        </div>
+        <partial name="_ManageNav" />
+    </div>
+</div>
+
+<div class="container">
+    <div class="row g-3 mb-4">
+        <div class="col-md-4"><div class="card stat-card"><span class="icon-bubble amber"><i class="bi bi-star-fill"></i></span><div><div class="label">Điểm trung bình</div><div class="value">@avg.ToString("0.0") <small class="fs-6"><partial name="_Stars" model="avg" /></small></div></div></div></div>
+        <div class="col-md-4"><div class="card stat-card"><span class="icon-bubble blue"><i class="bi bi-chat-square-text"></i></span><div><div class="label">Tổng đánh giá</div><div class="value">@Model.Count</div></div></div></div>
+        <div class="col-md-4"><div class="card stat-card"><span class="icon-bubble red"><i class="bi bi-reply"></i></span><div><div class="label">Chưa phản hồi</div><div class="value">@unreplied</div></div></div></div>
+    </div>
+
+    @if (!Model.Any())
+    {
+        <div class="panel empty-state">
+            <span class="icon-bubble lg amber"><i class="bi bi-star"></i></span>
+            <h5>Chưa có đánh giá nào</h5>
+            <p>Khách hàng có thể đánh giá sau khi chơi xong và đã thanh toán.</p>
+        </div>
+    }
+    else
+    {
+        <div class="panel">
+            <div class="panel-body py-0">
+                @foreach (var r in Model)
+                {
+                    <div class="review-item">
+                        <div class="d-flex gap-3">
+                            <span class="avatar">@Ini(r.Customer?.FullName)</span>
+                            <div class="flex-grow-1 min-w-0">
+                                <div class="d-flex flex-wrap justify-content-between gap-2">
+                                    <div>
+                                        <span class="fw-semibold text-ink">@(r.Customer?.FullName ?? "Khách hàng")</span>
+                                        <span class="small text-muted ms-2">@r.Facility?.Name · @r.Booking?.Court?.Name · #BK-@r.BookingId</span>
+                                    </div>
+                                    <span class="small text-muted">@r.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</span>
+                                </div>
+                                <div class="small my-1"><partial name="_Stars" model="(double)r.Rating" /></div>
+                                @if (!string.IsNullOrWhiteSpace(r.Comment))
+                                {
+                                    <div class="mb-2">@r.Comment</div>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(r.OwnerReply))
+                                {
+                                    <div class="owner-reply mb-2"><strong class="text-success"><i class="bi bi-reply me-1"></i>Bạn đã phản hồi:</strong> @r.OwnerReply</div>
+                                }
+                                <details>
+                                    <summary class="small fw-semibold text-success" style="cursor:pointer">@(string.IsNullOrWhiteSpace(r.OwnerReply) ? "Phản hồi" : "Sửa phản hồi")</summary>
+                                    <form asp-action="ReplyReview" method="post" class="mt-2">
+                                        <input type="hidden" name="reviewId" value="@r.Id" />
+                                        <input type="hidden" name="facilityId" value="@selected" />
+                                        <textarea name="reply" class="form-control mb-2" rows="2" maxlength="1000" placeholder="Cảm ơn bạn đã đánh giá...">@r.OwnerReply</textarea>
+                                        <button type="submit" class="btn btn-primary btn-sm">Gửi phản hồi</button>
+                                    </form>
+                                </details>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>

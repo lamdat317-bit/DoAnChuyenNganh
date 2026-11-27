@@ -1,0 +1,287 @@
+﻿@model DACN.Models.ViewModels.HomeViewModel
+@using DACN.Models.Enums
+@{
+    ViewData["Title"] = "Đặt sân thể thao trực tuyến & ghép đội";
+}
+
+<!-- HERO -->
+<section class="hero">
+    <div class="container">
+        <div class="row align-items-center g-5">
+            <div class="col-lg-6">
+                <span class="hero-eyebrow mb-4"><span class="tag">Mới</span> Thanh toán VietQR · Ghép đội 1 chạm</span>
+                <h1 class="mb-3">Đặt sân thể thao <span class="hl">trong 30 giây</span>, không lo trùng lịch</h1>
+                <p class="lead mb-4">
+                    Xem lịch trống theo thời gian thực của sân bóng đá, pickleball, cầu lông và tennis. Giữ chỗ tức thì, thanh toán bằng mã QR và tìm đồng đội ngay trên một ứng dụng.
+                </p>
+
+                <form asp-controller="Booking" asp-action="Index" method="get" class="hero-search mb-4">
+                    <label class="field mb-0">
+                        <i class="bi bi-geo-alt"></i>
+                        <input type="text" name="keyword" placeholder="Tên sân, đường, quận..." aria-label="Từ khóa" />
+                    </label>
+                    <label class="field mb-0">
+                        <i class="bi bi-trophy"></i>
+                        <select name="sportTypeId" aria-label="Môn thể thao">
+                            <option value="">Tất cả môn</option>
+                            @foreach (var sport in Model.SportTypes)
+                            {
+                                <option value="@sport.Id">@sport.Name</option>
+                            }
+                        </select>
+                    </label>
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-search me-1"></i> Tìm sân</button>
+                </form>
+
+                <div class="hero-stats">
+                    <div>
+                        <div class="num">@Model.TotalCourtsAvailable</div>
+                        <div class="lbl">Sân đang hoạt động</div>
+                    </div>
+                    <div>
+                        <div class="num">@Model.TotalBookingsToday</div>
+                        <div class="lbl">Lượt đặt hôm nay</div>
+                    </div>
+                    <div>
+                        <div class="num">@Model.SportTypes.Count</div>
+                        <div class="lbl">Môn thể thao</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-6 d-none d-lg-block">
+                <div class="hero-visual ps-lg-4">
+                    <img class="hero-img" src="https://images.unsplash.com/photo-1575361204480-aadea25e6e68?auto=format&fit=crop&w=1100&q=75"
+                         onerror="this.src='https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=1100&q=75'"
+                         alt="Sân bóng đá" style="background: linear-gradient(135deg,#16a34a,#166534);" />
+                    <div class="hero-float" style="left: -10px; top: 32px;">
+                        <span class="ico icon-bubble green"><i class="bi bi-shield-check"></i></span>
+                        <div><div class="fw-bold text-ink">Chống trùng lịch</div><div class="small text-muted">Khóa slot tức thì</div></div>
+                    </div>
+                    <div class="hero-float" style="right: -14px; bottom: 40px;">
+                        <span class="ico icon-bubble orange"><i class="bi bi-qr-code"></i></span>
+                        <div><div class="fw-bold text-ink">Thanh toán VietQR</div><div class="small text-muted">Quét là xong</div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- SPORTS -->
+<section class="section-sm pt-5">
+    <div class="container">
+        <div class="d-flex flex-wrap justify-content-between align-items-end gap-2 mb-4">
+            <div>
+                <span class="eyebrow">Danh mục</span>
+                <h2 class="section-title">Bạn muốn chơi môn gì?</h2>
+            </div>
+        </div>
+        <div class="row g-3">
+            @foreach (var sport in Model.SportTypes)
+            {
+                var s = sport.Name.ToLower();
+                var img = s.Contains("cầu lông") || s.Contains("badminton") ? "badminton-3d.png"
+                        : s.Contains("tennis") || s.Contains("quần vợt") ? "tennis-3d.png"
+                        : s.Contains("pickleball") ? "pickleball-3d.png" : "football-3d.png";
+                <div class="col-6 col-lg-3">
+                    <a asp-controller="Booking" asp-action="Index" asp-route-sportTypeId="@sport.Id" class="sport-tile">
+                        <span class="sport-ico"><img src="~/images/sports/@img" alt="@sport.Name" /></span>
+                        <div class="min-w-0">
+                            <div class="name text-truncate">@sport.Name</div>
+                            <div class="meta">@sport.FacilityCount cụm sân · @sport.CourtCount sân</div>
+                        </div>
+                        <i class="bi bi-chevron-right go d-none d-sm-inline"></i>
+                    </a>
+                </div>
+            }
+        </div>
+    </div>
+</section>
+
+<!-- RECENTLY VIEWED (localStorage) -->
+<section class="pt-4" id="recentVenues" hidden data-detail-url="@Url.Action("FacilityDetail", "Booking", new { id = "" })/">
+    <div class="container">
+        <div class="panel panel-body">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h2 class="h6 fw-bold mb-0"><i class="bi bi-clock-history text-success me-2"></i>Sân bạn đã xem gần đây</h2>
+                <button type="button" class="btn btn-link btn-sm text-muted p-0" data-recent-clear>Xóa lịch sử</button>
+            </div>
+            <div class="recent-list" data-recent-list></div>
+        </div>
+    </div>
+</section>
+
+<!-- FEATURED VENUES -->
+<section class="section">
+    <div class="container">
+        <div class="d-flex flex-wrap justify-content-between align-items-end gap-2 mb-4">
+            <div>
+                <span class="eyebrow">Nổi bật</span>
+                <h2 class="section-title">Cụm sân được yêu thích</h2>
+                <p class="section-sub">Mặt sân đạt chuẩn, đèn chiếu sáng tốt và dịch vụ chu đáo.</p>
+            </div>
+            <a asp-controller="Booking" asp-action="Index" class="btn btn-light">Xem tất cả <i class="bi bi-arrow-right ms-1"></i></a>
+        </div>
+
+        @if (!Model.FeaturedFacilities.Any())
+        {
+            <div class="panel empty-state">
+                <span class="icon-bubble lg slate"><i class="bi bi-building"></i></span>
+                <h5>Chưa có cụm sân nào</h5>
+                <p>Các cụm sân sẽ xuất hiện ở đây khi chủ sân đăng ký trên hệ thống.</p>
+            </div>
+        }
+        <div class="row g-4">
+            @foreach (var f in Model.FeaturedFacilities)
+            {
+                <div class="col-md-6 col-lg-4" data-reveal>
+                    <partial name="_VenueCard" model="f" />
+                </div>
+            }
+        </div>
+    </div>
+</section>
+
+<!-- HOT MATCHES -->
+@if (Model.HotMatches != null && Model.HotMatches.Any())
+{
+    <section class="section section-alt">
+        <div class="container">
+            <div class="d-flex flex-wrap justify-content-between align-items-end gap-2 mb-4">
+                <div>
+                    <span class="eyebrow">Cộng đồng</span>
+                    <h2 class="section-title">Kèo đang tuyển người</h2>
+                    <p class="section-sub">Thiếu người? Tham gia ngay cùng các đội gần bạn.</p>
+                </div>
+                <div class="d-flex gap-2">
+                    <a asp-controller="Teamwork" asp-action="Create" class="btn btn-accent"><i class="bi bi-plus-lg me-1"></i> Đăng kèo</a>
+                    <a asp-controller="Teamwork" asp-action="Index" class="btn btn-light">Xem tất cả <i class="bi bi-arrow-right ms-1"></i></a>
+                </div>
+            </div>
+
+            <div class="row g-4">
+                @foreach (var post in Model.HotMatches)
+                {
+                    var isTeam = post.PostType == MatchPostType.FindTeammates;
+                    <div class="col-md-6 col-lg-3">
+                        <div class="card match-card card-hover @(isTeam ? "" : "opponent")">
+                            <div class="d-flex justify-content-between align-items-center mb-2 gap-2">
+                                <span class="badge-soft neutral"><i class="@post.SportIconCss"></i> @post.SportName</span>
+                                <span class="badge-soft @(isTeam ? "success" : "accent")">@(isTeam ? "Tuyển người" : "Tìm đối")</span>
+                            </div>
+                            <div class="title mb-2"><a asp-controller="Teamwork" asp-action="Detail" asp-route-id="@post.Id">@post.Title</a></div>
+                            <div class="match-meta mb-3">
+                                <span class="text-truncate"><i class="bi bi-geo-alt"></i> @post.VenueName</span>
+                                <span><i class="bi bi-calendar3"></i> @post.MatchDate.ToString("dd/MM") · @DACN.Services.BookingRules.Hm(post.StartTime)–@DACN.Services.BookingRules.Hm(post.EndTime)</span>
+                            </div>
+                            <div class="mt-auto">
+                                <div class="d-flex justify-content-between small mb-1">
+                                    <span class="text-muted">@post.CurrentSlots/@post.TotalSlots người</span>
+                                    <span class="fw-semibold @(post.MissingSlots > 0 ? "text-accent" : "text-success")">@(post.MissingSlots > 0 ? $"Thiếu {post.MissingSlots}" : "Đã đủ")</span>
+                                </div>
+                                <div class="slot-progress mb-3"><div style="width:@post.ProgressPercent%"></div></div>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="price" style="font-size:1rem;">@(post.CostPerPerson > 0 ? $"{post.CostPerPerson:N0}đ" : "Miễn phí")<small>@(post.CostPerPerson > 0 ? "/người" : "")</small></span>
+                                    <a asp-controller="Teamwork" asp-action="Detail" asp-route-id="@post.Id" class="btn btn-soft btn-sm">Tham gia</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </section>
+}
+
+<!-- 3 STEPS -->
+<section class="section pb-0">
+    <div class="container">
+        <div class="text-center mb-5">
+            <span class="eyebrow">Đơn giản</span>
+            <h2 class="section-title">Đặt sân chỉ với 3 bước</h2>
+            <p class="section-sub">Không cần gọi điện, không cần chờ xác nhận thủ công.</p>
+        </div>
+        <div class="steps">
+            <div class="step" data-reveal>
+                <div class="step-num">1</div>
+                <span class="icon-bubble lg green"><i class="bi bi-search"></i></span>
+                <h5>Tìm sân phù hợp</h5>
+                <p>Lọc theo môn, khu vực, mức giá và đánh giá của người chơi.</p>
+            </div>
+            <div class="step" data-reveal>
+                <div class="step-num">2</div>
+                <span class="icon-bubble lg blue"><i class="bi bi-calendar2-check"></i></span>
+                <h5>Chọn khung giờ trống</h5>
+                <p>Lịch cập nhật theo thời gian thực, giữ chỗ ngay khi bạn chọn.</p>
+            </div>
+            <div class="step" data-reveal>
+                <div class="step-num">3</div>
+                <span class="icon-bubble lg orange"><i class="bi bi-qr-code-scan"></i></span>
+                <h5>Thanh toán &amp; ra sân</h5>
+                <p>Quét VietQR, nhận vé điện tử và nhắc lịch trước giờ chơi.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="section">
+    <div class="container">
+        <div class="text-center mb-5">
+            <span class="eyebrow">Vì sao chọn DatSan247</span>
+            <h2 class="section-title">Đặt sân nhanh, chơi thoải mái</h2>
+            <p class="section-sub">Giải quyết các vấn đề quen thuộc khi đặt sân qua điện thoại.</p>
+        </div>
+        <div class="row g-4">
+            <div class="col-md-6 col-lg-3">
+                <div class="card feature-card card-hover">
+                    <span class="icon-bubble lg green"><i class="bi bi-shield-lock"></i></span>
+                    <h5>Không bao giờ trùng lịch</h5>
+                    <p>Khung giờ được khóa ngay khi bạn giữ chỗ, không ai có thể đặt trùng với bạn.</p>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="card feature-card card-hover">
+                    <span class="icon-bubble lg blue"><i class="bi bi-qr-code-scan"></i></span>
+                    <h5>Thanh toán VietQR</h5>
+                    <p>Mã QR có sẵn số tiền và nội dung, quét bằng mọi ứng dụng ngân hàng.</p>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="card feature-card card-hover">
+                    <span class="icon-bubble lg orange"><i class="bi bi-people"></i></span>
+                    <h5>Ghép đội dễ dàng</h5>
+                    <p>Tạo kèo tuyển người từ đơn đặt sân chỉ với một lần bấm.</p>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="card feature-card card-hover">
+                    <span class="icon-bubble lg violet"><i class="bi bi-star"></i></span>
+                    <h5>Đánh giá thật</h5>
+                    <p>Chỉ khách đã chơi mới được đánh giá, giúp bạn chọn sân chuẩn xác.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- OWNER CTA -->
+<section class="pb-2">
+    <div class="container">
+        <div class="rounded-xl p-4 p-md-5 d-flex flex-wrap align-items-center justify-content-between gap-4" style="background: linear-gradient(120deg, #0f172a 0%, #14532d 100%);">
+            <div>
+                <h3 class="text-white fw-bold mb-2">Bạn là chủ sân?</h3>
+                <p class="mb-0" style="color:#cbd5e1;">Quản lý lịch đặt, bảng giá theo khung giờ và theo dõi doanh thu trên một bảng điều khiển.</p>
+            </div>
+            @if (User.IsInRole(DACN.Services.AppRoles.Owner) || User.IsInRole(DACN.Services.AppRoles.Admin))
+            {
+                <a asp-area="Owner" asp-controller="Facility" asp-action="Index" class="btn btn-primary btn-lg">Vào trang quản lý <i class="bi bi-arrow-right ms-1"></i></a>
+            }
+            else
+            {
+                <span class="text-white-50 small">Liên hệ quản trị viên để được cấp tài khoản chủ sân<br /><strong class="text-white">hotro@datsan247.vn</strong></span>
+            }
+        </div>
+    </div>
+</section>

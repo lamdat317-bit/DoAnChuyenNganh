@@ -1,0 +1,365 @@
+@model List<DACN.Models.ViewModels.FacilityCardDto>
+@{
+    ViewData["Title"] = "Tìm & đặt sân";
+    string? selectedSort = ViewBag.SelectedSortBy as string;
+    string? keyword = ViewBag.Keyword as string;
+    int? selectedSport = ViewBag.SelectedSportTypeId as int?;
+    int? selectedCity = ViewBag.SelectedCityId as int?;
+    decimal? minPrice = ViewBag.MinPrice as decimal?;
+    decimal? maxPrice = ViewBag.MaxPrice as decimal?;
+    int currentPage = ViewBag.Page ?? 1;
+    int totalPages = ViewBag.TotalPages ?? 1;
+    int totalCount = ViewBag.TotalCount ?? Model.Count;
+    var sportList = ViewBag.SportTypeList as List<DACN.Models.SportType> ?? new();
+    bool hasFilter = !string.IsNullOrEmpty(keyword) || selectedSport != null || selectedCity != null
+                     || minPrice != null || maxPrice != null || !string.IsNullOrEmpty(selectedSort);
+
+    // Giữ nguyên bộ lọc khi đổi trang / đổi môn
+    Dictionary<string, string> RouteWith(int? sport, int pg)
+    {
+        var d = new Dictionary<string, string>();
+        if (!string.IsNullOrEmpty(keyword)) d["keyword"] = keyword!;
+        if (sport.HasValue) d["sportTypeId"] = sport.Value.ToString();
+        if (selectedCity.HasValue) d["cityId"] = selectedCity.Value.ToString();
+        if (!string.IsNullOrEmpty(selectedSort)) d["sortBy"] = selectedSort!;
+        if (minPrice.HasValue) d["minPrice"] = minPrice.Value.ToString("0");
+        if (maxPrice.HasValue) d["maxPrice"] = maxPrice.Value.ToString("0");
+        if (pg > 1) d["page"] = pg.ToString();
+        return d;
+    }
+    var priceOptions = new (string Label, decimal? Min, decimal? Max)[] {
+        ("Mọi mức giá", null, null), ("Dưới 150.000đ", null, 150000), ("150.000 – 300.000đ", 150000, 300000), ("Trên 300.000đ", 300000, null)
+    };
+}
+
+<div class="page-header page-header-hero">
+    <div class="container">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Trang chủ</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Tìm sân</li>
+            </ol>
+        </nav>
+        <div class="d-flex flex-wrap justify-content-between align-items-end gap-3">
+            <div>
+                <h1>Tìm sân thể thao</h1>
+                <p class="sub">Lọc theo môn, khu vực và giá để tìm sân phù hợp, xem lịch trống và đặt ngay.</p>
+            </div>
+            <div class="d-flex gap-2">
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                    <a asp-action="Favorites" class="btn btn-light"><i class="bi bi-heart me-1 text-danger"></i> Sân yêu thích</a>
+                }
+                <a asp-controller="Teamwork" asp-action="Index" class="btn btn-light"><i class="bi bi-people me-1"></i> Tìm kèo ghép đội</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    <!-- Sport chips -->
+    <div class="chip-scroll mb-3" role="tablist" aria-label="Lọc theo môn">
+        <a class="chip @(selectedSport == null ? "active" : "")" asp-action="Index" asp-all-route-data="RouteWith(null, 1)">
+            <i class="bi bi-grid"></i> Tất cả
+        </a>
+        @foreach (var s in sportList)
+        {
+            <a class="chip @(selectedSport == s.Id ? "active" : "")" asp-action="Index" asp-all-route-data="RouteWith(s.Id, 1)">
+                <i class="@(string.IsNullOrEmpty(s.IconCss) ? "bi bi-activity" : s.IconCss)"></i> @s.Name
+            </a>
+        }
+    </div>
+
+    <form method="get" asp-action="Index" class="filter-bar mb-4" id="searchForm">
+        <div class="row g-2 align-items-end">
+            <div class="col-lg-3 col-md-6">
+                <label class="form-label small">Từ khóa</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                    <input type="text" name="keyword" value="@keyword" class="form-control" placeholder="Tên sân, đường, quận..." />
+                </div>
+            </div>
+            <div class="col-lg-2 col-md-6">
+                <label class="form-label small">Môn thể thao</label>
+                <select name="sportTypeId" class="form-select" asp-items="ViewBag.SportTypes" data-autosubmit>
+                    <option value="">Tất cả</option>
+                </select>
+            </div>
+            <div class="col-lg-2 col-md-4">
+                <label class="form-label small">Tỉnh / thành</label>
+                <select name="cityId" class="form-select" asp-items="ViewBag.Cities" data-autosubmit>
+                    <option value="">Toàn quốc</option>
+                </select>
+            </div>
+            <div class="col-lg-2 col-md-4">
+                <label class="form-label small">Mức giá / giờ</label>
+                <select class="form-select" id="priceRange" data-autosubmit>
+                    @foreach (var p in priceOptions)
+                    {
+                        var val = $"{p.Min?.ToString("0")}-{p.Max?.ToString("0")}";
+                        <option value="@val" selected="@(p.Min == minPrice && p.Max == maxPrice ? "selected" : null)">@p.Label</option>
+                    }
+                </select>
+                <input type="hidden" name="minPrice" id="minPrice" value="@minPrice?.ToString("0")" />
+                <input type="hidden" name="maxPrice" id="maxPrice" value="@maxPrice?.ToString("0")" />
+            </div>
+            <div class="col-lg-2 col-md-4">
+                <label class="form-label small">Sắp xếp</label>
+                <select name="sortBy" class="form-select" data-autosubmit>
+                    <option value="">Mặc định</option>
+                    <option value="rating" selected="@(selectedSort == "rating" ? "selected" : null)">Đánh giá cao nhất</option>
+                    <option value="price_asc" selected="@(selectedSort == "price_asc" ? "selected" : null)">Giá thấp → cao</option>
+                    <option value="price_desc" selected="@(selectedSort == "price_desc" ? "selected" : null)">Giá cao → thấp</option>
+                    <option value="courts" selected="@(selectedSort == "courts" ? "selected" : null)">Nhiều sân nhất</option>
+                </select>
+            </div>
+            <div class="col-lg-1 col-md-12 d-flex gap-2">
+                <button type="submit" class="btn btn-primary flex-grow-1" title="Lọc"><i class="bi bi-funnel"></i><span class="d-lg-none ms-1">Lọc</span></button>
+            </div>
+        </div>
+    </form>
+
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <div class="text-muted small">
+            Tìm thấy <strong class="text-ink">@totalCount</strong> cụm sân
+            @if (totalPages > 1) { <span>· trang @currentPage/@totalPages</span> }
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            @if (hasFilter)
+            {
+                <a asp-action="Index" class="btn btn-light btn-sm"><i class="bi bi-x-lg me-1"></i>Xóa bộ lọc</a>
+            }
+            <div class="btn-group btn-group-sm view-toggle" role="group" aria-label="Kiểu hiển thị">
+                <button type="button" class="btn btn-light active" data-view="grid" title="Dạng lưới"><i class="bi bi-grid-3x3-gap"></i></button>
+                <button type="button" class="btn btn-light" data-view="list" title="Dạng danh sách"><i class="bi bi-list-ul"></i></button>
+                <button type="button" class="btn btn-light" data-view="map" title="Xem trên bản đồ"><i class="bi bi-map"></i><span class="d-none d-sm-inline ms-1">Bản đồ</span></button>
+            </div>
+        </div>
+    </div>
+
+    @if (!Model.Any())
+    {
+        <div class="panel empty-state">
+            <span class="icon-bubble lg slate"><i class="bi bi-search"></i></span>
+            <h5>Không tìm thấy sân phù hợp</h5>
+            <p>Thử dùng từ khóa ngắn hơn, đổi môn thể thao hoặc bỏ bớt bộ lọc.</p>
+            <a asp-action="Index" class="btn btn-primary">Xem tất cả sân</a>
+        </div>
+    }
+    else
+    {
+        <!-- Chế độ bản đồ -->
+        <div class="panel map-panel mb-4" id="mapView" hidden>
+            <div class="map-toolbar">
+                <span class="small text-muted" id="mapNote"></span>
+                <button type="button" class="btn btn-light btn-sm" id="btnLocate"><i class="bi bi-crosshair me-1"></i>Vị trí của tôi</button>
+            </div>
+            <div class="map-layout">
+                <div id="venueMap" class="venue-map" role="region" aria-label="Bản đồ cụm sân"></div>
+                <div class="map-list" id="mapList"></div>
+            </div>
+        </div>
+        <script type="application/json" id="mapData">@Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.MapData).Replace("<", "\\u003c"))</script>
+
+        <div id="listView">
+        <div class="row g-4 venue-grid" id="venueGrid">
+            @foreach (var facility in Model)
+            {
+                <div class="col-md-6 col-lg-4 venue-col" data-reveal>
+                    <partial name="_VenueCard" model="facility" />
+                </div>
+            }
+        </div>
+
+        @if (totalPages > 1)
+        {
+            <nav class="d-flex justify-content-center mt-5" aria-label="Phân trang">
+                <ul class="pagination pagination-modern mb-0">
+                    <li class="page-item @(currentPage <= 1 ? "disabled" : "")">
+                        <a class="page-link" asp-action="Index" asp-all-route-data="RouteWith(selectedSport, currentPage - 1)" aria-label="Trang trước"><i class="bi bi-chevron-left"></i></a>
+                    </li>
+                    @for (int i = 1; i <= totalPages; i++)
+                    {
+                        if (i == 1 || i == totalPages || Math.Abs(i - currentPage) <= 1)
+                        {
+                            <li class="page-item @(i == currentPage ? "active" : "")">
+                                <a class="page-link" asp-action="Index" asp-all-route-data="RouteWith(selectedSport, i)">@i</a>
+                            </li>
+                        }
+                        else if (Math.Abs(i - currentPage) == 2)
+                        {
+                            <li class="page-item disabled"><span class="page-link">…</span></li>
+                        }
+                    }
+                    <li class="page-item @(currentPage >= totalPages ? "disabled" : "")">
+                        <a class="page-link" asp-action="Index" asp-all-route-data="RouteWith(selectedSport, currentPage + 1)" aria-label="Trang sau"><i class="bi bi-chevron-right"></i></a>
+                    </li>
+                </ul>
+            </nav>
+        }
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        (function () {
+            var form = document.getElementById('searchForm');
+            var range = document.getElementById('priceRange');
+            function syncPrice() {
+                var parts = (range.value || '-').split('-');
+                document.getElementById('minPrice').value = parts[0] || '';
+                document.getElementById('maxPrice').value = parts[1] || '';
+            }
+            form.addEventListener('submit', syncPrice);
+            form.querySelectorAll('[data-autosubmit]').forEach(function (el) {
+                el.addEventListener('change', function () { form.requestSubmit ? form.requestSubmit() : form.submit(); });
+            });
+
+            // Lưới / danh sách / bản đồ (ghi nhớ lựa chọn)
+            var grid = document.getElementById('venueGrid');
+            var listView = document.getElementById('listView');
+            var mapView = document.getElementById('mapView');
+            var btns = document.querySelectorAll('.view-toggle [data-view]');
+            function setView(v) {
+                if (!grid) return;
+                var isMap = v === 'map';
+                listView.hidden = isMap;
+                mapView.hidden = !isMap;
+                if (isMap) initMap(); else {
+                    grid.classList.toggle('is-list', v === 'list');
+                    grid.querySelectorAll('.venue-col').forEach(function (c) {
+                        c.className = (v === 'list' ? 'col-12 venue-col' : 'col-md-6 col-lg-4 venue-col') + (c.classList.contains('is-visible') ? ' is-visible' : '');
+                    });
+                }
+                btns.forEach(function (b) { b.classList.toggle('active', b.dataset.view === v); });
+                try { localStorage.setItem('sb.view', v); } catch (e) { }
+            }
+            btns.forEach(function (b) { b.addEventListener('click', function () { setView(b.dataset.view); }); });
+
+            // ===== Bản đồ (Leaflet + OpenStreetMap, chỉ tải khi cần) =====
+            var map = null, markers = {}, userMarker = null;
+            var data = [];
+            try { data = JSON.parse(document.getElementById('mapData').textContent || '[]'); } catch (e) { }
+            var totalCount = @totalCount;
+            var detailUrl = '@Url.Action("FacilityDetail", "Booking")/';
+            var matrixUrl = '@Url.Action("Matrix", "Booking")?courtId=';
+            var fmt = function (n) { return Number(n).toLocaleString('vi-VN'); };
+            function esc(s) { var d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; }
+
+            function loadLeaflet(cb) {
+                if (window.L) return cb();
+                var css = document.createElement('link');
+                css.rel = 'stylesheet';
+                css.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+                css.integrity = 'sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=';
+                css.crossOrigin = '';
+                document.head.appendChild(css);
+                var js = document.createElement('script');
+                js.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+                js.integrity = 'sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=';
+                js.crossOrigin = '';
+                js.onload = cb;
+                js.onerror = function () { document.getElementById('venueMap').innerHTML = '<div class="empty-state"><p>Không tải được bản đồ. Vui lòng kiểm tra kết nối mạng.</p></div>'; };
+                document.head.appendChild(js);
+            }
+
+            function pinIcon(active) {
+                return L.divIcon({ className: 'map-pin' + (active ? ' active' : ''), html: '<span><i class="bi bi-geo-alt-fill"></i></span>', iconSize: [34, 42], iconAnchor: [17, 40], popupAnchor: [0, -36] });
+            }
+
+            function distanceKm(a, b) {
+                var R = 6371, dLat = (b.lat - a.lat) * Math.PI / 180, dLng = (b.lng - a.lng) * Math.PI / 180;
+                var x = Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * Math.PI / 180) * Math.cos(b.lat * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+                return 2 * R * Math.asin(Math.sqrt(x));
+            }
+
+            function renderList(origin) {
+                var listEl = document.getElementById('mapList');
+                var items = data.slice();
+                if (origin) {
+                    items.forEach(function (d) { d.km = distanceKm(origin, d); });
+                    items.sort(function (a, b) { return a.km - b.km; });
+                }
+                listEl.innerHTML = items.map(function (d) {
+                    return '<button type="button" class="map-item" data-id="' + d.id + '">' +
+                        '<div class="fw-bold text-ink text-truncate">' + esc(d.name) + '</div>' +
+                        '<div class="small text-muted text-truncate"><i class="bi bi-geo-alt me-1"></i>' + esc(d.addr) + '</div>' +
+                        '<div class="d-flex justify-content-between align-items-center mt-1 small">' +
+                        '<span class="price" style="font-size:.9rem">' + fmt(d.price) + 'đ<small>/giờ</small></span>' +
+                        (d.km != null ? '<span class="badge-soft info"><i class="bi bi-signpost"></i> ' + d.km.toFixed(1) + ' km</span>'
+                            : (d.rating ? '<span class="rating-inline"><i class="bi bi-star-fill"></i> ' + Number(d.rating).toFixed(1) + '</span>' : '')) +
+                        '</div></button>';
+                }).join('') || '<div class="p-3 small text-muted">Không có sân nào có tọa độ để hiển thị.</div>';
+                listEl.querySelectorAll('.map-item').forEach(function (el) {
+                    el.addEventListener('click', function () { focusVenue(+el.dataset.id); });
+                });
+            }
+
+            function focusVenue(id) {
+                var m = markers[id];
+                if (!m) return;
+                Object.keys(markers).forEach(function (k) { markers[k].setIcon(pinIcon(+k === id)); });
+                map.flyTo(m.getLatLng(), Math.max(map.getZoom(), 15), { duration: .6 });
+                m.openPopup();
+                document.querySelectorAll('.map-item').forEach(function (el) { el.classList.toggle('active', +el.dataset.id === id); });
+            }
+
+            function initMap() {
+                if (map) { setTimeout(function () { map.invalidateSize(); }, 50); return; }
+                var missing = totalCount - data.length;
+                document.getElementById('mapNote').textContent = 'Hiển thị ' + data.length + ' cụm sân trên bản đồ' + (missing > 0 ? ' · ' + missing + ' sân chưa có tọa độ' : '');
+                loadLeaflet(function () {
+                    map = L.map('venueMap', { scrollWheelZoom: false }).setView([16.05, 106.5], 6);
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        maxZoom: 19, attribution: '&copy; OpenStreetMap'
+                    }).addTo(map);
+                    map.on('focus', function () { map.scrollWheelZoom.enable(); });
+                    var bounds = [];
+                    data.forEach(function (d) {
+                        var m = L.marker([d.lat, d.lng], { icon: pinIcon(false), title: d.name }).addTo(map);
+                        m.bindPopup(
+                            '<div class="map-popup"><div class="small text-muted">' + esc(d.sport) + '</div>' +
+                            '<div class="fw-bold mb-1">' + esc(d.name) + '</div>' +
+                            '<div class="small text-muted mb-2">' + esc(d.addr) + '</div>' +
+                            '<div class="d-flex gap-2 align-items-center justify-content-between">' +
+                            '<span class="price" style="font-size:.95rem">' + fmt(d.price) + 'đ</span>' +
+                            '<span class="d-flex gap-1"><a class="btn btn-light btn-sm" href="' + detailUrl + d.id + '">Chi tiết</a>' +
+                            (d.courtId > 0 ? '<a class="btn btn-primary btn-sm" href="' + matrixUrl + d.courtId + '">Đặt sân</a>' : '') +
+                            '</span></div></div>'
+                        );
+                        m.on('click', function () { focusVenue(d.id); });
+                        markers[d.id] = m;
+                        bounds.push([d.lat, d.lng]);
+                    });
+                    if (bounds.length === 1) map.setView(bounds[0], 15);
+                    else if (bounds.length > 1) map.fitBounds(bounds, { padding: [40, 40], maxZoom: 15 });
+                    renderList(null);
+                });
+            }
+
+            var btnLocate = document.getElementById('btnLocate');
+            if (btnLocate) btnLocate.addEventListener('click', function () {
+                if (!navigator.geolocation) { window.sbToast && sbToast('Trình duyệt không hỗ trợ định vị', 'bi-exclamation-circle-fill'); return; }
+                btnLocate.classList.add('is-loading');
+                navigator.geolocation.getCurrentPosition(function (pos) {
+                    btnLocate.classList.remove('is-loading');
+                    var me = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+                    if (!map) return;
+                    if (userMarker) userMarker.setLatLng([me.lat, me.lng]);
+                    else userMarker = L.circleMarker([me.lat, me.lng], { radius: 8, color: '#fff', weight: 3, fillColor: '#0284c7', fillOpacity: 1 }).addTo(map).bindTooltip('Bạn đang ở đây');
+                    renderList(me);
+                    var nearest = data.slice().sort(function (a, b) { return a.km - b.km; })[0];
+                    if (nearest) map.fitBounds([[me.lat, me.lng], [nearest.lat, nearest.lng]], { padding: [60, 60], maxZoom: 15 });
+                    else map.setView([me.lat, me.lng], 14);
+                    window.sbToast && sbToast('Đã sắp xếp sân theo khoảng cách gần bạn', 'bi-geo-alt-fill');
+                }, function () {
+                    btnLocate.classList.remove('is-loading');
+                    window.sbToast && sbToast('Không lấy được vị trí. Hãy cho phép truy cập vị trí.', 'bi-exclamation-circle-fill');
+                }, { enableHighAccuracy: true, timeout: 10000 });
+            });
+
+            try { var saved = new URLSearchParams(location.search).get('view') || localStorage.getItem('sb.view'); if (saved === 'list' || saved === 'map') setView(saved); } catch (e) { }
+        })();
+    </script>
+}

@@ -1,0 +1,146 @@
+﻿@model DACN.Models.ViewModels.TeamworkIndexViewModel
+@using DACN.Models.Enums
+@{
+    ViewData["Title"] = "Ghép đội & tìm kèo";
+    string Skill(MatchSkillLevel s) => s switch
+    {
+        MatchSkillLevel.Beginner => "Mới chơi",
+        MatchSkillLevel.Intermediate => "Trung bình",
+        MatchSkillLevel.Advanced => "Khá – bán chuyên",
+        _ => "Mọi trình độ"
+    };
+    var vi = new System.Globalization.CultureInfo("vi-VN");
+}
+
+<div class="page-header">
+    <div class="container">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a asp-area="" asp-controller="Home" asp-action="Index">Trang chủ</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Ghép đội</li>
+            </ol>
+        </nav>
+        <div class="d-flex flex-wrap justify-content-between align-items-end gap-3">
+            <div>
+                <h1>Ghép đội &amp; tìm kèo</h1>
+                <p class="sub">Thiếu người đá bóng, cần bạn đánh pickleball hay tìm đối giao lưu cuối tuần? Vào đây.</p>
+            </div>
+            <div class="d-flex gap-2">
+                <a asp-action="MyMatches" class="btn btn-light"><i class="bi bi-person-lines-fill me-1"></i> Kèo của tôi</a>
+                <a asp-action="Create" class="btn btn-accent"><i class="bi bi-plus-lg me-1"></i> Đăng kèo</a>
+            </div>
+        </div>
+        <div class="row g-3 mt-2">
+            <div class="col-md-4"><div class="card stat-card"><span class="icon-bubble orange"><i class="bi bi-fire"></i></span><div><div class="label">Kèo đang mở</div><div class="value">@Model.TotalOpenMatches</div></div></div></div>
+            <div class="col-md-4"><div class="card stat-card"><span class="icon-bubble green"><i class="bi bi-person-plus"></i></span><div><div class="label">Đang tuyển đồng đội</div><div class="value">@Model.TotalTeammateRecruiting</div></div></div></div>
+            <div class="col-md-4"><div class="card stat-card"><span class="icon-bubble blue"><i class="bi bi-shield"></i></span><div><div class="label">Đang tìm đối thủ</div><div class="value">@Model.TotalOpponentSearching</div></div></div></div>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    <form method="get" asp-action="Index" class="filter-bar mb-4">
+        <div class="row g-2 align-items-end">
+            <div class="col-lg-4 col-md-6">
+                <label class="form-label small">Từ khóa</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                    <input type="text" name="keyword" value="@Model.Keyword" class="form-control" placeholder="Tên sân, khu vực, tiêu đề..." />
+                </div>
+            </div>
+            <div class="col-lg-2 col-md-6">
+                <label class="form-label small">Môn</label>
+                <select name="sportTypeId" class="form-select">
+                    <option value="">Tất cả</option>
+                    @foreach (var s in Model.SportTypes)
+                    {
+                        <option value="@s.Id" selected="@(s.Id == Model.SelectedSportTypeId)">@s.Name</option>
+                    }
+                </select>
+            </div>
+            <div class="col-lg-2 col-md-4">
+                <label class="form-label small">Mục đích</label>
+                <select name="postType" class="form-select">
+                    <option value="">Tất cả</option>
+                    <option value="@((int)MatchPostType.FindTeammates)" selected="@(Model.SelectedPostType == MatchPostType.FindTeammates)">Tìm đồng đội</option>
+                    <option value="@((int)MatchPostType.FindOpponent)" selected="@(Model.SelectedPostType == MatchPostType.FindOpponent)">Tìm đối thủ</option>
+                </select>
+            </div>
+            <div class="col-lg-2 col-md-4">
+                <label class="form-label small">Trình độ</label>
+                <select name="skillLevel" class="form-select">
+                    <option value="">Tất cả</option>
+                    @foreach (var lv in Enum.GetValues<MatchSkillLevel>())
+                    {
+                        <option value="@((int)lv)" selected="@(Model.SelectedSkillLevel == lv)">@Skill(lv)</option>
+                    }
+                </select>
+            </div>
+            <div class="col-lg-2 col-md-4 d-flex gap-2">
+                <button type="submit" class="btn btn-primary flex-grow-1"><i class="bi bi-funnel me-1"></i> Lọc</button>
+                <a asp-action="Index" class="btn btn-light" title="Xóa bộ lọc"><i class="bi bi-x-lg"></i></a>
+            </div>
+        </div>
+    </form>
+
+    <div class="small text-muted mb-3"><strong class="text-ink">@Model.Posts.Count</strong> kèo phù hợp</div>
+
+    @if (!Model.Posts.Any())
+    {
+        <div class="panel empty-state">
+            <span class="icon-bubble lg orange"><i class="bi bi-inbox"></i></span>
+            <h5>Chưa có kèo nào phù hợp</h5>
+            <p>Hãy là người đầu tiên đăng kèo để rủ mọi người cùng chơi!</p>
+            <a asp-action="Create" class="btn btn-accent"><i class="bi bi-plus-lg me-1"></i> Đăng kèo</a>
+        </div>
+    }
+    else
+    {
+        <div class="row g-4">
+            @foreach (var post in Model.Posts)
+            {
+                var isTeam = post.PostType == MatchPostType.FindTeammates;
+                <div class="col-md-6 col-xl-4">
+                    <div class="card match-card card-hover @(isTeam ? "" : "opponent")">
+                        <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
+                            <div class="d-flex flex-wrap gap-1">
+                                <span class="badge-soft neutral"><i class="@(post.SportIconCss ?? "bi bi-activity")"></i> @post.SportName</span>
+                                <span class="badge-soft @(isTeam ? "success" : "accent")">@(isTeam ? "Tìm đồng đội" : "Tìm đối thủ")</span>
+                            </div>
+                            @if (post.Status == MatchPostStatus.Full)
+                            {
+                                <span class="badge-soft neutral"><i class="bi bi-lock"></i> Đã đủ</span>
+                            }
+                        </div>
+                        <div class="title mb-2"><a asp-action="Detail" asp-route-id="@post.Id">@post.Title</a></div>
+                        <div class="match-meta mb-3">
+                            <span class="text-truncate"><i class="bi bi-geo-alt"></i> <strong class="text-ink">@post.VenueName</strong>@(string.IsNullOrEmpty(post.VenueAddress) ? "" : " · " + post.VenueAddress)</span>
+                            <span><i class="bi bi-calendar3"></i> @post.MatchDate.ToString("ddd dd/MM", vi) · @DACN.Services.BookingRules.Hm(post.StartTime)–@DACN.Services.BookingRules.Hm(post.EndTime)</span>
+                            <span><i class="bi bi-award"></i> @Skill(post.SkillLevel)</span>
+                        </div>
+                        <div class="mt-auto">
+                            <div class="d-flex justify-content-between small mb-1">
+                                <span class="text-muted">Đội hình @post.CurrentSlots/@post.TotalSlots</span>
+                                <span class="fw-semibold @(post.MissingSlots > 0 ? "text-accent" : "text-success")">@(post.MissingSlots > 0 ? $"Cần thêm {post.MissingSlots}" : "Đã đủ người")</span>
+                            </div>
+                            <div class="slot-progress mb-3"><div style="width:@post.ProgressPercent%"></div></div>
+                            <div class="d-flex justify-content-between align-items-center pt-2 border-top">
+                                <div class="price" style="font-size:1.05rem;">
+                                    @if (post.CostPerPerson > 0)
+                                    {
+                                        @post.CostPerPerson.ToString("N0")<text>đ</text><small>/người</small>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-success">Miễn phí</span>
+                                    }
+                                </div>
+                                <a asp-action="Detail" asp-route-id="@post.Id" class="btn btn-soft btn-sm">Xem &amp; tham gia <i class="bi bi-arrow-right"></i></a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>

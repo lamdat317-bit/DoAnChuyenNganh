@@ -1,0 +1,134 @@
+@model List<DACN.Models.Facility>
+@using DACN.Models.Enums
+@using DACN.Services
+@{
+    ViewData["Title"] = "Duyệt cụm sân";
+    string status = ViewBag.Status ?? "pending";
+    var tabs = new[]
+    {
+        ("pending", "Chờ duyệt", (int)ViewBag.PendingCount),
+        ("approved", "Đã duyệt", (int)ViewBag.ApprovedCount),
+        ("rejected", "Bị từ chối", (int)ViewBag.RejectedCount),
+        ("all", "Tất cả", (int)ViewBag.PendingCount + (int)ViewBag.ApprovedCount + (int)ViewBag.RejectedCount),
+    };
+}
+
+<div class="page-header">
+    <div class="container">
+        <span class="eyebrow">Quản trị hệ thống</span>
+        <h1>Duyệt cụm sân</h1>
+        <p class="sub">Cụm sân do chủ sân đăng ký chỉ hiển thị cho khách và nhận đặt online sau khi được duyệt.</p>
+        <partial name="_ManageNav" />
+    </div>
+</div>
+
+<div class="container">
+    <div class="d-flex flex-wrap gap-2 mb-4">
+        @foreach (var (key, label, count) in tabs)
+        {
+            <a asp-action="Index" asp-route-status="@key" class="chip @(status == key ? "active" : "")">@label <span class="count">@count</span></a>
+        }
+    </div>
+
+    @if (!Model.Any())
+    {
+        <div class="panel empty-state">
+            <span class="icon-bubble lg green"><i class="bi bi-patch-check"></i></span>
+            <h5>@(status == "pending" ? "Không có cụm sân nào chờ duyệt" : "Không có cụm sân nào")</h5>
+            <p class="mb-0">Khi chủ sân đăng ký cụm sân mới, bạn sẽ nhận được thông báo.</p>
+        </div>
+    }
+    else
+    {
+        <div class="row g-3">
+            @foreach (var f in Model)
+            {
+                var (tone, text) = f.ApprovalStatus switch
+                {
+                    FacilityApprovalStatus.Approved => ("success", "Đã duyệt"),
+                    FacilityApprovalStatus.Rejected => ("danger", "Bị từ chối"),
+                    _ => ("warning", "Chờ duyệt")
+                };
+                <div class="col-lg-6">
+                    <div class="panel h-100">
+                        <div class="panel-body">
+                            <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                                <div class="min-w-0">
+                                    <div class="fw-bold text-ink fs-5 text-truncate">@f.Name</div>
+                                    <div class="small text-muted"><i class="bi bi-geo-alt me-1"></i>@f.Address@(f.City != null ? $", {f.City.Name}" : "")</div>
+                                </div>
+                                <span class="badge-soft @tone text-nowrap">@text</span>
+                            </div>
+                            <div class="row g-2 small mb-3">
+                                <div class="col-6"><span class="text-muted">Chủ sân:</span> <span class="fw-semibold text-ink">@f.Owner?.FullName</span></div>
+                                <div class="col-6"><span class="text-muted">Liên hệ:</span> @(f.Owner?.PhoneNumber ?? f.Owner?.Email)</div>
+                                <div class="col-6"><span class="text-muted">Môn:</span> @f.SportType?.Name</div>
+                                <div class="col-6"><span class="text-muted">Giờ mở:</span> @BookingRules.OpenHoursText(f)</div>
+                                <div class="col-6"><span class="text-muted">Số sân con:</span> @f.Courts.Count</div>
+                                @if (f.ApprovedAt.HasValue)
+                                {
+                                    <div class="col-6"><span class="text-muted">Duyệt lúc:</span> @f.ApprovedAt.Value.ToLocalTime().ToString("dd/MM/yyyy")</div>
+                                }
+                            </div>
+                            @if (!string.IsNullOrEmpty(f.Description))
+                            {
+                                <p class="small text-muted mb-3">@f.Description</p>
+                            }
+                            @if (f.ApprovalStatus == FacilityApprovalStatus.Rejected && !string.IsNullOrEmpty(f.ApprovalNote))
+                            {
+                                <div class="alert alert-danger small py-2">Lý do từ chối: @f.ApprovalNote</div>
+                            }
+                            <div class="d-flex flex-wrap gap-2">
+                                <a asp-area="" asp-controller="Booking" asp-action="FacilityDetail" asp-route-id="@f.Id" target="_blank" class="btn btn-light btn-sm"><i class="bi bi-eye me-1"></i>Xem trang sân</a>
+                                @if (f.ApprovalStatus != FacilityApprovalStatus.Approved)
+                                {
+                                    <form asp-action="Review" method="post" class="m-0">
+                                        <input type="hidden" name="id" value="@f.Id" />
+                                        <input type="hidden" name="approve" value="true" />
+                                        <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-check2 me-1"></i>Duyệt</button>
+                                    </form>
+                                }
+                                @if (f.ApprovalStatus != FacilityApprovalStatus.Rejected)
+                                {
+                                    <button type="button" class="btn btn-light btn-sm text-danger" data-bs-toggle="modal" data-bs-target="#rejectModal" data-id="@f.Id" data-name="@f.Name">
+                                        <i class="bi bi-x-lg me-1"></i>@(f.ApprovalStatus == FacilityApprovalStatus.Approved ? "Gỡ duyệt" : "Từ chối")
+                                    </button>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+<div class="modal fade" id="rejectModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form asp-action="Review" method="post">
+                <input type="hidden" name="id" id="rejectId" />
+                <input type="hidden" name="approve" value="false" />
+                <div class="modal-body p-4">
+                    <h5 class="fw-bold mb-1">Từ chối "<span id="rejectName"></span>"</h5>
+                    <p class="small text-muted">Cụm sân sẽ bị ẩn khỏi trang tìm sân. Chủ sân nhận thông báo kèm lý do và có thể chỉnh sửa để gửi duyệt lại.</p>
+                    <label class="form-label small" for="rejectNote">Lý do <span class="text-danger">*</span></label>
+                    <textarea name="note" id="rejectNote" class="form-control" rows="3" maxlength="500" required placeholder="VD: Địa chỉ chưa rõ ràng, thiếu ảnh / mô tả sân..."></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-danger">Từ chối</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.getElementById('rejectModal').addEventListener('show.bs.modal', function (e) {
+            document.getElementById('rejectId').value = e.relatedTarget.dataset.id;
+            document.getElementById('rejectName').textContent = e.relatedTarget.dataset.name;
+        });
+    </script>
+}

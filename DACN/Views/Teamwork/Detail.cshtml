@@ -1,0 +1,286 @@
+﻿@model DACN.Models.ViewModels.MatchPostDetailViewModel
+@using DACN.Models.Enums
+@{
+    var p = Model.Post;
+    ViewData["Title"] = p.Title;
+    var isTeam = p.PostType == MatchPostType.FindTeammates;
+    var isAuth = User.Identity?.IsAuthenticated == true;
+    var vi = new System.Globalization.CultureInfo("vi-VN");
+    var skill = p.SkillLevel switch
+    {
+        MatchSkillLevel.Beginner => "Mới chơi / vui là chính",
+        MatchSkillLevel.Intermediate => "Trung bình / đã biết chơi",
+        MatchSkillLevel.Advanced => "Khá – bán chuyên",
+        _ => "Mọi trình độ"
+    };
+    int emptySlots = Math.Max(0, p.TotalSlots - p.CurrentSlots);
+    int progress = p.TotalSlots > 0 ? p.CurrentSlots * 100 / p.TotalSlots : 0;
+    string Ini(string? n) => string.Concat((n ?? "?").Split(' ', StringSplitOptions.RemoveEmptyEntries).TakeLast(2).Select(w => char.ToUpper(w[0])));
+}
+
+<div class="page-header">
+    <div class="container">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a asp-area="" asp-controller="Home" asp-action="Index">Trang chủ</a></li>
+                <li class="breadcrumb-item"><a asp-action="Index">Ghép đội</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Chi tiết kèo</li>
+            </ol>
+        </nav>
+        <div class="d-flex flex-wrap gap-2 mb-2">
+            <span class="badge-soft neutral"><i class="@(p.SportType?.IconCss ?? "bi bi-activity")"></i> @p.SportType?.Name</span>
+            <span class="badge-soft @(isTeam ? "success" : "accent")">@(isTeam ? "Tìm đồng đội" : "Tìm đối thủ")</span>
+            @if (p.Status == MatchPostStatus.Open)
+            {
+                <span class="badge-soft success"><span class="status-dot on"></span> Đang tuyển</span>
+            }
+            else
+            {
+                <span class="badge-soft neutral"><i class="bi bi-lock"></i> Đã chốt</span>
+            }
+        </div>
+        <h1>@p.Title</h1>
+        <div class="d-flex flex-wrap gap-4 mt-3 small">
+            <div class="d-flex gap-2 align-items-start"><span class="icon-bubble sm green"><i class="bi bi-geo-alt"></i></span><div><div class="fw-semibold text-ink">@p.VenueName</div><div class="text-muted">@p.VenueAddress</div></div></div>
+            <div class="d-flex gap-2 align-items-start"><span class="icon-bubble sm blue"><i class="bi bi-calendar3"></i></span><div><div class="fw-semibold text-ink">@p.MatchDate.ToString("dddd, dd/MM/yyyy", vi)</div><div class="text-muted">@DACN.Services.BookingRules.Hm(p.StartTime) – @DACN.Services.BookingRules.Hm(p.EndTime)</div></div></div>
+            <div class="d-flex gap-2 align-items-start"><span class="icon-bubble sm amber"><i class="bi bi-person-badge"></i></span><div><div class="fw-semibold text-ink">@(p.Creator?.FullName ?? "Đội trưởng")</div><div class="text-muted">Đăng @p.CreatedAt.ToLocalTime().ToString("dd/MM HH:mm")</div></div></div>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="panel mb-4">
+                <div class="panel-header"><h5 class="panel-title"><i class="bi bi-info-circle"></i> Thông tin trận đấu</h5></div>
+                <div class="panel-body">
+                    <p style="white-space: pre-line; line-height: 1.75;">@p.Description</p>
+                    <div class="row g-3">
+                        <div class="col-sm-4"><div class="p-3 rounded-3 h-100" style="background: var(--line-2);"><div class="small text-muted">Trình độ</div><div class="fw-semibold text-ink">@skill</div></div></div>
+                        <div class="col-sm-4"><div class="p-3 rounded-3 h-100" style="background: var(--line-2);"><div class="small text-muted">Chi phí</div><div class="fw-bold text-accent">@(p.CostPerPerson > 0 ? $"{p.CostPerPerson:N0}đ/người" : "Miễn phí")</div><div class="small text-muted">@p.CostSharingNote</div></div></div>
+                        <div class="col-sm-4"><div class="p-3 rounded-3 h-100" style="background: var(--line-2);"><div class="small text-muted">Đội hình</div><div class="fw-semibold text-ink">@p.CurrentSlots / @p.TotalSlots người</div><div class="slot-progress mt-2"><div style="width:@progress%"></div></div></div></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel mb-4">
+                <div class="panel-header">
+                    <h5 class="panel-title"><i class="bi bi-people"></i> Thành viên</h5>
+                    <span class="badge-soft @(emptySlots > 0 ? "accent" : "success")">@(emptySlots > 0 ? $"Còn {emptySlots} chỗ" : "Đã đủ người")</span>
+                </div>
+                <div class="panel-body">
+                    <div class="row g-2">
+                        <div class="col-md-6">
+                            <div class="court-row" style="background: var(--warning-50); border-color: #fde68a;">
+                                <span class="avatar" style="background:#fde68a;color:#92400e">@Ini(p.Creator?.FullName)</span>
+                                <div class="min-w-0">
+                                    <div class="fw-semibold text-ink text-truncate">@(p.Creator?.FullName ?? "Đội trưởng")</div>
+                                    <div class="small text-muted"><i class="bi bi-star-fill text-warning"></i> Đội trưởng</div>
+                                </div>
+                            </div>
+                        </div>
+                        @foreach (var m in Model.AcceptedMembers)
+                        {
+                            <div class="col-md-6">
+                                <div class="court-row">
+                                    <span class="avatar">@Ini(m.User?.FullName)</span>
+                                    <div class="min-w-0">
+                                        <div class="fw-semibold text-ink text-truncate">@(m.User?.FullName ?? "Thành viên")</div>
+                                        <div class="small text-muted">@(m.PreferredPosition ?? "Vị trí tự do")</div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                        @for (int i = 1; i <= Math.Min(emptySlots, 12); i++)
+                        {
+                            <div class="col-md-6">
+                                <div class="court-row border-dashed text-muted">
+                                    <span class="avatar" style="background: var(--line-2); color: var(--muted);"><i class="bi bi-plus"></i></span>
+                                    <span class="small">Chỗ trống #@(p.CurrentSlots + i)</span>
+                                </div>
+                            </div>
+                        }
+                        @if (emptySlots > 12)
+                        {
+                            <div class="col-12 small text-muted">... và @(emptySlots - 12) chỗ trống khác</div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            @if (Model.IsCreator)
+            {
+                <div class="panel mb-4">
+                    <div class="panel-header">
+                        <h5 class="panel-title"><i class="bi bi-inbox"></i> Yêu cầu tham gia</h5>
+                        <span class="badge-soft warning">@Model.PendingRequests.Count chờ duyệt</span>
+                    </div>
+                    <div class="panel-body">
+                        @if (!Model.PendingRequests.Any())
+                        {
+                            <div class="text-muted small">Chưa có yêu cầu nào đang chờ duyệt.</div>
+                        }
+                        @foreach (var req in Model.PendingRequests)
+                        {
+                            <div class="review-item d-flex flex-wrap justify-content-between align-items-start gap-3">
+                                <div class="d-flex gap-3 min-w-0">
+                                    <span class="avatar">@Ini(req.User?.FullName)</span>
+                                    <div class="min-w-0">
+                                        <div class="fw-semibold text-ink">@(req.User?.FullName ?? "Người chơi")</div>
+                                        <div class="small text-muted"><i class="bi bi-telephone me-1"></i>@(req.ContactPhone ?? "Chưa có SĐT") · @(req.PreferredPosition ?? "Chưa ghi vị trí")</div>
+                                        @if (!string.IsNullOrWhiteSpace(req.Message))
+                                        {
+                                            <div class="small fst-italic mt-1">“@req.Message”</div>
+                                        }
+                                    </div>
+                                </div>
+                                <div class="d-flex gap-2">
+                                    <form asp-action="ApproveRequest" method="post">
+                                        <input type="hidden" name="requestId" value="@req.Id" />
+                                        <input type="hidden" name="accept" value="true" />
+                                        <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-check-lg me-1"></i>Duyệt</button>
+                                    </form>
+                                    <form asp-action="ApproveRequest" method="post">
+                                        <input type="hidden" name="requestId" value="@req.Id" />
+                                        <input type="hidden" name="accept" value="false" />
+                                        <button type="submit" class="btn btn-light btn-sm text-danger">Từ chối</button>
+                                    </form>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+
+        <div class="col-lg-4">
+            <div class="panel sticky-side">
+                <div class="panel-body">
+                    @if (Model.IsCreator)
+                    {
+                        <div class="alert alert-info small"><i class="bi bi-info-circle me-1"></i>Bạn là đội trưởng của kèo này.</div>
+                        <form asp-action="TogglePostStatus" method="post" class="mb-2">
+                            <input type="hidden" name="id" value="@p.Id" />
+                            <button type="submit" class="btn @(p.Status == MatchPostStatus.Open ? "btn-light" : "btn-primary") w-100">
+                                <i class="bi @(p.Status == MatchPostStatus.Open ? "bi-lock" : "bi-unlock") me-1"></i>
+                                @(p.Status == MatchPostStatus.Open ? "Chốt danh sách" : "Mở lại tuyển người")
+                            </button>
+                        </form>
+                        <button type="button" class="btn btn-light w-100 text-danger mb-3" data-bs-toggle="modal" data-bs-target="#deletePostModal"><i class="bi bi-trash me-1"></i>Xóa bài đăng</button>
+                    }
+                    else if (Model.HasJoined)
+                    {
+                        <div class="alert alert-success small"><i class="bi bi-check-circle me-1"></i>Bạn đã là thành viên của trận này. Nhớ đến đúng giờ nhé!</div>
+                    }
+                    else if (Model.HasPendingRequest)
+                    {
+                        <div class="alert alert-warning small"><i class="bi bi-hourglass-split me-1"></i>Yêu cầu của bạn đang chờ đội trưởng duyệt.</div>
+                        var currentUId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "";
+                        var myReq = p.JoinRequests.FirstOrDefault(r => r.UserId == currentUId && r.Status == JoinRequestStatus.Pending);
+                        if (myReq != null)
+                        {
+                            <form asp-action="CancelRequest" method="post" class="mb-3">
+                                <input type="hidden" name="requestId" value="@myReq.Id" />
+                                <button type="submit" class="btn btn-light w-100 text-danger btn-sm">Rút lại yêu cầu</button>
+                            </form>
+                        }
+                    }
+                    else if (p.Status != MatchPostStatus.Open || p.CurrentSlots >= p.TotalSlots)
+                    {
+                        <div class="alert alert-secondary small" style="background: var(--line-2); border-color: var(--line);"><i class="bi bi-lock me-1"></i>Kèo đã đủ người hoặc đã đóng.</div>
+                    }
+                    else if (!isAuth)
+                    {
+                        <a asp-controller="Account" asp-action="Login" asp-route-returnUrl="@Url.Action("Detail", new { id = p.Id })" class="btn btn-primary btn-lg w-100 mb-2">Đăng nhập để tham gia</a>
+                        <div class="small text-muted text-center mb-3">Bạn cần tài khoản để gửi yêu cầu tham gia.</div>
+                    }
+                    else
+                    {
+                        <button type="button" class="btn btn-primary btn-lg w-100 mb-2" data-bs-toggle="modal" data-bs-target="#joinModal"><i class="bi bi-hand-thumbs-up me-1"></i>Xin tham gia</button>
+                        <div class="small text-muted text-center mb-3">Miễn phí · giữ chỗ sau khi đội trưởng duyệt</div>
+                    }
+
+                    <div class="p-3 rounded-3 mb-3" style="background: var(--line-2);">
+                        <div class="small text-muted mb-1">Liên hệ đội trưởng</div>
+                        <div class="fw-semibold text-ink">@(p.Creator?.FullName ?? "Đội trưởng")</div>
+                        <div class="fw-bold fs-5 text-success"><i class="bi bi-telephone me-1"></i>@p.ContactPhone</div>
+                    </div>
+                    <div class="d-grid gap-2">
+                        <a href="https://www.google.com/maps/dir/?api=1&destination=@Uri.EscapeDataString(p.VenueAddress ?? p.VenueName)" target="_blank" rel="noopener" class="btn btn-light btn-sm"><i class="bi bi-sign-turn-right me-1"></i>Chỉ đường</a>
+                        <button type="button" class="btn btn-light btn-sm" onclick="copyShareLink(this)"><i class="bi bi-link-45deg me-1"></i>Sao chép link mời bạn bè</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (isAuth && !Model.IsCreator)
+{
+    <div class="modal fade" id="joinModal" tabindex="-1" aria-labelledby="joinModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <form asp-action="Join" method="post">
+                    <input type="hidden" name="matchPostId" value="@p.Id" />
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="joinModalLabel">Xin tham gia kèo</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label" for="jPos">Vị trí sở trường</label>
+                            <input type="text" id="jPos" name="preferredPosition" class="form-control" placeholder="VD: Tiền vệ, thủ môn, đánh đôi..." required />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="jPhone">Số điện thoại / Zalo</label>
+                            <input type="tel" id="jPhone" name="contactPhone" class="form-control" placeholder="Để đội trưởng liên hệ" required />
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label" for="jMsg">Lời nhắn</label>
+                            <textarea id="jMsg" name="message" class="form-control" rows="3" placeholder="Chào đội trưởng, cho mình tham gia trận này nhé!"></textarea>
+                        </div>
+                        <div class="small text-muted"><i class="bi bi-shield-check text-success me-1"></i>Cam kết đến đúng giờ và chơi fair-play.</div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Đóng</button>
+                        <button type="submit" class="btn btn-primary"><i class="bi bi-send me-1"></i>Gửi yêu cầu</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+}
+
+@if (Model.IsCreator)
+{
+    <div class="modal fade" id="deletePostModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <form asp-action="DeletePost" method="post">
+                    <input type="hidden" name="id" value="@p.Id" />
+                    <div class="modal-body p-4 text-center">
+                        <span class="icon-bubble lg red mb-3"><i class="bi bi-trash"></i></span>
+                        <h5 class="fw-bold">Xóa bài đăng này?</h5>
+                        <p class="text-muted small mb-0">Các yêu cầu tham gia cũng sẽ bị xóa. Hành động này không thể hoàn tác.</p>
+                    </div>
+                    <div class="modal-footer justify-content-center">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Hủy</button>
+                        <button type="submit" class="btn btn-danger">Xóa bài</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script>
+        function copyShareLink(btn) {
+            navigator.clipboard.writeText(window.location.href).then(function () {
+                const old = btn.innerHTML;
+                btn.innerHTML = '<i class="bi bi-check2 text-success me-1"></i>Đã sao chép!';
+                setTimeout(function () { btn.innerHTML = old; }, 2000);
+            });
+        }
+    </script>
+}

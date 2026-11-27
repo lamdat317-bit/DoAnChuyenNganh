@@ -1,0 +1,268 @@
+@using DACN.Models.Enums
+@using DACN.Services
+@{
+    ViewData["Title"] = "Soát vé";
+    var code = ViewBag.Code as string;
+    var booking = ViewBag.Booking as DACN.Models.Booking;
+    bool notFound = ViewBag.NotFound is bool nf && nf;
+    bool badFormat = ViewBag.BadFormat is bool bf && bf;
+    var todayCheckIns = (List<DACN.Models.Booking>)ViewBag.TodayCheckIns;
+    int todayExpected = (int)ViewBag.TodayExpected;
+    var today = DateOnly.FromDateTime(DateTime.Now);
+    var vi = new System.Globalization.CultureInfo("vi-VN");
+}
+
+<div class="page-header">
+    <div class="container">
+        <div class="d-flex flex-wrap justify-content-between align-items-end gap-3">
+            <div>
+                <span class="eyebrow">Kênh chủ sân</span>
+                <h1>Soát vé</h1>
+                <p class="sub">Quét mã QR trên vé điện tử của khách hoặc nhập mã vé 8 ký tự để check-in.</p>
+            </div>
+            <div class="d-flex gap-2">
+                <span class="badge-soft success fs-6"><i class="bi bi-person-check"></i> Hôm nay: @todayCheckIns.Count / @todayExpected đơn đã check-in</span>
+            </div>
+        </div>
+        <partial name="_ManageNav" />
+    </div>
+</div>
+
+<div class="container">
+    <div class="row g-4">
+        <!-- Quét / nhập mã -->
+        <div class="col-lg-5">
+            <div class="panel">
+                <div class="panel-header"><h5 class="panel-title"><i class="bi bi-qr-code-scan"></i> Quét hoặc nhập mã</h5></div>
+                <div class="panel-body">
+                    <div class="scan-box mb-3" id="scanBox">
+                        <video id="scanVideo" playsinline muted class="d-none"></video>
+                        <div class="scan-frame d-none" id="scanFrame"></div>
+                        <div class="scan-placeholder" id="scanPlaceholder">
+                            <i class="bi bi-camera"></i>
+                            <button type="button" class="btn btn-primary" id="scanStart"><i class="bi bi-qr-code-scan me-1"></i>Bật camera quét QR</button>
+                            <div class="small text-muted mt-2 d-none" id="scanUnsupported">
+                                Trình duyệt này chưa hỗ trợ quét QR. Hãy nhập mã vé bên dưới,
+                                hoặc mở trang này bằng Chrome trên điện thoại Android.
+                            </div>
+                            <div class="small text-danger mt-2 d-none" id="scanError"></div>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-light w-100 mb-3 d-none" id="scanStop"><i class="bi bi-stop-circle me-1"></i>Tắt camera</button>
+
+                    <form method="get" asp-action="CheckIn" id="codeForm" autocomplete="off">
+                        <label class="form-label" for="codeInput">Mã vé</label>
+                        <div class="input-group input-group-lg">
+                            <input type="text" id="codeInput" name="code" value="@code" class="form-control text-uppercase fw-bold ticket-code-input"
+                                   placeholder="VD: ABCD-EFGH" maxlength="40" autofocus />
+                            <button class="btn btn-primary" type="submit"><i class="bi bi-search me-1"></i>Kiểm tra</button>
+                        </div>
+                        <div class="form-text">Mã in dưới mã QR trên vé của khách. Không phân biệt chữ hoa/thường, có hoặc không có dấu gạch.</div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Kết quả -->
+        <div class="col-lg-7">
+            @if (string.IsNullOrWhiteSpace(code))
+            {
+                <div class="panel empty-state h-100">
+                    <span class="icon-bubble lg green"><i class="bi bi-ticket-perforated"></i></span>
+                    <h5>Chưa có vé nào được quét</h5>
+                    <p>Thông tin vé sẽ hiện ở đây sau khi quét QR hoặc nhập mã.</p>
+                </div>
+            }
+            else if (booking == null)
+            {
+                <div class="panel checkin-result is-bad">
+                    <div class="panel-body text-center py-5">
+                        <span class="icon-bubble lg red mb-3"><i class="bi bi-x-octagon"></i></span>
+                        <h4 class="fw-bold">@(badFormat ? "Mã vé không hợp lệ" : "Không tìm thấy vé")</h4>
+                        <p class="text-muted mb-0">
+                            @if (badFormat)
+                            {
+                                <text>Mã vé gồm 8 ký tự chữ và số. Kiểm tra lại mã khách đưa.</text>
+                            }
+                            else
+                            {
+                                <text>Mã <strong>@code</strong> không thuộc cụm sân nào bạn quản lý. Có thể khách đặt nhầm sân khác hoặc vé giả.</text>
+                            }
+                        </p>
+                    </div>
+                </div>
+            }
+            else
+            {
+                var isCancelled = booking.Status == BookingStatus.Cancelled;
+                var already = booking.CheckedInAt != null;
+                var isToday = booking.BookingDate == today;
+                var startAt = BookingRules.StartsAt(booking);
+                var endAt = booking.BookingDate.ToDateTime(TimeOnly.FromTimeSpan(booking.EndTime));
+                var isPaid = booking.PaymentStatus == PaymentStatus.Paid;
+                var tone = isCancelled ? "is-bad" : already ? "is-warn" : (!isToday || !isPaid) ? "is-warn" : "is-ok";
+
+                var warnings = new List<string>();
+                if (!isCancelled && !already)
+                {
+                    if (booking.BookingDate < today) warnings.Add($"Vé này của ngày {booking.BookingDate:dd/MM/yyyy} (đã qua).");
+                    else if (booking.BookingDate > today) warnings.Add($"Vé này của ngày {booking.BookingDate:dd/MM/yyyy}, chưa phải hôm nay.");
+                    else if (DateTime.Now > endAt) warnings.Add("Đã quá giờ kết thúc của vé.");
+                    else if (startAt - DateTime.Now > TimeSpan.FromMinutes(60)) warnings.Add($"Khách đến sớm: còn {(int)(startAt - DateTime.Now).TotalMinutes} phút nữa mới tới giờ chơi.");
+                    if (booking.PaymentStatus == PaymentStatus.AwaitingVerification) warnings.Add("Khách đã gửi biên lai nhưng bạn chưa xác nhận thanh toán. Kiểm tra tiền đã về trước khi cho vào sân.");
+                    else if (booking.PaymentStatus == PaymentStatus.Unpaid) warnings.Add($"Đơn CHƯA thanh toán. Thu {booking.TotalAmount:N0}đ tại quầy.");
+                }
+
+                <div class="panel checkin-result @tone">
+                    <div class="checkin-head">
+                        @if (isCancelled)
+                        {
+                            <i class="bi bi-x-octagon-fill"></i><div><div class="fw-bold fs-5">Vé đã bị hủy</div><div class="small">Không cho vào sân.</div></div>
+                        }
+                        else if (already)
+                        {
+                            <i class="bi bi-exclamation-triangle-fill"></i><div><div class="fw-bold fs-5">Vé đã được check-in trước đó</div><div class="small">Lúc @booking.CheckedInAt!.Value.ToLocalTime().ToString("HH:mm dd/MM/yyyy"). Cẩn thận vé bị dùng lại.</div></div>
+                        }
+                        else if (warnings.Count == 0)
+                        {
+                            <i class="bi bi-check-circle-fill"></i><div><div class="fw-bold fs-5">Vé hợp lệ</div><div class="small">Đã thanh toán, đúng ngày. Bấm xác nhận để cho khách vào sân.</div></div>
+                        }
+                        else
+                        {
+                            <i class="bi bi-exclamation-circle-fill"></i><div><div class="fw-bold fs-5">Vé hợp lệ, cần lưu ý</div><div class="small">Kiểm tra các mục bên dưới trước khi xác nhận.</div></div>
+                        }
+                    </div>
+                    <div class="panel-body">
+                        <div class="d-flex justify-content-between align-items-start gap-2 mb-3">
+                            <div>
+                                <div class="small text-muted">Mã vé</div>
+                                <div class="fw-bold fs-4 font-monospace text-ink">@TicketCode.Pretty(booking.CheckInCode)</div>
+                            </div>
+                            <div class="text-end">
+                                <div class="small text-muted">Đơn</div>
+                                <div class="fw-bold text-ink">#BK-@booking.Id</div>
+                            </div>
+                        </div>
+                        <div class="row g-3 small mb-3">
+                            <div class="col-6"><div class="text-muted">Khách</div><div class="fw-bold text-ink">@(booking.CustomerName ?? booking.Customer?.FullName ?? "Khách")</div></div>
+                            <div class="col-6"><div class="text-muted">Điện thoại</div><div class="fw-bold text-ink">@(booking.CustomerPhone ?? booking.Customer?.PhoneNumber ?? "—")</div></div>
+                            <div class="col-6"><div class="text-muted">Cụm sân · Sân</div><div class="fw-bold text-ink">@booking.Court?.Facility?.Name · @booking.Court?.Name</div></div>
+                            <div class="col-6"><div class="text-muted">Ngày · Giờ</div><div class="fw-bold text-success">@booking.BookingDate.ToString("ddd dd/MM", vi) · @BookingRules.Hm(booking.StartTime)–@BookingRules.Hm(booking.EndTime)</div></div>
+                            <div class="col-6"><div class="text-muted">Tổng tiền</div><div class="fw-bold text-ink">@booking.TotalAmount.ToString("N0")đ</div></div>
+                            <div class="col-6">
+                                @{ var (bt, bi, btx) = BookingRules.StatusBadge(booking); }
+                                <div class="text-muted">Trạng thái</div><span class="badge-soft @bt"><i class="bi @bi"></i> @btx</span>
+                            </div>
+                            @if (booking.ServiceDetails.Any())
+                            {
+                                <div class="col-12"><div class="text-muted">Dịch vụ kèm theo</div><div class="fw-semibold text-ink">@string.Join(", ", booking.ServiceDetails.Select(d => $"{d.FacilityService?.Name ?? "Dịch vụ"} ×{d.Quantity}"))</div></div>
+                            }
+                        </div>
+
+                        @foreach (var w in warnings)
+                        {
+                            <div class="alert alert-warning small py-2 mb-2"><i class="bi bi-exclamation-triangle me-1"></i>@w</div>
+                        }
+
+                        @if (!isCancelled && !already)
+                        {
+                            <form asp-action="ConfirmCheckIn" method="post" class="mt-3">
+                                <input type="hidden" name="bookingId" value="@booking.Id" />
+                                <button type="submit" class="btn btn-primary btn-lg w-100"><i class="bi bi-person-check me-1"></i>Xác nhận check-in</button>
+                            </form>
+                        }
+                        <a asp-action="Bookings" asp-route-q="@booking.Id" class="btn btn-light w-100 mt-2"><i class="bi bi-receipt me-1"></i>Xem đơn trong danh sách</a>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Lịch sử check-in hôm nay -->
+    <div class="panel mt-4">
+        <div class="panel-header"><h5 class="panel-title"><i class="bi bi-clock-history"></i> Đã check-in hôm nay</h5></div>
+        @if (!todayCheckIns.Any())
+        {
+            <div class="panel-body text-muted small">Chưa có khách nào check-in hôm nay.</div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table align-middle mb-0">
+                    <thead><tr><th>Lúc</th><th>Mã vé</th><th>Khách</th><th>Sân</th><th>Giờ chơi</th></tr></thead>
+                    <tbody>
+                        @foreach (var b in todayCheckIns)
+                        {
+                            <tr>
+                                <td class="fw-semibold">@b.CheckedInAt!.Value.ToLocalTime().ToString("HH:mm")</td>
+                                <td><a asp-action="CheckIn" asp-route-code="@b.CheckInCode" class="font-monospace">@TicketCode.Pretty(b.CheckInCode)</a></td>
+                                <td>@(b.CustomerName ?? "Khách")</td>
+                                <td>@b.Court?.Facility?.Name · @b.Court?.Name</td>
+                                <td>@BookingRules.Hm(b.StartTime)–@BookingRules.Hm(b.EndTime)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+<script>
+(function () {
+    var startBtn = document.getElementById('scanStart'), stopBtn = document.getElementById('scanStop');
+    var video = document.getElementById('scanVideo'), frame = document.getElementById('scanFrame');
+    var placeholder = document.getElementById('scanPlaceholder'), unsupported = document.getElementById('scanUnsupported');
+    var errBox = document.getElementById('scanError'), input = document.getElementById('codeInput'), form = document.getElementById('codeForm');
+    var stream = null, timer = null, detector = null;
+
+    var supported = 'BarcodeDetector' in window && navigator.mediaDevices && navigator.mediaDevices.getUserMedia;
+    if (!supported) { startBtn.disabled = true; unsupported.classList.remove('d-none'); }
+
+    function stop() {
+        if (timer) { clearInterval(timer); timer = null; }
+        if (stream) { stream.getTracks().forEach(function (t) { t.stop(); }); stream = null; }
+        video.classList.add('d-none'); frame.classList.add('d-none'); placeholder.classList.remove('d-none'); stopBtn.classList.add('d-none');
+    }
+
+    startBtn.addEventListener('click', async function () {
+        errBox.classList.add('d-none');
+        try {
+            detector = detector || new BarcodeDetector({ formats: ['qr_code'] });
+            stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+            video.srcObject = stream;
+            await video.play();
+            video.classList.remove('d-none'); frame.classList.remove('d-none'); placeholder.classList.add('d-none'); stopBtn.classList.remove('d-none');
+            var busy = false;
+            timer = setInterval(async function () {
+                if (busy || video.readyState < 2) return;
+                busy = true;
+                try {
+                    var codes = await detector.detect(video);
+                    if (codes.length) {
+                        var text = (codes[0].rawValue || '').trim();
+                        if (navigator.vibrate) navigator.vibrate(120);
+                        stop();
+                        input.value = text;
+                        form.submit();
+                    }
+                } catch (e) { /* bỏ qua khung hình lỗi */ }
+                busy = false;
+            }, 250);
+        } catch (e) {
+            stop();
+            errBox.textContent = location.protocol !== 'https:' && location.hostname !== 'localhost'
+                ? 'Camera chỉ hoạt động trên trang HTTPS. Hãy nhập mã vé bằng tay.'
+                : 'Không mở được camera (' + (e.name || 'lỗi') + '). Hãy cho phép quyền camera hoặc nhập mã bằng tay.';
+            errBox.classList.remove('d-none');
+        }
+    });
+    stopBtn.addEventListener('click', stop);
+    window.addEventListener('pagehide', stop);
+
+    // Máy quét mã vạch dạng bàn phím (USB) gõ xong sẽ nhấn Enter → form tự gửi.
+    input.addEventListener('focus', function () { input.select(); });
+})();
+</script>
+}

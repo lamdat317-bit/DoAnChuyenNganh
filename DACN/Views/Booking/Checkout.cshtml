@@ -1,0 +1,231 @@
+﻿@model DACN.Models.Booking
+@{
+    ViewData["Title"] = "Thanh toán đơn #BK-" + Model.Id;
+    var transferCode = $"BK{Model.Id}";
+    var vietQrUrl = $"https://img.vietqr.io/image/VietinBank-10287462828-compact2.png?amount={(long)Model.TotalAmount}&addInfo={transferCode}&accountName=DATSAN247";
+    var defaultTxnRef = $"VTB-{DateTime.UtcNow:yyyyMMddHHmmss}-{Model.Id}";
+    var remainingSeconds = DACN.Services.BookingRules.HoldRemainingSeconds(Model, DateTime.UtcNow);
+    var initialTimerDisplay = $"{remainingSeconds / 60:D2}:{remainingSeconds % 60:D2}";
+    var vi = new System.Globalization.CultureInfo("vi-VN");
+}
+
+<div class="page-header">
+    <div class="container" style="max-width: 1080px;">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Trang chủ</a></li>
+                <li class="breadcrumb-item"><a asp-action="MyBookings">Lịch đặt của tôi</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Thanh toán</li>
+            </ol>
+        </nav>
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <div>
+                <h1>Thanh toán đơn #BK-@Model.Id</h1>
+                <p class="sub">Chuyển khoản qua VietQR rồi gửi ảnh biên lai để hoàn tất giữ chỗ.</p>
+            </div>
+            <div class="countdown-badge fs-6" title="Thời gian giữ chỗ còn lại">
+                <i class="bi bi-stopwatch"></i> Còn <span id="countdownTimer">@initialTimerDisplay</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container" style="max-width: 1080px;">
+    <div class="row g-4">
+        <div class="col-lg-7">
+            <div class="panel mb-4">
+                <div class="panel-header">
+                    <h5 class="panel-title"><i class="bi bi-qr-code-scan"></i> Bước 1 · Quét mã VietQR</h5>
+                    <span class="badge-soft success"><i class="bi bi-shield-check"></i> NAPAS 24/7</span>
+                </div>
+                <div class="panel-body">
+                    <div class="row g-4 align-items-center">
+                        <div class="col-md-6 text-center">
+                            <img src="@vietQrUrl" alt="Mã VietQR thanh toán" class="vietqr-img" id="vietQrImg" />
+                            <div class="d-flex justify-content-center gap-2 mt-2">
+                                <a href="@vietQrUrl" target="_blank" rel="noopener" class="btn btn-light btn-sm"><i class="bi bi-arrows-fullscreen me-1"></i>Phóng to</a>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="summary-row"><span class="k">Ngân hàng</span><span class="v">VietinBank</span></div>
+                            <div class="summary-row align-items-center">
+                                <span class="k">Số tài khoản</span>
+                                <span class="v"><span id="stkValue">10287462828</span>
+                                    <button type="button" class="btn btn-light btn-sm py-0 px-2 ms-1" onclick="copyText('10287462828', this)" title="Sao chép"><i class="bi bi-clipboard"></i></button></span>
+                            </div>
+                            <div class="summary-row"><span class="k">Chủ tài khoản</span><span class="v">DATSAN247</span></div>
+                            <div class="summary-row align-items-center">
+                                <span class="k">Số tiền</span>
+                                <span class="v text-accent">@Model.TotalAmount.ToString("N0")đ
+                                    <button type="button" class="btn btn-light btn-sm py-0 px-2 ms-1" onclick="copyText('@((long)Model.TotalAmount)', this)" title="Sao chép"><i class="bi bi-clipboard"></i></button></span>
+                            </div>
+                            <div class="summary-row align-items-center rounded-3 px-2" style="background: var(--warning-50);">
+                                <span class="k fw-semibold" style="color:#92400e">Nội dung CK</span>
+                                <span class="v"><span class="kbd-tag">@transferCode</span>
+                                    <button type="button" class="btn btn-light btn-sm py-0 px-2 ms-1" onclick="copyText('@transferCode', this)" title="Sao chép"><i class="bi bi-clipboard"></i></button></span>
+                            </div>
+                            <div class="small text-muted mt-2"><i class="bi bi-info-circle me-1"></i>Giữ nguyên nội dung chuyển khoản để hệ thống đối soát.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-header">
+                    <h5 class="panel-title"><i class="bi bi-cloud-arrow-up"></i> Bước 2 · Gửi ảnh biên lai</h5>
+                </div>
+                <div class="panel-body">
+                    <form asp-action="SubmitVirtualTransfer" method="post" enctype="multipart/form-data" id="formUploadProof">
+                        <input type="hidden" name="bookingId" value="@Model.Id" />
+                        <input type="hidden" name="transactionRef" value="@defaultTxnRef" />
+
+                        <div class="upload-zone mb-3" id="dropzoneBox" onclick="document.getElementById('proofImageInput').click()" role="button" tabindex="0">
+                            <i class="bi bi-image fs-1 text-success d-block mb-1"></i>
+                            <div class="fw-semibold text-ink" id="uploadPromptText">Bấm để chọn ảnh chụp màn hình biên lai</div>
+                            <div class="small text-muted">JPG, PNG, WEBP · tối đa 5MB</div>
+                        </div>
+                        <input type="file" name="proofImage" id="proofImageInput" class="d-none" accept="image/*" onchange="previewProofImage(event)" />
+
+                        <div id="proofPreviewContainer" class="border rounded-3 p-3 mb-3 text-center" style="display:none;">
+                            <div class="d-flex justify-content-between align-items-center mb-2 small">
+                                <span class="text-success fw-semibold text-truncate"><i class="bi bi-check-circle-fill me-1"></i><span id="fileNameDisplay"></span></span>
+                                <button type="button" class="btn btn-light btn-sm" onclick="clearProofPreview()">Đổi ảnh</button>
+                            </div>
+                            <img id="proofPreviewImg" src="" alt="Ảnh biên lai" class="img-fluid rounded" style="max-height: 220px; object-fit: contain;" />
+                        </div>
+
+                        <div class="row g-2 mb-3">
+                            <div class="col-sm-6">
+                                <label class="form-label small">Tên người chuyển</label>
+                                <input type="text" name="senderAccount" class="form-control" value="@(Model.CustomerName ?? Model.Customer?.FullName ?? "")" placeholder="Nguyen Van A" />
+                            </div>
+                            <div class="col-sm-6">
+                                <label class="form-label small">Mã giao dịch / ghi chú</label>
+                                <input type="text" name="note" class="form-control" placeholder="Không bắt buộc" />
+                            </div>
+                        </div>
+
+                        <div id="proofError" class="alert alert-danger py-2 small d-none"></div>
+
+                        <div class="small text-muted mb-2"><i class="bi bi-info-circle me-1"></i>Sau khi gửi, khung giờ được giữ cho bạn; chủ sân kiểm tra tài khoản và xác nhận thanh toán.</div>
+                        <button type="submit" id="btnSubmitProof" class="btn btn-primary btn-lg w-100">
+                            <i class="bi bi-shield-check me-1"></i> Tôi đã chuyển khoản · Gửi biên lai
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-5">
+            <div class="panel sticky-side">
+                <div class="panel-header">
+                    <h5 class="panel-title"><i class="bi bi-receipt"></i> Tóm tắt đơn</h5>
+                    <span class="kbd-tag">#BK-@Model.Id</span>
+                </div>
+                <div class="panel-body">
+                    <div class="d-flex gap-3 align-items-start mb-3">
+                        <span class="icon-bubble green"><i class="bi bi-geo-alt"></i></span>
+                        <div class="min-w-0">
+                            <div class="fw-bold text-ink">@(Model.Court?.Facility?.Name ?? "Cụm sân")</div>
+                            <div class="small text-muted">@(Model.Court?.Facility?.Address ?? "")</div>
+                        </div>
+                    </div>
+                    <div class="summary-row"><span class="k">Sân</span><span class="v">@(Model.Court?.Name ?? "Sân") · @(Model.Court?.Facility?.SportType?.Name ?? "")</span></div>
+                    <div class="summary-row"><span class="k">Ngày</span><span class="v">@Model.BookingDate.ToString("dddd, dd/MM/yyyy", vi)</span></div>
+                    <div class="summary-row"><span class="k">Giờ</span><span class="v text-success">@DACN.Services.BookingRules.Hm(Model.StartTime) – @DACN.Services.BookingRules.Hm(Model.EndTime)</span></div>
+                    <div class="summary-row"><span class="k">Người đặt</span><span class="v">@(Model.CustomerName ?? Model.Customer?.FullName ?? "Khách")</span></div>
+                    <div class="summary-row"><span class="k">Điện thoại</span><span class="v">@(Model.CustomerPhone ?? Model.Customer?.PhoneNumber ?? "—")</span></div>
+                    @if (Model.ServiceDetails != null && Model.ServiceDetails.Any())
+                    {
+                        foreach (var sd in Model.ServiceDetails)
+                        {
+                            <div class="summary-row"><span class="k">@(sd.FacilityService?.Name ?? "Dịch vụ") ×@sd.Quantity</span><span class="v">@sd.SubTotal.ToString("N0")đ</span></div>
+                        }
+                    }
+                    <div class="d-flex justify-content-between align-items-center p-3 rounded-3 mt-3" style="background: var(--brand-50); border: 1px solid var(--brand-100);">
+                        <span class="fw-semibold text-ink">Tổng thanh toán</span>
+                        <span class="price fs-4">@Model.TotalAmount.ToString("N0")đ</span>
+                    </div>
+                    <a asp-action="MyBookings" class="btn btn-light w-100 mt-3"><i class="bi bi-clock me-1"></i> Thanh toán sau</a>
+                    <div class="small text-muted text-center mt-2">Quá thời gian giữ chỗ, đơn sẽ tự hủy để nhường sân cho người khác.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let timeLeft = @remainingSeconds;
+        const timerDisplay = document.getElementById('countdownTimer');
+        const expiredUrl = '@Html.Raw(Url.Action("Matrix", "Booking", new { courtId = Model.CourtId, date = Model.BookingDate.ToString("yyyy-MM-dd") }))';
+        const interval = setInterval(function () {
+            if (timeLeft <= 0) {
+                clearInterval(interval);
+                timerDisplay.textContent = '00:00';
+                document.getElementById('btnSubmitProof').disabled = true;
+                showProofError('Đã hết thời gian giữ chỗ. Khung giờ đã được mở lại, đang chuyển về trang chọn giờ...');
+                setTimeout(function () { window.location.href = expiredUrl; }, 2500);
+                return;
+            }
+            timerDisplay.textContent = String(Math.floor(timeLeft / 60)).padStart(2, '0') + ':' + String(timeLeft % 60).padStart(2, '0');
+            timeLeft--;
+        }, 1000);
+
+        function copyText(text, btn) {
+            navigator.clipboard.writeText(text).then(function () {
+                const old = btn.innerHTML;
+                btn.innerHTML = '<i class="bi bi-check2 text-success"></i>';
+                setTimeout(function () { btn.innerHTML = old; }, 1500);
+            });
+        }
+
+        function showProofError(msg) {
+            const box = document.getElementById('proofError');
+            box.textContent = msg;
+            box.classList.remove('d-none');
+        }
+
+        function previewProofImage(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            if (file.size > 10 * 1024 * 1024) {
+                showProofError('Ảnh vượt quá 10MB. Vui lòng chọn ảnh nhỏ hơn.');
+                clearProofPreview();
+                return;
+            }
+            document.getElementById('proofError').classList.add('d-none');
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                document.getElementById('proofPreviewImg').src = e.target.result;
+                document.getElementById('proofPreviewContainer').style.display = 'block';
+                document.getElementById('dropzoneBox').style.display = 'none';
+                document.getElementById('fileNameDisplay').textContent = file.name + ' (' + (file.size / 1024).toFixed(0) + ' KB)';
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function clearProofPreview() {
+            document.getElementById('proofImageInput').value = '';
+            document.getElementById('proofPreviewContainer').style.display = 'none';
+            document.getElementById('dropzoneBox').style.display = '';
+            document.getElementById('proofPreviewImg').src = '';
+        }
+
+        document.getElementById('dropzoneBox').addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); document.getElementById('proofImageInput').click(); }
+        });
+
+        document.getElementById('formUploadProof').addEventListener('submit', function (e) {
+            const fileInput = document.getElementById('proofImageInput');
+            if (!fileInput.files || fileInput.files.length === 0) {
+                e.preventDefault();
+                showProofError('Vui lòng chọn ảnh chụp biên lai chuyển khoản trước khi hoàn tất.');
+                return;
+            }
+            const btn = document.getElementById('btnSubmitProof');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Đang xác nhận...';
+        });
+    </script>
+}

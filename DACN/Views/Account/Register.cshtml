@@ -1,0 +1,71 @@
+@model DACN.Models.ViewModels.RegisterViewModel
+@{
+    ViewData["Title"] = "Đăng ký";
+}
+
+<div class="auth-wrap">
+    <div class="container" style="max-width: 1020px;">
+        <div class="auth-card">
+            <div class="auth-side">
+                <div>
+                    <a class="brand-logo text-white mb-5" asp-area="" asp-controller="Home" asp-action="Index">
+                        <span class="brand-mark"><i class="bi bi-dribbble"></i></span>
+                        <span>DatSan<span style="color:#86efac">247</span></span>
+                    </a>
+                    <h2 class="mt-4">Tham gia cộng đồng thể thao</h2>
+                    <p>Tạo tài khoản miễn phí để đặt sân, thanh toán và tìm đồng đội.</p>
+                </div>
+                <div class="small" style="color: rgba(255,255,255,.8);">
+                    <i class="bi bi-info-circle me-1"></i>Tài khoản chủ sân do quản trị viên cấp. Liên hệ <strong class="text-white">hotro@datsan247.vn</strong>.
+                </div>
+            </div>
+
+            <div class="auth-form">
+                <h3 class="fw-bold mb-1">Tạo tài khoản</h3>
+                <p class="text-muted mb-4">Đã có tài khoản? <a asp-action="Login" class="fw-semibold">Đăng nhập</a></p>
+
+                <form asp-action="Register" method="post">
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2 small" role="alert"></div>
+                    <input type="hidden" asp-for="Role" value="@((int)DACN.Models.Enums.UserRole.Customer)" />
+
+                    <div class="mb-3">
+                        <label asp-for="FullName" class="form-label"></label>
+                        <input asp-for="FullName" class="form-control" placeholder="Nguyễn Văn A" autocomplete="name" />
+                        <span asp-validation-for="FullName" class="text-danger small"></span>
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label asp-for="Email" class="form-label"></label>
+                            <input asp-for="Email" class="form-control" placeholder="name@gmail.com" autocomplete="email" />
+                            <span asp-validation-for="Email" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="PhoneNumber" class="form-label"></label>
+                            <input asp-for="PhoneNumber" class="form-control" placeholder="0901234567" autocomplete="tel" />
+                            <span asp-validation-for="PhoneNumber" class="text-danger small"></span>
+                        </div>
+                    </div>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label asp-for="Password" class="form-label"></label>
+                            <input asp-for="Password" class="form-control" placeholder="Tối thiểu 6 ký tự" autocomplete="new-password" />
+                            <span asp-validation-for="Password" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="ConfirmPassword" class="form-label"></label>
+                            <input asp-for="ConfirmPassword" class="form-control" placeholder="Nhập lại mật khẩu" autocomplete="new-password" />
+                            <span asp-validation-for="ConfirmPassword" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 btn-lg">Tạo tài khoản</button>
+                    <p class="small text-muted text-center mt-3 mb-0">Bằng việc đăng ký, bạn đồng ý với <a asp-controller="Home" asp-action="Privacy">chính sách bảo mật</a>.</p>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

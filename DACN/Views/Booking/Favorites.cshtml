@@ -1,0 +1,47 @@
+@model List<DACN.Models.ViewModels.FacilityCardDto>
+@{
+    ViewData["Title"] = "Sân yêu thích";
+}
+
+<div class="page-header page-header-hero">
+    <div class="container">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Trang chủ</a></li>
+                <li class="breadcrumb-item"><a asp-action="Index">Tìm sân</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Sân yêu thích</li>
+            </ol>
+        </nav>
+        <div class="d-flex flex-wrap justify-content-between align-items-end gap-3">
+            <div>
+                <h1><i class="bi bi-heart-fill text-danger me-2" style="font-size:.8em"></i>Sân yêu thích</h1>
+                <p class="sub">Những cụm sân bạn đã lưu để đặt lại nhanh hơn.</p>
+            </div>
+            <a asp-action="Index" class="btn btn-primary"><i class="bi bi-search me-1"></i> Khám phá thêm sân</a>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    @if (!Model.Any())
+    {
+        <div class="panel empty-state">
+            <span class="icon-bubble lg red"><i class="bi bi-heart"></i></span>
+            <h5>Bạn chưa lưu sân nào</h5>
+            <p>Bấm vào biểu tượng <i class="bi bi-heart text-danger"></i> trên thẻ sân để thêm vào danh sách yêu thích.</p>
+            <a asp-action="Index" class="btn btn-primary">Tìm sân ngay</a>
+        </div>
+    }
+    else
+    {
+        <div class="text-muted small mb-3">Đã lưu <strong class="text-ink" id="favTotal">@Model.Count</strong> cụm sân</div>
+        <div class="row g-4" data-fav-page>
+            @foreach (var f in Model)
+            {
+                <div class="col-md-6 col-lg-4" data-reveal>
+                    <partial name="_VenueCard" model="f" />
+                </div>
+            }
+        </div>
+    }
+</div>

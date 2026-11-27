@@ -1,0 +1,130 @@
+﻿@model DACN.Models.Court
+@{
+    ViewData["Title"] = $"Bảng giá · {Model.Name}";
+    var openT = Model.Facility?.OpeningTime ?? new TimeSpan(6, 0, 0);
+    var closeT = Model.Facility?.ClosingTime ?? new TimeSpan(23, 0, 0);
+    var overnight = closeT <= openT;
+    // Sân qua đêm: trục thời gian hiển thị cả ngày 00:00–24:00; sân thường: giờ mở – giờ đóng
+    var open = overnight ? TimeSpan.Zero : openT;
+    var close = overnight ? DACN.Services.BookingRules.EndOfDay : closeT;
+    var span = Math.Max(1, (close - open).TotalMinutes);
+    var slots = Model.TimeSlots.OrderBy(s => s.StartTime).ToList();
+    var closedSegs = new List<(TimeSpan S, TimeSpan E)>();
+    if (overnight && closeT < openT) closedSegs.Add((closeT, openT));
+    var hoursText = Model.Facility != null ? DACN.Services.BookingRules.OpenHoursText(Model.Facility) : "";
+}
+
+<div class="page-header">
+    <div class="container" style="max-width: 980px;">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a asp-action="Index">Cụm sân</a></li>
+                <li class="breadcrumb-item">@Model.Facility?.Name</li>
+                <li class="breadcrumb-item active" aria-current="page">@Model.Name</li>
+            </ol>
+        </nav>
+        <h1>Bảng giá · @Model.Name</h1>
+        <p class="sub">Đặt giá theo khung giờ. Giờ hoạt động của cụm sân: @hoursText. Khi đổi giờ mở cửa, bảng giá tự được cắt/bổ sung cho khớp.</p>
+    </div>
+</div>
+
+<div class="container" style="max-width: 980px;">
+    <div class="panel mb-4">
+        <div class="panel-header"><h5 class="panel-title"><i class="bi bi-bar-chart-steps"></i> Tổng quan trong ngày</h5></div>
+        <div class="panel-body">
+            <div class="position-relative rounded-3 overflow-hidden" style="height: 46px; background: var(--line-2); border: 1px solid var(--line);">
+                @foreach (var c in closedSegs)
+                {
+                    var cl = (c.S - open).TotalMinutes / span * 100;
+                    var cw = (c.E - c.S).TotalMinutes / span * 100;
+                    <div class="position-absolute top-0 h-100 d-flex align-items-center justify-content-center small text-muted" title="Đóng cửa"
+                         style="left:@cl.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)%;width:@cw.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)%;background:repeating-linear-gradient(45deg,transparent,transparent 6px,rgba(0,0,0,.05) 6px,rgba(0,0,0,.05) 12px)">Đóng cửa</div>
+                }
+                @foreach (var s in slots)
+                {
+                    var left = Math.Max(0, (s.StartTime - open).TotalMinutes) / span * 100;
+                    var width = Math.Max(0, (s.EndTime - s.StartTime).TotalMinutes) / span * 100;
+                    <div class="position-absolute top-0 h-100 d-flex align-items-center justify-content-center small fw-semibold text-truncate px-1"
+                         style="left:@left.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)%;width:@width.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)%;background:@(s.IsPeakHour ? "#fed7aa" : "var(--brand-100)");color:@(s.IsPeakHour ? "#9a3412" : "var(--brand-700)");border-right:2px solid #fff;"
+                         title="@DACN.Services.BookingRules.Hm(s.StartTime)–@DACN.Services.BookingRules.Hm(s.EndTime): @s.Price.ToString("N0")đ">
+                        @((s.Price / 1000).ToString("N0"))k
+                    </div>
+                }
+            </div>
+            <div class="d-flex justify-content-between small text-muted mt-1">
+                <span>@DACN.Services.BookingRules.Hm(open)</span><span>@DACN.Services.BookingRules.Hm(close)</span>
+            </div>
+            <div class="d-flex gap-3 small text-muted mt-2">
+                <span><span class="legend-dot" style="background:var(--brand-100);border-color:var(--brand)"></span> Giờ thường</span>
+                <span><span class="legend-dot" style="background:#fed7aa;border-color:#f97316"></span> Giờ cao điểm</span>
+                <span><span class="legend-dot" style="background:var(--line-2);border-color:var(--line)"></span> Chưa đặt giá (150.000đ/giờ)</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-5">
+            <div class="panel">
+                <div class="panel-header"><h5 class="panel-title"><i class="bi bi-plus-circle"></i> Thêm khung giá</h5></div>
+                <form asp-action="AddTimeSlot" method="post" class="panel-body">
+                    <input type="hidden" name="courtId" value="@Model.Id" />
+                    <div class="row g-2 mb-3">
+                        <div class="col-6"><label class="form-label" for="tsStart">Từ</label><input type="time" id="tsStart" name="startTime" class="form-control" required value="17:00" /></div>
+                        <div class="col-6"><label class="form-label" for="tsEnd">Đến</label><input type="time" id="tsEnd" name="endTime" class="form-control" required value="21:00" /></div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="tsPrice">Đơn giá mỗi giờ</label>
+                        <div class="input-group"><input type="number" id="tsPrice" name="price" step="5000" min="0" class="form-control" required value="250000" /><span class="input-group-text">đ</span></div>
+                    </div>
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" name="isPeakHour" id="isPeakCheck" value="true" checked>
+                        <label class="form-check-label" for="isPeakCheck">Giờ cao điểm</label>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Lưu khung giá</button>
+                    <div class="form-text mt-2">Khung mới được ưu tiên, phần chồng lấn của khung cũ sẽ tự động được cắt bớt. Khung phải nằm trong giờ mở cửa; giờ kết thúc 00:00 nghĩa là nửa đêm.</div>
+                </form>
+            </div>
+        </div>
+        <div class="col-lg-7">
+            <div class="panel">
+                <div class="panel-header"><h5 class="panel-title"><i class="bi bi-list-ul"></i> Bảng giá hiện tại</h5><span class="badge-soft neutral">@slots.Count khung</span></div>
+                <div class="table-wrap">
+                    <table class="table table-hover">
+                        <thead><tr><th>Khung giờ</th><th class="text-end">Đơn giá</th><th>Loại</th><th></th></tr></thead>
+                        <tbody>
+                            @if (!slots.Any())
+                            {
+                                <tr><td colspan="4" class="text-center text-muted py-4">Chưa có khung giá. Hệ thống tính mặc định 150.000đ/giờ.</td></tr>
+                            }
+                            @foreach (var slot in slots)
+                            {
+                                <tr>
+                                    <td class="fw-semibold text-ink">@DACN.Services.BookingRules.Hm(slot.StartTime) – @DACN.Services.BookingRules.Hm(slot.EndTime)</td>
+                                    <td class="text-end fw-bold">@slot.Price.ToString("N0")đ</td>
+                                    <td>
+                                        @if (slot.IsPeakHour)
+                                        {
+                                            <span class="badge-soft accent"><i class="bi bi-lightning-charge"></i> Cao điểm</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge-soft neutral">Thường</span>
+                                        }
+                                    </td>
+                                    <td class="text-end">
+                                        <form asp-action="DeleteTimeSlot" method="post" class="m-0" data-confirm-message="Xóa khung giờ này khỏi bảng giá?">
+                                            <input type="hidden" name="slotId" value="@slot.Id" />
+                                            <input type="hidden" name="courtId" value="@Model.Id" />
+                                            <button type="submit" class="btn btn-light btn-sm text-danger" title="Xóa khung giờ"><i class="bi bi-trash"></i></button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <a asp-action="Index" class="btn btn-light mt-3"><i class="bi bi-arrow-left me-1"></i>Về danh sách cụm sân</a>
+        </div>
+    </div>
+</div>

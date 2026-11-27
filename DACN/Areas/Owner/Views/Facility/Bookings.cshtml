@@ -1,0 +1,316 @@
+﻿@model List<DACN.Models.Booking>
+@using DACN.Models.Enums
+@{
+    ViewData["Title"] = "Đơn đặt sân";
+    var facilities = ViewBag.Facilities as List<DACN.Models.Facility> ?? new();
+    int? selectedFacilityId = ViewBag.SelectedFacilityId as int?;
+    string? selectedStatus = ViewBag.SelectedStatus as string;
+    string? selectedDate = ViewBag.SelectedDate as string;
+    string? keyword = ViewBag.Keyword as string;
+    int currentPage = ViewBag.Page ?? 1;
+    int totalPages = ViewBag.TotalPages ?? 1;
+    int totalCount = ViewBag.TotalCount ?? 0;
+    int verifyCount = ViewBag.VerifyCount ?? 0;
+    int refundCount = ViewBag.RefundCount ?? 0;
+}
+
+<div class="page-header">
+    <div class="container">
+        <span class="eyebrow">Kênh chủ sân</span>
+        <h1>Đơn đặt sân</h1>
+        <p class="sub">Theo dõi đơn, xác nhận thanh toán và xử lý hủy lịch.</p>
+        <partial name="_ManageNav" />
+    </div>
+</div>
+
+<div class="container">
+    <div class="row g-3 mb-4">
+        <div class="col-md-4"><div class="card stat-card"><span class="icon-bubble blue"><i class="bi bi-receipt"></i></span><div><div class="label">Số đơn (theo bộ lọc)</div><div class="value">@totalCount</div></div></div></div>
+        <div class="col-md-4"><div class="card stat-card"><span class="icon-bubble green"><i class="bi bi-cash-stack"></i></span><div><div class="label">Đã thu</div><div class="value">@(((decimal)ViewBag.TotalAmount).ToString("N0"))<small class="fs-6">đ</small></div></div></div></div>
+        <div class="col-md-4"><div class="card stat-card"><span class="icon-bubble amber"><i class="bi bi-hourglass-split"></i></span><div><div class="label">Chờ thu tiền</div><div class="value">@ViewBag.UnpaidCount</div></div></div></div>
+    </div>
+
+    @if (verifyCount > 0 || refundCount > 0)
+    {
+        <div class="d-flex flex-wrap gap-2 mb-3">
+            @if (verifyCount > 0)
+            {
+                <a asp-action="Bookings" asp-route-status="verify" asp-route-facilityId="@selectedFacilityId" class="chip @(selectedStatus == "verify" ? "active" : "")"><i class="bi bi-shield-exclamation"></i> Cần xác nhận chuyển khoản <span class="count">@verifyCount</span></a>
+            }
+            @if (refundCount > 0)
+            {
+                <a asp-action="Refunds" asp-route-facilityId="@selectedFacilityId" class="chip"><i class="bi bi-arrow-counterclockwise"></i> Chờ hoàn tiền <span class="count">@refundCount</span></a>
+            }
+        </div>
+    }
+
+    <form method="get" asp-action="Bookings" class="filter-bar mb-4">
+        <div class="row g-2 align-items-end">
+            <div class="col-lg-3 col-md-6">
+                <label class="form-label small">Tìm kiếm</label>
+                <input type="text" name="q" value="@keyword" class="form-control" placeholder="Mã đơn, tên, SĐT" />
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <label class="form-label small">Cụm sân</label>
+                <select name="facilityId" class="form-select">
+                    <option value="">Tất cả</option>
+                    @foreach (var fac in facilities)
+                    {
+                        <option value="@fac.Id" selected="@(fac.Id == selectedFacilityId)">@fac.Name</option>
+                    }
+                </select>
+            </div>
+            <div class="col-lg-2 col-md-4">
+                <label class="form-label small">Ngày</label>
+                <input type="date" name="date" value="@selectedDate" class="form-control" />
+            </div>
+            <div class="col-lg-2 col-md-4">
+                <label class="form-label small">Trạng thái</label>
+                <select name="status" class="form-select">
+                    <option value="">Tất cả</option>
+                    <option value="Pending" selected="@(selectedStatus == "Pending")">Chờ xác nhận</option>
+                    <option value="Confirmed" selected="@(selectedStatus == "Confirmed")">Đã xác nhận</option>
+                    <option value="Completed" selected="@(selectedStatus == "Completed")">Đã hoàn thành</option>
+                    <option value="Cancelled" selected="@(selectedStatus == "Cancelled")">Đã hủy</option>
+                    <option value="verify" selected="@(selectedStatus == "verify")">Chờ xác nhận chuyển khoản</option>
+                    <option value="refund" selected="@(selectedStatus == "refund")">Chờ hoàn tiền</option>
+                </select>
+            </div>
+            <div class="col-lg-2 col-md-4 d-flex gap-2">
+                <button type="submit" class="btn btn-primary flex-grow-1"><i class="bi bi-funnel me-1"></i>Lọc</button>
+                <a asp-action="Bookings" class="btn btn-light" title="Xóa bộ lọc"><i class="bi bi-x-lg"></i></a>
+            </div>
+        </div>
+    </form>
+
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <div class="small text-muted">Hiển thị <strong class="text-ink">@Model.Count</strong> / @totalCount đơn</div>
+        <div class="d-flex gap-2">
+            <button type="button" class="btn btn-light btn-sm" onclick="window.print()"><i class="bi bi-printer me-1"></i>In danh sách</button>
+            <a asp-action="ExportBookings" asp-route-facilityId="@selectedFacilityId" asp-route-status="@selectedStatus"
+               asp-route-date="@selectedDate" asp-route-q="@keyword" class="btn btn-soft btn-sm" data-no-loading>
+                <i class="bi bi-file-earmark-spreadsheet me-1"></i>Xuất Excel (CSV)
+            </a>
+        </div>
+    </div>
+
+    <div class="panel">
+        <div class="table-wrap">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Đơn</th>
+                        <th>Khách hàng</th>
+                        <th>Sân</th>
+                        <th>Thời gian</th>
+                        <th class="text-end">Tiền</th>
+                        <th>Trạng thái</th>
+                        <th class="text-end">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.Any())
+                    {
+                        <tr><td colspan="7"><div class="empty-state py-4"><span class="icon-bubble lg slate"><i class="bi bi-inbox"></i></span><p class="mb-0">Không có đơn nào phù hợp bộ lọc.</p></div></td></tr>
+                    }
+                    @foreach (var bk in Model)
+                    {
+                        var isPaid = bk.PaymentStatus == PaymentStatus.Paid;
+                        var isVerifying = bk.PaymentStatus == PaymentStatus.AwaitingVerification && bk.Status != BookingStatus.Cancelled;
+                        var (payTone, payIcon, payText) = DACN.Services.BookingRules.StatusBadge(bk);
+                        <tr>
+                            <td><span class="kbd-tag">#BK-@bk.Id</span></td>
+                            <td>
+                                <div class="fw-semibold text-ink">@(bk.CustomerName ?? bk.Customer?.FullName ?? "Khách hàng")</div>
+                                <div class="small text-muted">@(bk.CustomerPhone ?? bk.Customer?.PhoneNumber ?? "—")</div>
+                            </td>
+                            <td>
+                                <div class="fw-semibold text-ink">@bk.Court?.Name</div>
+                                <div class="small text-muted text-truncate" style="max-width: 200px;">@bk.Court?.Facility?.Name</div>
+                            </td>
+                            <td>
+                                <div class="fw-semibold text-ink">@bk.BookingDate.ToString("dd/MM/yyyy")</div>
+                                <div class="small text-muted">@DACN.Services.BookingRules.Hm(bk.StartTime) – @DACN.Services.BookingRules.Hm(bk.EndTime)</div>
+                            </td>
+                            <td class="text-end fw-bold">@bk.TotalAmount.ToString("N0")đ</td>
+                            <td>
+                                <div class="d-flex flex-column align-items-start gap-1">
+                                    <span class="badge-soft @payTone"><i class="bi @payIcon"></i> @payText</span>
+                                    @if (bk.CheckedInAt != null)
+                                    {
+                                        <span class="badge-soft success mt-1" title="Check-in lúc @bk.CheckedInAt.Value.ToLocalTime().ToString("HH:mm dd/MM")"><i class="bi bi-person-check"></i> Đã vào sân @bk.CheckedInAt.Value.ToLocalTime().ToString("HH:mm")</span>
+                                    }
+                                    @if (!string.IsNullOrEmpty(bk.PaymentTransactionRef) && isVerifying)
+                                    {
+                                        <span class="small text-muted">Mã GD: @bk.PaymentTransactionRef</span>
+                                    }
+                                </div>
+                            </td>
+                            <td class="text-end">
+                                <div class="d-inline-flex gap-1">
+                                    @if (isVerifying)
+                                    {
+                                        <form asp-action="VerifyPayment" method="post" class="m-0">
+                                            <input type="hidden" name="bookingId" value="@bk.Id" />
+                                            <input type="hidden" name="approve" value="true" />
+                                            <button type="submit" class="btn btn-primary btn-sm" title="Đã kiểm tra tài khoản, xác nhận nhận được tiền"><i class="bi bi-patch-check"></i> Xác nhận CK</button>
+                                        </form>
+                                        <button type="button" class="btn btn-light btn-sm text-danger" data-bs-toggle="modal" data-bs-target="#rejectProofModal" data-id="@bk.Id" title="Không nhận được tiền"><i class="bi bi-x-octagon"></i></button>
+                                    }
+                                    @if (bk.PaymentStatus == PaymentStatus.RefundPending)
+                                    {
+                                        <a asp-action="Refunds" asp-route-facilityId="@bk.Court?.FacilityId" class="btn btn-accent btn-sm"><i class="bi bi-arrow-counterclockwise"></i> Hoàn tiền</a>
+                                    }
+                                    @if (bk.PaymentStatus == PaymentStatus.Unpaid && bk.Status != BookingStatus.Cancelled)
+                                    {
+                                        <form asp-action="UpdateBookingStatus" method="post" class="m-0">
+                                            <input type="hidden" name="bookingId" value="@bk.Id" />
+                                            <input type="hidden" name="status" value="@BookingStatus.Confirmed" />
+                                            <input type="hidden" name="paymentStatus" value="@PaymentStatus.Paid" />
+                                            <button type="submit" class="btn btn-primary btn-sm" title="Xác nhận đã thu tiền"><i class="bi bi-cash"></i> Thu tiền</button>
+                                        </form>
+                                    }
+                                    @if (!string.IsNullOrEmpty(bk.PaymentProofImage))
+                                    {
+                                        <button type="button" class="btn btn-light btn-sm" data-bs-toggle="modal" data-bs-target="#modalProofView" data-src="@bk.PaymentProofImage" data-title="#BK-@bk.Id" title="Xem biên lai"><i class="bi bi-image"></i></button>
+                                    }
+                                    <div class="dropdown">
+                                        <button class="btn btn-light btn-sm btn-icon" style="width:32px;height:32px" data-bs-toggle="dropdown" aria-label="Thêm thao tác"><i class="bi bi-three-dots"></i></button>
+                                        <ul class="dropdown-menu dropdown-menu-end">
+                                            <li><a class="dropdown-item" asp-area="" asp-controller="Booking" asp-action="Confirmation" asp-route-bookingId="@bk.Id" target="_blank"><i class="bi bi-ticket-perforated"></i>Xem vé</a></li>
+                                            @if (bk.Status == BookingStatus.Pending && !isVerifying)
+                                            {
+                                                <li>
+                                                    <form asp-action="UpdateBookingStatus" method="post" class="m-0">
+                                                        <input type="hidden" name="bookingId" value="@bk.Id" />
+                                                        <input type="hidden" name="status" value="@BookingStatus.Confirmed" />
+                                                        <button type="submit" class="dropdown-item"><i class="bi bi-hand-thumbs-up"></i>Xác nhận đơn</button>
+                                                    </form>
+                                                </li>
+                                            }
+                                            @if (bk.Status == BookingStatus.Confirmed && DACN.Services.BookingRules.StartsAt(bk) <= DateTime.Now)
+                                            {
+                                                <li>
+                                                    <form asp-action="UpdateBookingStatus" method="post" class="m-0">
+                                                        <input type="hidden" name="bookingId" value="@bk.Id" />
+                                                        <input type="hidden" name="status" value="@BookingStatus.Completed" />
+                                                        <button type="submit" class="dropdown-item"><i class="bi bi-flag"></i>Đánh dấu hoàn thành</button>
+                                                    </form>
+                                                </li>
+                                            }
+                                            @if (bk.Status != BookingStatus.Cancelled && bk.Status != BookingStatus.Completed)
+                                            {
+                                                <li><hr class="dropdown-divider" /></li>
+                                                <li>
+                                                    <button type="button" class="dropdown-item text-danger" data-bs-toggle="modal" data-bs-target="#cancelBookingModal" data-id="@bk.Id" data-paid="@(isPaid || isVerifying ? "1" : "0")" data-amount="@bk.TotalAmount.ToString("N0")"><i class="bi bi-x-circle text-danger"></i>Hủy đơn</button>
+                                                </li>
+                                            }
+                                        </ul>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        @if (totalPages > 1)
+        {
+            <div class="panel-body border-top d-flex flex-wrap justify-content-between align-items-center gap-2">
+                <span class="small text-muted">Trang @currentPage / @totalPages · @totalCount đơn</span>
+                <nav aria-label="Phân trang">
+                    <ul class="pagination pagination-sm mb-0">
+                        <li class="page-item @(currentPage <= 1 ? "disabled" : "")">
+                            <a class="page-link" asp-action="Bookings" asp-route-facilityId="@selectedFacilityId" asp-route-status="@selectedStatus" asp-route-date="@selectedDate" asp-route-q="@keyword" asp-route-page="@(currentPage - 1)">‹</a>
+                        </li>
+                        @for (int i = Math.Max(1, currentPage - 2); i <= Math.Min(totalPages, currentPage + 2); i++)
+                        {
+                            <li class="page-item @(i == currentPage ? "active" : "")">
+                                <a class="page-link" asp-action="Bookings" asp-route-facilityId="@selectedFacilityId" asp-route-status="@selectedStatus" asp-route-date="@selectedDate" asp-route-q="@keyword" asp-route-page="@i">@i</a>
+                            </li>
+                        }
+                        <li class="page-item @(currentPage >= totalPages ? "disabled" : "")">
+                            <a class="page-link" asp-action="Bookings" asp-route-facilityId="@selectedFacilityId" asp-route-status="@selectedStatus" asp-route-date="@selectedDate" asp-route-q="@keyword" asp-route-page="@(currentPage + 1)">›</a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        }
+    </div>
+</div>
+
+<div class="modal fade" id="modalProofView" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Biên lai <span id="modalProofTitle"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+            <div class="modal-body text-center"><img id="modalProofImg" src="" alt="Biên lai" class="img-fluid rounded-3" style="max-height: 70vh;" /></div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="cancelBookingModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form asp-action="UpdateBookingStatus" method="post">
+                <input type="hidden" name="bookingId" id="cancelBookingId" />
+                <input type="hidden" name="status" value="@BookingStatus.Cancelled" />
+                <div class="modal-body p-4 text-center">
+                    <span class="icon-bubble lg red mb-3"><i class="bi bi-x-circle"></i></span>
+                    <h5 class="fw-bold">Hủy đơn <span id="cancelBookingCode"></span>?</h5>
+                    <p class="small text-muted mb-0">Khung giờ sẽ được mở lại cho khách khác đặt. Khách sẽ nhận được thông báo.</p>
+                    <div class="alert alert-warning small text-start mt-3 mb-0 d-none" id="cancelRefundNote">Khách đã thanh toán: đơn sẽ chuyển sang mục <strong>Hoàn tiền</strong> với số tiền <strong id="cancelRefundAmt"></strong>.</div>
+                </div>
+                <div class="modal-footer justify-content-center">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Không</button>
+                    <button type="submit" class="btn btn-danger">Hủy đơn</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="rejectProofModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form asp-action="VerifyPayment" method="post">
+                <input type="hidden" name="bookingId" id="rejectBookingId" />
+                <input type="hidden" name="approve" value="false" />
+                <div class="modal-body p-4">
+                    <div class="text-center">
+                        <span class="icon-bubble lg red mb-3"><i class="bi bi-x-octagon"></i></span>
+                        <h5 class="fw-bold">Từ chối biên lai <span id="rejectBookingCode"></span>?</h5>
+                        <p class="small text-muted">Đơn sẽ bị hủy và khung giờ được mở lại. Khách nhận được thông báo kèm lý do.</p>
+                    </div>
+                    <label class="form-label small" for="rejectReason">Lý do</label>
+                    <input type="text" name="reason" id="rejectReason" class="form-control" maxlength="200" value="Không nhận được tiền chuyển khoản tương ứng" />
+                </div>
+                <div class="modal-footer justify-content-center">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Quay lại</button>
+                    <button type="submit" class="btn btn-danger">Từ chối &amp; hủy đơn</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.getElementById('modalProofView').addEventListener('show.bs.modal', function (e) {
+            document.getElementById('modalProofImg').src = e.relatedTarget.dataset.src;
+            document.getElementById('modalProofTitle').textContent = e.relatedTarget.dataset.title;
+        });
+        document.getElementById('cancelBookingModal').addEventListener('show.bs.modal', function (e) {
+            document.getElementById('cancelBookingId').value = e.relatedTarget.dataset.id;
+            document.getElementById('cancelBookingCode').textContent = '#BK-' + e.relatedTarget.dataset.id;
+            document.getElementById('cancelRefundNote').classList.toggle('d-none', e.relatedTarget.dataset.paid !== '1');
+            document.getElementById('cancelRefundAmt').textContent = e.relatedTarget.dataset.amount + 'đ';
+        });
+        document.getElementById('rejectProofModal').addEventListener('show.bs.modal', function (e) {
+            document.getElementById('rejectBookingId').value = e.relatedTarget.dataset.id;
+            document.getElementById('rejectBookingCode').textContent = '#BK-' + e.relatedTarget.dataset.id;
+        });
+    </script>
+}

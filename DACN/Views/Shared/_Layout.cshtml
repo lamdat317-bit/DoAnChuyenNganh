@@ -1,0 +1,424 @@
+﻿@using System.Security.Claims
+@using DACN.Services
+@{
+    var isAuth = User.Identity?.IsAuthenticated == true;
+    var isAdmin = User.IsInRole(AppRoles.Admin);
+    var isOwner = User.IsInRole(AppRoles.Owner);
+    var fullName = User.FindFirst("FullName")?.Value;
+    if (string.IsNullOrWhiteSpace(fullName)) { fullName = User.Identity?.Name?.Split('@')[0] ?? "Tài khoản"; }
+    var initials = string.Concat(fullName.Split(' ', StringSplitOptions.RemoveEmptyEntries).TakeLast(2).Select(w => char.ToUpper(w[0])));
+    var area = ViewContext.RouteData.Values["area"]?.ToString() ?? "";
+    var ctrl = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
+    var act = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
+    string Active(bool cond) => cond ? "active" : "";
+}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
+    <script>
+        // Áp theme trước khi vẽ trang để không bị nháy màu
+        (function () {
+            try {
+                var t = localStorage.getItem('sb.theme');
+                if (!t) t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+                document.documentElement.setAttribute('data-bs-theme', t);
+            } catch (e) { }
+        })();
+    </script>
+    <title>@ViewData["Title"] · DatSan247</title>
+    <meta name="description" content="DatSan247 - Đặt sân bóng đá, pickleball, cầu lông, tennis trực tuyến và ghép đội thi đấu." />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="~/lib/bootstrap5/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/lib/bootstrap-icons/bootstrap-icons.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    @await RenderSectionAsync("Styles", required: false)
+</head>
+<body class="d-flex flex-column min-vh-100">
+    <header class="site-header">
+        <div class="container">
+            <nav class="navbar navbar-expand-lg p-0 py-2">
+                <a class="brand-logo me-4" asp-area="" asp-controller="Home" asp-action="Index">
+                    <span class="brand-mark"><i class="bi bi-dribbble"></i></span>
+                    <span>DatSan<span class="brand-tld">247</span></span>
+                </a>
+
+                <button type="button" class="theme-toggle ms-auto me-1 d-lg-none" data-theme-toggle aria-label="Đổi giao diện sáng / tối" title="Đổi giao diện sáng / tối">
+                    <i class="bi bi-moon-stars theme-icon-light"></i><i class="bi bi-sun theme-icon-dark"></i>
+                </button>
+                <button class="navbar-toggler border-0 shadow-none px-1" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar" aria-label="Mở menu">
+                    <i class="bi bi-list fs-2 text-ink"></i>
+                </button>
+
+                <div class="collapse navbar-collapse" id="mainNavbar">
+                    <ul class="navbar-nav nav-main me-auto gap-1 mt-3 mt-lg-0">
+                        <li class="nav-item">
+                            <a class="nav-link @Active(area == "" && ctrl == "Home")" asp-area="" asp-controller="Home" asp-action="Index">
+                                <i class="bi bi-house"></i> Trang chủ
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link @Active(area == "" && ctrl == "Booking" && act != "MyBookings")" asp-area="" asp-controller="Booking" asp-action="Index">
+                                <i class="bi bi-search"></i> Tìm sân
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link @Active(ctrl == "Teamwork" && act != "MyMatches")" asp-area="" asp-controller="Teamwork" asp-action="Index">
+                                <i class="bi bi-people"></i> Ghép đội <span class="nav-badge-hot">HOT</span>
+                            </a>
+                        </li>
+                        @if (isOwner || isAdmin)
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link @Active(area == "Owner")" asp-area="Owner" asp-controller="Facility" asp-action="Index">
+                                    <i class="bi bi-buildings"></i> Quản lý sân
+                                </a>
+                            </li>
+                        }
+                        @if (isAdmin)
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link @Active(area == "Admin")" asp-area="Admin" asp-controller="Dashboard" asp-action="Index">
+                                    <i class="bi bi-shield-check"></i> Quản trị
+                                </a>
+                            </li>
+                        }
+                    </ul>
+
+                    <div class="d-flex align-items-center gap-2 py-3 py-lg-0">
+                        <button type="button" class="theme-toggle d-none d-lg-inline-flex" data-theme-toggle aria-label="Đổi giao diện sáng / tối" title="Đổi giao diện sáng / tối">
+                            <i class="bi bi-moon-stars theme-icon-light"></i><i class="bi bi-sun theme-icon-dark"></i>
+                        </button>
+                        @if (isAuth)
+                        {
+                            @await Component.InvokeAsync("NotificationBell")
+                            <div class="dropdown">
+                                <a class="user-pill dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <span class="avatar">@initials</span>
+                                    <span class="d-inline-block text-truncate" style="max-width: 140px;">@fullName</span>
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-end mt-2" style="min-width: 240px;">
+                                    <li class="px-3 pt-2 pb-2">
+                                        <div class="fw-bold text-ink text-truncate">@fullName</div>
+                                        <div class="small text-muted text-truncate">@User.Identity?.Name</div>
+                                        @if (isAdmin)
+                                        {
+                                            <span class="badge-soft danger mt-1">Quản trị viên</span>
+                                        }
+                                        else if (isOwner)
+                                        {
+                                            <span class="badge-soft info mt-1">Chủ sân</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge-soft success mt-1">Khách hàng</span>
+                                        }
+                                    </li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" asp-area="" asp-controller="Account" asp-action="Profile"><i class="bi bi-person"></i> Hồ sơ cá nhân</a></li>
+                                    <li><a class="dropdown-item" asp-area="" asp-controller="Booking" asp-action="MyBookings"><i class="bi bi-ticket-perforated"></i> Lịch đặt của tôi</a></li>
+                                    <li><a class="dropdown-item" asp-area="" asp-controller="Teamwork" asp-action="MyMatches"><i class="bi bi-people"></i> Kèo của tôi</a></li>
+                                    <li><a class="dropdown-item" asp-area="" asp-controller="Booking" asp-action="Favorites"><i class="bi bi-heart"></i> Sân yêu thích</a></li>
+                                    <li><a class="dropdown-item" asp-area="" asp-controller="Notifications" asp-action="Index"><i class="bi bi-bell"></i> Thông báo</a></li>
+                                    @if (isOwner || isAdmin)
+                                    {
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li class="dropdown-header">Quản lý sân</li>
+                                        <li><a class="dropdown-item" asp-area="Owner" asp-controller="Facility" asp-action="Index"><i class="bi bi-buildings"></i> Cụm sân của tôi</a></li>
+                                        <li><a class="dropdown-item" asp-area="Owner" asp-controller="Facility" asp-action="ScheduleBoard"><i class="bi bi-calendar3-range"></i> Bảng lịch đặt</a></li>
+                                        <li><a class="dropdown-item" asp-area="Owner" asp-controller="Facility" asp-action="Bookings"><i class="bi bi-receipt"></i> Đơn đặt sân</a></li>
+                                        <li><a class="dropdown-item" asp-area="Owner" asp-controller="Facility" asp-action="Statistics"><i class="bi bi-graph-up"></i> Thống kê doanh thu</a></li>
+                                        <li><a class="dropdown-item" asp-area="Owner" asp-controller="Facility" asp-action="Refunds"><i class="bi bi-arrow-counterclockwise"></i> Hoàn tiền</a></li>
+                                    }
+                                    @if (isAdmin)
+                                    {
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li class="dropdown-header">Quản trị hệ thống</li>
+                                        <li><a class="dropdown-item" asp-area="Admin" asp-controller="Dashboard" asp-action="Index"><i class="bi bi-speedometer2"></i> Tổng quan</a></li>
+                                        <li><a class="dropdown-item" asp-area="Admin" asp-controller="User" asp-action="Index"><i class="bi bi-people"></i> Người dùng</a></li>
+                                        <li><a class="dropdown-item" asp-area="Admin" asp-controller="Facilities" asp-action="Index"><i class="bi bi-patch-check"></i> Duyệt cụm sân</a></li>
+                                        <li><a class="dropdown-item" asp-area="Admin" asp-controller="Bank" asp-action="Index"><i class="bi bi-bank"></i> Sổ cái giao dịch</a></li>
+                                        <li><a class="dropdown-item" asp-area="Admin" asp-controller="Facilities" asp-action="Emails"><i class="bi bi-envelope"></i> Hộp thư hệ thống</a></li>
+                                    }
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <form asp-area="" asp-controller="Account" asp-action="Logout" method="post" class="m-0">
+                                            <button type="submit" class="dropdown-item text-danger"><i class="bi bi-box-arrow-right text-danger"></i> Đăng xuất</button>
+                                        </form>
+                                    </li>
+                                </ul>
+                            </div>
+                        }
+                        else
+                        {
+                            <a asp-area="" asp-controller="Account" asp-action="Login" class="btn btn-light btn-sm px-3">Đăng nhập</a>
+                            <a asp-area="" asp-controller="Account" asp-action="Register" class="btn btn-primary btn-sm px-3">Đăng ký</a>
+                        }
+                    </div>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Toast Notifications -->
+    <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1090; margin-top: 64px;">
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="toast app-toast show" role="alert" aria-live="assertive" aria-atomic="true">
+                <div class="d-flex align-items-start gap-2 p-3">
+                    <span class="icon-bubble sm green"><i class="bi bi-check-lg"></i></span>
+                    <div class="flex-grow-1 small pt-1 text-ink">@TempData["SuccessMessage"]</div>
+                    <button type="button" class="btn-close btn-sm" data-bs-dismiss="toast" aria-label="Đóng"></button>
+                </div>
+            </div>
+        }
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="toast app-toast show" role="alert" aria-live="assertive" aria-atomic="true">
+                <div class="d-flex align-items-start gap-2 p-3">
+                    <span class="icon-bubble sm red"><i class="bi bi-exclamation-lg"></i></span>
+                    <div class="flex-grow-1 small pt-1 text-ink">@TempData["ErrorMessage"]</div>
+                    <button type="button" class="btn-close btn-sm" data-bs-dismiss="toast" aria-label="Đóng"></button>
+                </div>
+            </div>
+        }
+    </div>
+
+    <a href="#main-content" class="skip-link">Bỏ qua tới nội dung chính</a>
+    <main role="main" class="flex-grow-1" id="main-content">
+        @RenderBody()
+    </main>
+
+    @* Token chống giả mạo cho các thao tác AJAX (yêu thích sân...) *@
+    <form id="__afToken" class="d-none">@Html.AntiForgeryToken()</form>
+    <div id="appMeta" class="d-none" data-auth="@(isAuth ? "1" : "0")"
+         data-login-url="@Url.Action("Login", "Account", new { area = "" })"
+         data-fav-ids-url="@Url.Action("FavoriteIds", "Booking", new { area = "" })"
+         data-fav-toggle-url="@Url.Action("ToggleFavorite", "Booking", new { area = "" })"></div>
+
+    <!-- Hộp xác nhận dùng chung: thêm data-confirm-message="..." vào form -->
+    <div class="modal fade" id="appConfirmModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content">
+                <div class="modal-body p-4 text-center">
+                    <span class="icon-bubble lg amber mb-3"><i class="bi bi-question-lg"></i></span>
+                    <h6 class="fw-bold mb-1">Xác nhận thao tác</h6>
+                    <p class="small text-muted mb-0" id="appConfirmText"></p>
+                </div>
+                <div class="modal-footer border-0 pt-0 justify-content-center gap-2">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Hủy</button>
+                    <button type="button" class="btn btn-primary" id="appConfirmOk">Đồng ý</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Thanh điều hướng nhanh trên điện thoại -->
+    <nav class="mobile-tabbar d-lg-none" aria-label="Điều hướng nhanh">
+        <a asp-area="" asp-controller="Home" asp-action="Index" class="@Active(area == "" && ctrl == "Home")"><i class="bi bi-house"></i><span>Trang chủ</span></a>
+        <a asp-area="" asp-controller="Booking" asp-action="Index" class="@Active(area == "" && ctrl == "Booking" && act != "MyBookings" && act != "Favorites")"><i class="bi bi-search"></i><span>Tìm sân</span></a>
+        <a asp-area="" asp-controller="Teamwork" asp-action="Index" class="@Active(ctrl == "Teamwork")"><i class="bi bi-people"></i><span>Ghép đội</span></a>
+        <a asp-area="" asp-controller="Booking" asp-action="MyBookings" class="@Active(act == "MyBookings")"><i class="bi bi-ticket-perforated"></i><span>Lịch đặt</span></a>
+        <a asp-area="" asp-controller="Account" asp-action="@(isAuth ? "Profile" : "Login")" class="@Active(ctrl == "Account")"><i class="bi bi-person-circle"></i><span>@(isAuth ? "Tài khoản" : "Đăng nhập")</span></a>
+    </nav>
+
+    <button type="button" class="back-to-top" id="backToTop" aria-label="Lên đầu trang" title="Lên đầu trang"><i class="bi bi-arrow-up"></i></button>
+
+    <footer class="site-footer">
+        <div class="container">
+            <div class="row g-4">
+                <div class="col-lg-4 col-md-6">
+                    <a class="brand-logo mb-3" asp-area="" asp-controller="Home" asp-action="Index">
+                        <span class="brand-mark"><i class="bi bi-dribbble"></i></span>
+                        <span>DatSan<span class="brand-tld">247</span></span>
+                    </a>
+                    <p class="small mb-3 pe-lg-4">
+                        Nền tảng đặt sân thể thao và kết nối người chơi. Xem lịch trống theo thời gian thực, thanh toán VietQR và tìm đồng đội chỉ trong vài bước.
+                    </p>
+                    <div class="d-flex gap-2">
+                        <a href="https://facebook.com" target="_blank" rel="noopener" class="social-btn" aria-label="Facebook"><i class="bi bi-facebook"></i></a>
+                        <a href="https://youtube.com" target="_blank" rel="noopener" class="social-btn" aria-label="YouTube"><i class="bi bi-youtube"></i></a>
+                        <a href="https://tiktok.com" target="_blank" rel="noopener" class="social-btn" aria-label="TikTok"><i class="bi bi-tiktok"></i></a>
+                        <a href="mailto:hotro@datsan247.vn" class="social-btn" aria-label="Email"><i class="bi bi-envelope"></i></a>
+                    </div>
+                </div>
+                <div class="col-lg-2 col-md-3 col-6">
+                    <h6>Môn thể thao</h6>
+                    <ul class="list-unstyled small d-grid gap-2">
+                        <li><a asp-area="" asp-controller="Booking" asp-action="Index" asp-route-sport="bóng đá">Bóng đá mini</a></li>
+                        <li><a asp-area="" asp-controller="Booking" asp-action="Index" asp-route-sport="pickleball">Pickleball</a></li>
+                        <li><a asp-area="" asp-controller="Booking" asp-action="Index" asp-route-sport="cầu lông">Cầu lông</a></li>
+                        <li><a asp-area="" asp-controller="Booking" asp-action="Index" asp-route-sport="tennis">Tennis</a></li>
+                    </ul>
+                </div>
+                <div class="col-lg-2 col-md-3 col-6">
+                    <h6>Khám phá</h6>
+                    <ul class="list-unstyled small d-grid gap-2">
+                        <li><a asp-area="" asp-controller="Booking" asp-action="Index">Tìm &amp; đặt sân</a></li>
+                        <li><a asp-area="" asp-controller="Teamwork" asp-action="Index">Ghép đội, tìm kèo</a></li>
+                        <li><a asp-area="" asp-controller="Booking" asp-action="MyBookings">Lịch đặt của tôi</a></li>
+                        <li><a asp-area="" asp-controller="Home" asp-action="Privacy">Chính sách bảo mật</a></li>
+                    </ul>
+                </div>
+                <div class="col-lg-4 col-md-12">
+                    <h6>Liên hệ</h6>
+                    <ul class="list-unstyled small d-grid gap-2">
+                        <li><i class="bi bi-geo-alt me-2 text-success"></i>Hà Nội · TP. Hồ Chí Minh</li>
+                        <li><i class="bi bi-telephone me-2 text-success"></i>Hotline: <a href="tel:19006868">1900 6868</a></li>
+                        <li><i class="bi bi-envelope me-2 text-success"></i><a href="mailto:hotro@datsan247.vn">hotro@datsan247.vn</a></li>
+                        <li><i class="bi bi-clock me-2 text-success"></i>Hỗ trợ 06:00 – 23:00 mỗi ngày</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom d-flex flex-wrap justify-content-between gap-2">
+                <span>&copy; @DateTime.Now.Year DatSan247. Bảo lưu mọi quyền.</span>
+                <span class="d-flex gap-3">
+                    <a asp-area="" asp-controller="Home" asp-action="Privacy">Chính sách &amp; quy định</a>
+                    <a href="mailto:hotro@datsan247.vn">Liên hệ hợp tác</a>
+                </span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- AI Chat -->
+    <div id="aiChatLauncher" class="ai-chat-launcher" onclick="toggleAiChat()" role="button" aria-label="Mở trợ lý AI">
+        <span class="ai-pulse-dot"></span>
+        <i class="bi bi-chat-dots-fill"></i>
+        <span class="fw-semibold small d-none d-sm-inline">Trợ lý DatSan247</span>
+    </div>
+
+    <div id="aiChatWindow" class="ai-chat-window hidden" aria-live="polite">
+        <div class="ai-chat-header">
+            <div class="d-flex align-items-center gap-2">
+                <span class="icon-bubble sm green"><i class="bi bi-robot"></i></span>
+                <div>
+                    <div class="fw-bold text-ink" style="font-size: .95rem;">Trợ lý DatSan247 AI</div>
+                    <div class="small text-muted" style="font-size: .74rem;"><span class="ai-pulse-dot" style="width:7px;height:7px;"></span> Trực tuyến · trả lời tức thì</div>
+                </div>
+            </div>
+            <button type="button" class="btn btn-sm btn-light btn-icon" onclick="toggleAiChat()" title="Đóng"><i class="bi bi-x-lg"></i></button>
+        </div>
+
+        <div class="ai-chat-body" id="aiChatBody">
+            <div class="ai-msg bot">
+                <div class="ai-msg-bubble">
+                    👋 <strong>Xin chào!</strong> Mình có thể giúp bạn:
+                    <ul class="ps-3 my-2 small">
+                        <li>Tìm sân bóng đá, pickleball, tennis, cầu lông</li>
+                        <li>Xem khung giờ trống và cách giữ chỗ</li>
+                        <li>Hướng dẫn thanh toán VietQR</li>
+                        <li>Tìm kèo và ghép đội</li>
+                    </ul>
+                    Bạn cần hỗ trợ gì?
+                </div>
+            </div>
+            <div class="d-flex flex-wrap gap-1 my-1" id="aiSuggestionChips">
+                <span class="ai-suggestion-chip" onclick="askAiQuestion('Sân bóng đá nào gần đây?')">⚽ Sân bóng đá</span>
+                <span class="ai-suggestion-chip" onclick="askAiQuestion('Có sân Pickleball không?')">🏓 Pickleball</span>
+                <span class="ai-suggestion-chip" onclick="askAiQuestion('Làm sao để đặt sân không trùng lịch?')">🛡️ Chống trùng lịch</span>
+                <span class="ai-suggestion-chip" onclick="askAiQuestion('Cách thanh toán qua VietQR?')">💳 Thanh toán VietQR</span>
+                <span class="ai-suggestion-chip" onclick="askAiQuestion('Làm sao để tìm kèo ghép đội?')">👥 Ghép đội</span>
+            </div>
+        </div>
+
+        <div class="ai-chat-footer">
+            <input type="text" id="aiUserInput" class="ai-chat-input" placeholder="Hỏi về sân, giá, lịch, kèo..." onkeydown="handleAiInputKey(event)" />
+            <button type="button" class="ai-chat-send" onclick="sendAiMessage()" title="Gửi"><i class="bi bi-send-fill" style="font-size:.85rem;"></i></button>
+        </div>
+    </div>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap5/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    <script>
+        setTimeout(function () {
+            document.querySelectorAll('.toast').forEach(function (t) {
+                (bootstrap.Toast.getInstance(t) || new bootstrap.Toast(t)).hide();
+            });
+        }, 5000);
+
+        function toggleAiChat() {
+            var win = document.getElementById('aiChatWindow');
+            win.classList.toggle('hidden');
+            if (!win.classList.contains('hidden')) document.getElementById('aiUserInput').focus();
+        }
+        function handleAiInputKey(e) { if (e.key === 'Enter') { e.preventDefault(); sendAiMessage(); } }
+        function askAiQuestion(text) { document.getElementById('aiUserInput').value = text; sendAiMessage(); }
+
+        async function sendAiMessage() {
+            var input = document.getElementById('aiUserInput');
+            var message = input.value.trim();
+            if (!message) return;
+            var chatBody = document.getElementById('aiChatBody');
+
+            var userMsg = document.createElement('div');
+            userMsg.className = 'ai-msg user';
+            userMsg.innerHTML = '<div class="ai-msg-bubble">' + escapeHtml(message) + '</div>';
+            chatBody.appendChild(userMsg);
+            input.value = '';
+
+            var typingMsg = document.createElement('div');
+            typingMsg.className = 'ai-msg bot';
+            typingMsg.innerHTML = '<div class="ai-msg-bubble text-muted"><span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span></div>';
+            chatBody.appendChild(typingMsg);
+            chatBody.scrollTop = chatBody.scrollHeight;
+
+            try {
+                const response = await fetch('/api/ai/ask', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: message })
+                });
+                const data = await response.json();
+                chatBody.removeChild(typingMsg);
+
+                var botMsg = document.createElement('div');
+                botMsg.className = 'ai-msg bot';
+                var actionHtml = '';
+                if (data.actionUrl && data.actionText) {
+                    actionHtml = '<div class="mt-2 pt-2 border-top"><a href="' + data.actionUrl + '" class="btn btn-primary btn-sm">' +
+                        '<i class="bi bi-arrow-right-circle me-1"></i>' + escapeHtml(data.actionText) + '</a></div>';
+                }
+                botMsg.innerHTML = '<div class="ai-msg-bubble">' + formatAiReply(data.reply) + actionHtml + '</div>';
+                chatBody.appendChild(botMsg);
+
+                if (data.quickSuggestions && data.quickSuggestions.length > 0) {
+                    var chips = document.getElementById('aiSuggestionChips');
+                    if (chips) {
+                        chips.innerHTML = '';
+                        data.quickSuggestions.forEach(function (s) {
+                            var chip = document.createElement('span');
+                            chip.className = 'ai-suggestion-chip';
+                            chip.textContent = s;
+                            chip.onclick = function () { askAiQuestion(s); };
+                            chips.appendChild(chip);
+                        });
+                        chatBody.appendChild(chips);
+                    }
+                }
+                chatBody.scrollTop = chatBody.scrollHeight;
+            } catch (err) {
+                chatBody.removeChild(typingMsg);
+                var errEl = document.createElement('div');
+                errEl.className = 'ai-msg bot';
+                errEl.innerHTML = '<div class="ai-msg-bubble text-danger small"><i class="bi bi-exclamation-circle me-1"></i> Không kết nối được trợ lý. Vui lòng thử lại.</div>';
+                chatBody.appendChild(errEl);
+                chatBody.scrollTop = chatBody.scrollHeight;
+            }
+        }
+        function escapeHtml(text) { var d = document.createElement('div'); d.textContent = text; return d.innerHTML; }
+        function formatAiReply(text) {
+            if (!text) return '';
+            return escapeHtml(text)
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                .replace(/\n/g, '<br/>');
+        }
+    </script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>
