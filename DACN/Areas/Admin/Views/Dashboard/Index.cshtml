@@ -139,8 +139,12 @@
         const vnd = v => Number(v).toLocaleString('vi-VN') + 'đ';
         const shortVnd = v => v >= 1e6 ? (v / 1e6).toLocaleString('vi-VN', { maximumFractionDigits: 1 }) + 'tr' : v >= 1e3 ? (v / 1e3).toFixed(0) + 'k' : v;
         Chart.defaults.font.family = "'Be Vietnam Pro', system-ui, sans-serif";
+<<<<<<< HEAD
         const DARK = document.documentElement.getAttribute('data-bs-theme') === 'dark';
         Chart.defaults.color = DARK ? '#8b98ad' : '#64748b';
+=======
+        Chart.defaults.color = '#64748b';
+>>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
         new Chart(document.getElementById('adminMonthly'), {
             type: 'bar',
             data: {
@@ -156,8 +160,13 @@
                         callbacks: { title: c => 'Tháng ' + c[0].label, label: c => vnd(c.raw), afterLabel: c => monthly[c.dataIndex].count + ' lượt đặt' } }
                 },
                 scales: {
+<<<<<<< HEAD
                     x: { grid: { display: false }, border: { color: DARK ? '#2a364b' : '#e5e9f0' } },
                     y: { beginAtZero: true, grid: { color: DARK ? '#1f2a3d' : '#eef1f5' }, border: { display: false }, ticks: { callback: shortVnd, maxTicksLimit: 5 } }
+=======
+                    x: { grid: { display: false }, border: { color: '#e5e9f0' } },
+                    y: { beginAtZero: true, grid: { color: '#eef1f5' }, border: { display: false }, ticks: { callback: shortVnd, maxTicksLimit: 5 } }
+>>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
                 }
             }
         });

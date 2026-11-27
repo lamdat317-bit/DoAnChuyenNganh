@@ -5,6 +5,7 @@ using DACN.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
+<<<<<<< HEAD
 // Định dạng số kiểu Việt Nam cho tiền: 180.000đ (dấu chấm ngăn cách hàng nghìn).
 // Giữ dấu chấm cho phần thập phân như cũ để không ảnh hưởng tọa độ GPS / ô nhập số.
 var appCulture = (System.Globalization.CultureInfo)System.Globalization.CultureInfo.GetCultureInfo("en-US").Clone();
@@ -13,6 +14,8 @@ appCulture.NumberFormat.CurrencyGroupSeparator = ".";
 System.Globalization.CultureInfo.DefaultThreadCurrentCulture = appCulture;
 System.Globalization.CultureInfo.CurrentCulture = appCulture;
 
+=======
+>>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
 var builder = WebApplication.CreateBuilder(args);
 
 // 1. Cấu hình Database Connection & Entity Framework Core
@@ -83,9 +86,12 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
+<<<<<<< HEAD
 // Trang lỗi thân thiện cho 404 / 403 / 500... (thay vì trang trắng)
 app.UseStatusCodePagesWithReExecute("/Home/HttpStatus", "?code={0}");
 
+=======
+>>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 
@@ -132,6 +138,7 @@ using (var scope = app.Services.CreateScope())
         {
             await DemoHistorySeeder.SeedAsync(context, userManager);
         }
+<<<<<<< HEAD
 
         // Cụm sân mẫu ở nhiều tỉnh / môn (bỏ qua sân đã có, chạy lại an toàn)
         var addedFacilities = await SampleFacilitySeeder.SeedAsync(context, userManager);
@@ -140,6 +147,8 @@ using (var scope = app.Services.CreateScope())
             services.GetRequiredService<ILogger<Program>>()
                 .LogInformation("Đã thêm {Count} cụm sân mẫu.", addedFacilities);
         }
+=======
+>>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
     }
     catch (Exception ex)
     {

@@ -1,4 +1,5 @@
 @model DACN.Models.ViewModels.FacilityCardDto
+<<<<<<< HEAD
 @{
     var img = Model.ImageUrl ?? "https://images.unsplash.com/photo-1529900748604-07564a03e7a6?auto=format&fit=crop&w=800&q=70";
 }
@@ -22,6 +23,19 @@
             </div>
         </div>
     </div>
+=======
+<div class="card venue-card card-hover">
+    <a asp-area="" asp-controller="Booking" asp-action="FacilityDetail" asp-route-id="@Model.Id" class="cover d-block">
+        <img src="@(Model.ImageUrl ?? "https://images.unsplash.com/photo-1529900748604-07564a03e7a6?auto=format&fit=crop&w=800&q=70")" alt="@Model.Name" loading="lazy" />
+        <div class="tags">
+            <span class="glass-tag"><i class="@(Model.IconCss ?? "bi bi-tag") text-success"></i> @Model.SportTypeName</span>
+            @if (Model.ReviewCount > 0)
+            {
+                <span class="glass-tag"><i class="bi bi-star-fill" style="color:#f59e0b"></i> @Model.AverageRating.ToString("0.0")</span>
+            }
+        </div>
+    </a>
+>>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
     <div class="body">
         <div class="title"><a asp-area="" asp-controller="Booking" asp-action="FacilityDetail" asp-route-id="@Model.Id">@Model.Name</a></div>
         <div class="addr text-truncate" title="@Model.Address"><i class="bi bi-geo-alt me-1"></i>@Model.Address</div>

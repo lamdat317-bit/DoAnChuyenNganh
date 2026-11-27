@@ -27,8 +27,11 @@ namespace DACN.Data
         public DbSet<BookingPaymentProof> BookingPaymentProofs => Set<BookingPaymentProof>();
         public DbSet<Notification> Notifications => Set<Notification>();
         public DbSet<EmailMessage> EmailMessages => Set<EmailMessage>();
+<<<<<<< HEAD
         public DbSet<FavoriteFacility> FavoriteFacilities => Set<FavoriteFacility>();
         public DbSet<FacilityImage> FacilityImages => Set<FacilityImage>();
+=======
+>>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
 
         /// <summary>
         /// Cột SQL kiểu time chỉ lưu tối đa 23:59:59.9999999 nên mốc 24:00 (nửa đêm, dùng cho sân mở tới khuya)
@@ -132,9 +135,12 @@ namespace DACN.Data
 
                 entity.HasIndex(b => b.CustomerId);
                 entity.HasIndex(b => b.Status);
+<<<<<<< HEAD
                 entity.HasIndex(b => b.CheckInCode)
                       .IsUnique()
                       .HasFilter("[CheckInCode] IS NOT NULL");
+=======
+>>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
             });
 
             // Configure BookingServiceDetail
@@ -167,6 +173,7 @@ namespace DACN.Data
                       .OnDelete(DeleteBehavior.Cascade);
             });
 
+<<<<<<< HEAD
             // Ảnh cụm sân: xóa cụm sân thì xóa luôn ảnh
             builder.Entity<FacilityImage>(entity =>
             {
@@ -191,6 +198,8 @@ namespace DACN.Data
                       .OnDelete(DeleteBehavior.Cascade);
             });
 
+=======
+>>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
             // Configure Review (Đánh giá cụm sân)
             builder.Entity<Review>(entity =>
             {

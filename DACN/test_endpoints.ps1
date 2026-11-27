@@ -2,7 +2,11 @@ $Url = "http://127.0.0.1:5006"
 $ErrorActionPreference = "Continue"
 
 Write-Host "==========================================================" -ForegroundColor Cyan
+<<<<<<< HEAD
 Write-Host "  DATSAN247 - END-TO-END AUTOMATED TEST SUITE" -ForegroundColor Cyan
+=======
+Write-Host "  SANBONG.VN - END-TO-END AUTOMATED TEST SUITE" -ForegroundColor Cyan
+>>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
 Write-Host "==========================================================" -ForegroundColor Cyan
 
 # Kill any previous DACN processes

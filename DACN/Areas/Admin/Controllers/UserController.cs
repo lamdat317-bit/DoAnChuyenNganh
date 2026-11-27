@@ -114,7 +114,11 @@ namespace DACN.Areas.Admin.Controllers
             }
 
             // Ngăn chặn xóa tài khoản Admin mặc định
+<<<<<<< HEAD
             if (user.Email == "admin@datsan247.vn")
+=======
+            if (user.Email == "admin@sanbong.vn")
+>>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
             {
                 TempData["ErrorMessage"] = "Không thể xóa tài khoản Quản Trị Viên mặc định của hệ thống.";
                 return RedirectToAction(nameof(Index));
@@ -160,7 +164,11 @@ namespace DACN.Areas.Admin.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
+<<<<<<< HEAD
             if (user.Email == "admin@datsan247.vn" || user.Id == _userManager.GetUserId(User))
+=======
+            if (user.Email == "admin@sanbong.vn" || user.Id == _userManager.GetUserId(User))
+>>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
             {
                 TempData["ErrorMessage"] = "Không thể tự đổi vai trò của chính mình hoặc của Admin mặc định.";
                 return RedirectToAction(nameof(Index));
@@ -194,7 +202,11 @@ namespace DACN.Areas.Admin.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
+<<<<<<< HEAD
             if (user.Email == "admin@datsan247.vn" || user.Id == _userManager.GetUserId(User))
+=======
+            if (user.Email == "admin@sanbong.vn" || user.Id == _userManager.GetUserId(User))
+>>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
             {
                 TempData["ErrorMessage"] = "Không thể khóa chính mình hoặc Admin mặc định.";
                 return RedirectToAction(nameof(Index));

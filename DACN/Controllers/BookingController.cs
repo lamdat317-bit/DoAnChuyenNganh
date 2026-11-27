@@ -109,6 +109,7 @@ namespace DACN.Controllers
         }
 
         // 1. Tìm kiếm sân theo môn thể thao, từ khóa địa điểm, tỉnh thành và sắp xếp
+<<<<<<< HEAD
         public async Task<IActionResult> Index(int? sportTypeId, string? keyword, int? cityId, string? sortBy,
             decimal? minPrice, decimal? maxPrice, int page = 1, string? sport = null)
         {
@@ -137,11 +138,21 @@ namespace DACN.Controllers
 
             ViewBag.SportTypes = new SelectList(sportTypes, "Id", "Name", sportTypeId);
             ViewBag.SportTypeList = sportTypes.ToList();
+=======
+        public async Task<IActionResult> Index(int? sportTypeId, string? keyword, int? cityId, string? sortBy)
+        {
+            var facilities = await _facilityService.SearchFacilitiesAsync(sportTypeId, keyword, cityId, sortBy);
+            var sportTypes = await _unitOfWork.SportTypes.GetAllAsync();
+            var cities = await _unitOfWork.CityProvinces.GetAllAsync();
+
+            ViewBag.SportTypes = new SelectList(sportTypes, "Id", "Name", sportTypeId);
+>>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
             ViewBag.Cities = new SelectList(cities, "Id", "Name", cityId);
             ViewBag.Keyword = keyword;
             ViewBag.SelectedSportTypeId = sportTypeId;
             ViewBag.SelectedCityId = cityId;
             ViewBag.SelectedSortBy = sortBy;
+<<<<<<< HEAD
             ViewBag.MinPrice = minPrice;
             ViewBag.MaxPrice = maxPrice;
             ViewBag.Page = page;
@@ -227,6 +238,10 @@ namespace DACN.Controllers
                 .Select(f => f!)
                 .ToList();
             return View(model);
+=======
+
+            return View(facilities);
+>>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
         }
 
         // 2. Xem ma trận lịch trống thời gian thực của 1 sân trong ngày
@@ -633,6 +648,7 @@ namespace DACN.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
+<<<<<<< HEAD
             // Danh sách ảnh thật của sân (chỉ lấy Id, ảnh bìa lên đầu)
             ViewBag.PhotoIds = await _unitOfWork.Context.FacilityImages
                 .Where(i => i.FacilityId == facility.Id)
@@ -666,5 +682,9 @@ namespace DACN.Controllers
             Response.Headers.XContentTypeOptions = "nosniff";
             return File(img.Data, img.ContentType);
         }
+=======
+            return View(facility);
+        }
+>>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
     }
 }

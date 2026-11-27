@@ -85,7 +85,11 @@ namespace DACN.Areas.Owner.Controllers
             ViewBag.TotalFacilities = facilities.Count;
             ViewBag.TotalCourts = courtIds.Count;
             ViewBag.TodayBookingsCount = todayBookings.Count(b => b.Status != BookingStatus.Cancelled);
+<<<<<<< HEAD
             ViewBag.TodayRevenue = todayBookings.Sum(BookingRules.RevenueOf);
+=======
+            ViewBag.TodayRevenue = todayBookings.Where(b => b.PaymentStatus == PaymentStatus.Paid).Sum(b => b.TotalAmount);
+>>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
 
             return View(facilities);
         }
@@ -347,22 +351,74 @@ namespace DACN.Areas.Owner.Controllers
 
             var facilityIds = facilities.Select(f => f.Id).ToList();
 
+<<<<<<< HEAD
             var query = FilterBookings(facilityIds, facilityId, status, date, q);
             if (!string.IsNullOrEmpty(date) && DateOnly.TryParse(date, out _)) ViewBag.SelectedDate = date;
             if (!string.IsNullOrEmpty(status)) ViewBag.SelectedStatus = status;
             if (!string.IsNullOrWhiteSpace(q)) ViewBag.Keyword = q;
+=======
+            var query = _unitOfWork.Bookings.Query()
+                .Include(b => b.Customer)
+                .Include(b => b.Court)
+                    .ThenInclude(c => c!.Facility)
+                .Where(b => b.Court != null && facilityIds.Contains(b.Court.FacilityId))
+                .AsQueryable();
+
+            if (facilityId.HasValue && facilityId.Value > 0)
+            {
+                query = query.Where(b => b.Court != null && b.Court.FacilityId == facilityId.Value);
+            }
+
+            if (!string.IsNullOrEmpty(date) && DateOnly.TryParse(date, out var parsedDate))
+            {
+                query = query.Where(b => b.BookingDate == parsedDate);
+                ViewBag.SelectedDate = date;
+            }
+
+            if (!string.IsNullOrEmpty(status))
+            {
+                if (status == "verify")
+                {
+                    query = query.Where(b => b.PaymentStatus == PaymentStatus.AwaitingVerification && b.Status != BookingStatus.Cancelled);
+                }
+                else if (status == "refund")
+                {
+                    query = query.Where(b => b.PaymentStatus == PaymentStatus.RefundPending);
+                }
+                else if (Enum.TryParse<BookingStatus>(status, true, out var bookingStatus))
+                {
+                    query = query.Where(b => b.Status == bookingStatus);
+                }
+                ViewBag.SelectedStatus = status;
+            }
+>>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
 
             // Số đơn cần xử lý (hiện huy hiệu trên tab lọc)
             var scope = _unitOfWork.Bookings.Query().Where(b => b.Court != null && facilityIds.Contains(b.Court.FacilityId));
             ViewBag.VerifyCount = await scope.CountAsync(b => b.PaymentStatus == PaymentStatus.AwaitingVerification && b.Status != BookingStatus.Cancelled);
             ViewBag.RefundCount = await scope.CountAsync(b => b.PaymentStatus == PaymentStatus.RefundPending);
 
+<<<<<<< HEAD
             var totalCount = await query.CountAsync();
             // Doanh thu thực: đơn đã trả còn hiệu lực + phần tiền giữ lại của đơn hủy chỉ hoàn một phần (khớp BookingRules.RevenueOf)
             ViewBag.TotalAmount = await query.SumAsync(b => (decimal?)(
                 b.PaymentStatus == PaymentStatus.Paid && b.Status != BookingStatus.Cancelled ? b.TotalAmount
                 : (b.PaymentStatus == PaymentStatus.RefundPending || b.PaymentStatus == PaymentStatus.Refunded) && b.RefundAmount != null && b.TotalAmount > b.RefundAmount ? b.TotalAmount - b.RefundAmount.Value
                 : 0m)) ?? 0;
+=======
+            if (!string.IsNullOrWhiteSpace(q))
+            {
+                var kw = q.Trim();
+                int.TryParse(kw.Replace("#", "").Replace("BK-", "", StringComparison.OrdinalIgnoreCase), out var idKw);
+                query = query.Where(b => b.Id == idKw
+                    || (b.CustomerName != null && b.CustomerName.Contains(kw))
+                    || (b.CustomerPhone != null && b.CustomerPhone.Contains(kw)));
+                ViewBag.Keyword = q;
+            }
+
+            var totalCount = await query.CountAsync();
+            ViewBag.TotalAmount = await query.Where(b => b.PaymentStatus == PaymentStatus.Paid && b.Status != BookingStatus.Cancelled).SumAsync(b => (decimal?)b.TotalAmount) ?? 0;
+>>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
             ViewBag.UnpaidCount = await query.CountAsync(b => b.PaymentStatus == PaymentStatus.Unpaid && b.Status != BookingStatus.Cancelled);
 
             page = Math.Max(1, page);
@@ -382,6 +438,7 @@ namespace DACN.Areas.Owner.Controllers
             return View(bookings);
         }
 
+<<<<<<< HEAD
         /// <summary>Lọc đơn đặt sân theo cụm sân, trạng thái, ngày và từ khóa (dùng chung cho danh sách và xuất file).</summary>
         private IQueryable<Booking> FilterBookings(List<int> facilityIds, int? facilityId, string? status, string? date, string? q)
         {
@@ -498,6 +555,8 @@ namespace DACN.Areas.Owner.Controllers
             return File(bytes, "text/csv; charset=utf-8", $"don-dat-san-{DateTime.Now:yyyyMMdd-HHmm}.csv");
         }
 
+=======
+>>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
         // 7. Cập nhật trạng thái đơn đặt sân (Duyệt / Xác nhận thanh toán tiền mặt / Hủy)
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -578,6 +637,7 @@ namespace DACN.Areas.Owner.Controllers
             return RedirectToAction(nameof(ScheduleBoard), new { facilityId, date });
         }
 
+<<<<<<< HEAD
         // ===== Soát vé tại sân: quét QR hoặc nhập mã vé =====
         [HttpGet]
         public async Task<IActionResult> CheckIn(string? code)
@@ -800,6 +860,8 @@ namespace DACN.Areas.Owner.Controllers
             return RedirectToAction(nameof(ManagePhotos), new { facilityId = photo.FacilityId });
         }
 
+=======
+>>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
         // 8. Quản Lý Dịch Vụ & Tiện Ích Cụm Sân (Nước uống, thuê vợt, tủ đồ...)
         [HttpGet]
         public async Task<IActionResult> ManageServices(int facilityId)
@@ -898,7 +960,11 @@ namespace DACN.Areas.Owner.Controllers
                 .Where(b => b.Court != null && facilityIds.Contains(b.Court.FacilityId) && b.BookingDate >= earliest && b.BookingDate <= today)
                 .ToListAsync();
 
+<<<<<<< HEAD
             static bool IsRevenue(Booking b) => BookingRules.RevenueOf(b) > 0;
+=======
+            static bool IsRevenue(Booking b) => b.PaymentStatus == PaymentStatus.Paid && b.Status != BookingStatus.Cancelled;
+>>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
 
             var inRange = bookings.Where(b => b.BookingDate >= from).ToList();
             var revenueInRange = inRange.Where(IsRevenue).ToList();
@@ -908,8 +974,13 @@ namespace DACN.Areas.Owner.Controllers
                 SelectedFacilityId = facilityId,
                 RangeDays = range,
                 Facilities = facilities,
+<<<<<<< HEAD
                 TotalRevenue = revenueInRange.Sum(BookingRules.RevenueOf),
                 PreviousRevenue = bookings.Where(b => b.BookingDate >= prevFrom && b.BookingDate < from).Where(IsRevenue).Sum(BookingRules.RevenueOf),
+=======
+                TotalRevenue = revenueInRange.Sum(b => b.TotalAmount),
+                PreviousRevenue = bookings.Where(b => b.BookingDate >= prevFrom && b.BookingDate < from).Where(IsRevenue).Sum(b => b.TotalAmount),
+>>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
                 TotalBookings = inRange.Count,
                 PaidBookings = revenueInRange.Count,
                 CancelledBookings = inRange.Count(b => b.Status == BookingStatus.Cancelled),
@@ -924,7 +995,11 @@ namespace DACN.Areas.Owner.Controllers
                 for (var d = from; d <= today; d = d.AddDays(1))
                 {
                     var day = revenueInRange.Where(b => b.BookingDate == d).ToList();
+<<<<<<< HEAD
                     vm.DailyRevenue.Add(new ChartPoint { Label = d.ToString("dd/MM"), Value = day.Sum(BookingRules.RevenueOf), Count = day.Count });
+=======
+                    vm.DailyRevenue.Add(new ChartPoint { Label = d.ToString("dd/MM"), Value = day.Sum(b => b.TotalAmount), Count = day.Count });
+>>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
                 }
             }
             else
@@ -933,7 +1008,11 @@ namespace DACN.Areas.Owner.Controllers
                 {
                     var end = d.AddDays(7);
                     var week = revenueInRange.Where(b => b.BookingDate >= d && b.BookingDate < end).ToList();
+<<<<<<< HEAD
                     vm.DailyRevenue.Add(new ChartPoint { Label = d.ToString("dd/MM"), Value = week.Sum(BookingRules.RevenueOf), Count = week.Count });
+=======
+                    vm.DailyRevenue.Add(new ChartPoint { Label = d.ToString("dd/MM"), Value = week.Sum(b => b.TotalAmount), Count = week.Count });
+>>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
                 }
             }
 
@@ -942,12 +1021,20 @@ namespace DACN.Areas.Owner.Controllers
             {
                 var m = yearFrom.AddMonths(i);
                 var month = bookings.Where(b => b.BookingDate.Year == m.Year && b.BookingDate.Month == m.Month).Where(IsRevenue).ToList();
+<<<<<<< HEAD
                 vm.MonthlyRevenue.Add(new ChartPoint { Label = m.ToString("MM/yyyy"), Value = month.Sum(BookingRules.RevenueOf), Count = month.Count });
+=======
+                vm.MonthlyRevenue.Add(new ChartPoint { Label = m.ToString("MM/yyyy"), Value = month.Sum(b => b.TotalAmount), Count = month.Count });
+>>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
             }
 
             vm.RevenueByCourt = revenueInRange
                 .GroupBy(b => b.Court!.Name)
+<<<<<<< HEAD
                 .Select(g => new ChartPoint { Label = g.Key, Value = g.Sum(BookingRules.RevenueOf), Count = g.Count() })
+=======
+                .Select(g => new ChartPoint { Label = g.Key, Value = g.Sum(b => b.TotalAmount), Count = g.Count() })
+>>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
                 .OrderByDescending(p => p.Value)
                 .ToList();
 
@@ -965,7 +1052,11 @@ namespace DACN.Areas.Owner.Controllers
                     Name = g.First().CustomerName ?? g.First().Customer?.FullName ?? "Khách hàng",
                     Phone = g.First().CustomerPhone,
                     Bookings = g.Count(),
+<<<<<<< HEAD
                     Spent = g.Sum(BookingRules.RevenueOf)
+=======
+                    Spent = g.Sum(b => b.TotalAmount)
+>>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
                 })
                 .OrderByDescending(c => c.Spent)
                 .Take(5)
@@ -1376,7 +1467,11 @@ namespace DACN.Areas.Owner.Controllers
                 else
                 {
                     var error = await _notifications.SendTelegramAsync(cfg.TelegramBotToken, cfg.TelegramChatId,
+<<<<<<< HEAD
                         "✅ DatSan247: kết nối Telegram thành công! Bạn sẽ nhận thông báo đơn đặt sân tại đây.");
+=======
+                        "✅ SanBong.vn: kết nối Telegram thành công! Bạn sẽ nhận thông báo đơn đặt sân tại đây.");
+>>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
                     TempData[error == null ? "SuccessMessage" : "ErrorMessage"] = error ?? "Đã gửi tin nhắn thử tới Telegram.";
                 }
             }

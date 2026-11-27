@@ -61,7 +61,11 @@ namespace DACN.Controllers
             {
                 return Ok(new ChatResponse 
                 { 
+<<<<<<< HEAD
                     Reply = "Xin chào bạn! Tôi là **Trợ Lý Thể Thao AI** của DatSan247. Tôi có thể hỗ trợ bạn tìm sân, kiểm tra khung giờ trống, hướng dẫn sử dụng, dẫn đường Google Maps đến sân hoặc tìm kèo ghép đội thi đấu. Bạn cần tôi hỗ trợ điều gì hôm nay?" 
+=======
+                    Reply = "Xin chào bạn! Tôi là **Trợ Lý Thể Thao AI** của SanBong.vn. Tôi có thể hỗ trợ bạn tìm sân, kiểm tra khung giờ trống, hướng dẫn sử dụng, dẫn đường Google Maps đến sân hoặc tìm kèo ghép đội thi đấu. Bạn cần tôi hỗ trợ điều gì hôm nay?" 
+>>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
                 });
             }
 
@@ -91,7 +95,11 @@ namespace DACN.Controllers
             // =========================================================================
             if (Has("cách dùng", "hướng dẫn", "sử dụng", "làm sao để đặt", "cách đặt", "quy trình", "bước đặt", "chỉ cách", "cach dung", "huong dan"))
             {
+<<<<<<< HEAD
                 var guide = "📖 **HƯỚNG DẪN CHI TIẾT CÁCH SỬ DỤNG DATSAN247 (TỪ A - Z):**\n\n" +
+=======
+                var guide = "📖 **HƯỚNG DẪN CHI TIẾT CÁCH SỬ DỤNG SANBONG.VN (TỪ A - Z):**\n\n" +
+>>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
                     "**Bước 1: Tìm kiếm cụm sân phù hợp**\n" +
                     "• Vào mục **'Tìm & Đặt sân'** trên thanh điều hướng.\n" +
                     "• Dùng bộ lọc để chọn môn thể thao (*Bóng đá mini, Pickleball, Cầu lông, Tennis*), chọn Tỉnh/Thành phố (*Hà Nội, TP.HCM, Đà Nẵng...*) hoặc sắp xếp theo mức giá từ thấp đến cao.\n" +
@@ -181,7 +189,11 @@ namespace DACN.Controllers
                     $"**{idx + 1}. {f.Name}**\n   📍 *Địa chỉ:* {f.Address} ({f.SportType?.Name})"));
 
                 var askBackReply = "🧭 **BẠN MUỐN TÌM ĐƯỜNG ĐẾN CỤM SÂN NÀO TRONG HỆ THỐNG?**\n\n" +
+<<<<<<< HEAD
                     "Hiện tại hệ thống DatSan247 đang có các cụm sân thi đấu sau:\n\n" +
+=======
+                    "Hiện tại hệ thống SanBong.vn đang có các cụm sân thi đấu sau:\n\n" +
+>>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
                     facilityListText + "\n\n" +
                     "👉 **Bạn hãy nhắn tên cụm sân bạn muốn đến** (hoặc bấm vào các nút gợi ý bên dưới) để tôi mở bản đồ và gửi đường link dẫn đường GPS chính xác nhất cho bạn nhé!";
 
@@ -199,10 +211,14 @@ namespace DACN.Controllers
             // =========================================================================
             // 3. TRA CỨU SÂN BÓNG ĐÁ
             // =========================================================================
+<<<<<<< HEAD
             // Câu hỏi về kèo / ghép đội ưu tiên trả lời phần Ghép đội (dù có nhắc tên môn)
             bool wantsTeam = Has("ghép đội", "tìm kèo", "kèo", "tìm đội", "đối thủ", "ghep doi", "tim keo", "tim doi", "doi thu");
 
             if (!wantsTeam && Has("bóng đá", "football", "sân banh", "sân bóng", "đá banh", "đá bóng", "bong da", "da banh", "da bong", "san banh"))
+=======
+            if (Has("bóng đá", "football", "sân banh", "sân bóng", "đá banh", "đá bóng", "bong da", "da banh", "da bong", "san banh"))
+>>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
             {
                 var fbFacilities = allFacilities.Where(f => f.SportType != null && RemoveDiacritics(f.SportType.Name).ToLower().Contains("bong da")).ToList();
                 if (fbFacilities.Any())
@@ -233,7 +249,11 @@ namespace DACN.Controllers
             // =========================================================================
             // 4. TRA CỨU SÂN PICKLEBALL
             // =========================================================================
+<<<<<<< HEAD
             if (!wantsTeam && Has("pickleball", "pikle", "pích", "pickel", "pich", "pickle"))
+=======
+            if (Has("pickleball", "pikle", "pích", "pickel", "pich", "pickle"))
+>>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
             {
                 var pFacilities = allFacilities.Where(f => f.SportType != null && RemoveDiacritics(f.SportType.Name).ToLower().Contains("pickleball")).ToList();
                 if (pFacilities.Any())
@@ -263,7 +283,11 @@ namespace DACN.Controllers
             // =========================================================================
             // 5. CẦU LÔNG & TENNIS
             // =========================================================================
+<<<<<<< HEAD
             if (!wantsTeam && Has("cầu lông", "badminton", "tennis", "quần vợt", "cau long", "quan vot"))
+=======
+            if (Has("cầu lông", "badminton", "tennis", "quần vợt", "cau long", "quan vot"))
+>>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
             {
                 return Ok(new ChatResponse
                 {
@@ -284,15 +308,24 @@ namespace DACN.Controllers
             {
                 return Ok(new ChatResponse
                 {
+<<<<<<< HEAD
                     Reply = "🛡️ **CƠ CHẾ CHỐNG TRÙNG LỊCH TUYỆT ĐỐI TẠI DATSAN247:**\n\n" +
                         "DatSan247 giải quyết triệt để lỗi đặt trùng giờ (Race Condition) bằng giải pháp kỹ thuật nâng cao:\n\n" +
+=======
+                    Reply = "🛡️ **CƠ CHẾ CHỐNG TRÙNG LỊCH TUYỆT ĐỐI TẠI SANBONG.VN:**\n\n" +
+                        "SanBong.vn giải quyết triệt để lỗi đặt trùng giờ (Race Condition) bằng giải pháp kỹ thuật nâng cao:\n\n" +
+>>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
                         "1. **Cấp độ cô lập giao dịch Serializable (SQL Server):**\n" +
                         "   Khi bạn nhấn nút đặt sân, hệ thống thực thi giao dịch với khóa phân đoạn cao nhất. Không giao dịch nào khác được phép xen ngang vào cùng khung giờ đó.\n" +
                         "2. **Khóa tạm thời 5 phút (Holding Lock):**\n" +
                         "   Khung giờ sẽ chuyển ngay sang trạng thái *'Đang giữ chỗ'* màu vàng cam. Những người chơi khác truy cập cùng thời điểm sẽ không thể bấm đặt đè lên.\n" +
                         "3. **Cơ chế RowVersion (Concurrency Token):**\n" +
                         "   Mỗi bản ghi được kiểm tra phiên bản dữ liệu tự động, ngăn chặn hoàn toàn việc 2 người cùng thanh toán 1 sân.\n\n" +
+<<<<<<< HEAD
                         "👉 Nhờ đó bạn hoàn toàn yên tâm khi đặt sân tại DatSan247!",
+=======
+                        "👉 Nhờ đó bạn hoàn toàn yên tâm khi đặt sân tại SanBong.vn!",
+>>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
                     ActionUrl = "/Home/Privacy",
                     ActionText = "Xem cam kết bảo mật & chính sách",
                     QuickSuggestions = new List<string> { "Cách thanh toán qua VietQR", "Cách đặt sân", "Chỉ đường đến sân" }
@@ -300,6 +333,7 @@ namespace DACN.Controllers
             }
 
             // =========================================================================
+<<<<<<< HEAD
             // 9. CHÍNH SÁCH HỦY ĐƠN & DỜI LỊCH
             // =========================================================================
             // "hủy" chỉ khớp khi là một từ riêng (tránh nhầm với "huyện"); "mưa" chỉ khớp khi có dấu (tránh nhầm với "mua")
@@ -328,14 +362,29 @@ namespace DACN.Controllers
                 return Ok(new ChatResponse
                 {
                     Reply = "💳 **CHÍNH SÁCH THANH TOÁN TẠI DATSAN247:**\n\n" +
+=======
+            // 7. THANH TOÁN VIETQR (KHÔNG TIỀN MẶT ĐỂ ĐẢM BẢO GIỮ CHỖ THẬT)
+            // =========================================================================
+            if (Has("thanh toán", "vietqr", "tiền", "chuyển khoản", "qr", "momo", "tiền mặt", "thanh toan", "tien", "chuyen khoan", "tien mat"))
+            {
+                return Ok(new ChatResponse
+                {
+                    Reply = "💳 **CHÍNH SÁCH THANH TOÁN TẠI SANBONG.VN:**\n\n" +
+>>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
                         "1. **Chuyển khoản trực tuyến qua VietQR (Napas 24/7):**\n" +
                         "   • Để đảm bảo giữ chỗ 100% và tránh tình trạng bùng sân, hệ thống áp dụng hình thức **thanh toán trực tuyến qua mã VietQR**.\n" +
                         "   • Khi đặt sân, hệ thống hiển thị mã VietQR chứa đúng số tiền và mã hóa đơn `#BK...`.\n" +
                         "   • Bạn chỉ cần mở bất kỳ app ngân hàng (*VietinBank, VCB, MB, Techcombank, BIDV, VPBank, MoMo...*) quét mã để chuyển tiền.\n\n" +
+<<<<<<< HEAD
                         "2. **Gửi biên lai & nhận vé:**\n" +
                         $"   • Sau khi chuyển tiền (trong {DACN.Services.BookingRules.HoldMinutes} phút giữ chỗ), bạn đính kèm ảnh biên lai. Khung giờ được giữ cho bạn trong lúc chủ sân kiểm tra.\n" +
                         "   • Khi chủ sân xác nhận đã nhận tiền, vé điện tử có mã QR sẽ có hiệu lực và bạn nhận được thông báo.\n\n" +
                         "⚠️ **Lưu ý:** Đặt online cần chuyển khoản để giữ chỗ. Nếu bạn đặt trực tiếp tại quầy, chủ sân có thể thu tiền mặt.",
+=======
+                        "2. **Xác nhận đặt sân & Kích hoạt vé:**\n" +
+                        "   • Sau khi chuyển tiền, bạn đính kèm ảnh chụp màn hình biên lai giao dịch thành công để hệ thống kích hoạt vé điện tử (Stadium Pass) ngay lập tức.\n\n" +
+                        "⚠️ **Lưu ý:** Hệ thống không nhận thanh toán tiền mặt tại sân để đảm bảo tính công bằng cho tất cả người chơi trong việc giữ chỗ.",
+>>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
                     ActionUrl = "/Booking/MyBookings",
                     ActionText = "Xem đơn đặt của tôi",
                     QuickSuggestions = new List<string> { "Xem vé điện tử QR", "Cách đặt sân", "Chỉ đường đến sân" }
@@ -347,10 +396,14 @@ namespace DACN.Controllers
             // =========================================================================
             if (Has("ghép đội", "tìm kèo", "kèo", "tìm bạn", "đối thủ", "team", "giao lưu", "ghep doi", "tim keo", "keo", "tim ban", "doi thu", "giao luu"))
             {
+<<<<<<< HEAD
                 var todayDate = DateOnly.FromDateTime(DateTime.Today);
                 var hotPost = await _context.MatchPosts
                     .Where(p => p.Status == DACN.Models.Enums.MatchPostStatus.Open && p.MatchDate >= todayDate)
                     .OrderByDescending(p => p.CreatedAt).FirstOrDefaultAsync();
+=======
+                var hotPost = await _context.MatchPosts.OrderByDescending(p => p.CreatedAt).FirstOrDefaultAsync();
+>>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
                 var hotPostInfo = hotPost != null 
                     ? $"\n\n🔥 **Kèo nóng đang tuyển slot:**\n• Trận: *\"{hotPost.Title}\"*\n• Địa điểm: *{hotPost.VenueName}*\n• Ngày: *{hotPost.MatchDate:dd/MM/yyyy}* ({hotPost.StartTime:hh\\:mm} - {hotPost.EndTime:hh\\:mm})\n• Slot: *{hotPost.CurrentSlots}/{hotPost.TotalSlots} người* (Cần thêm {Math.Max(0, hotPost.TotalSlots - hotPost.CurrentSlots)} người)"
                     : "";
@@ -369,6 +422,27 @@ namespace DACN.Controllers
             }
 
             // =========================================================================
+<<<<<<< HEAD
+=======
+            // 9. CHÍNH SÁCH HỦY ĐƠN & DỜI LỊCH
+            // =========================================================================
+            if (Has("hủy", "đổi lịch", "dời lịch", "hoàn tiền", "mưa", "huy", "doi lich", "doi gio", "hoan tien", "mua"))
+            {
+                return Ok(new ChatResponse
+                {
+                    Reply = "🔄 **CHÍNH SÁCH HỦY & DỜI LỊCH ĐẶT SÂN:**\n\n" +
+                        $"• **Hủy miễn phí trước {DACN.Services.BookingRules.FreeCancelHours} tiếng:** Người chơi có thể tự thao tác bấm 'Hủy đơn' trực tiếp tại mục *'Vé sân của tôi'* trước giờ thi đấu ít nhất {DACN.Services.BookingRules.FreeCancelHours} tiếng. Trong vòng {DACN.Services.BookingRules.FreeCancelHours} tiếng trước giờ đá, vui lòng liên hệ chủ sân để được hỗ trợ.\n" +
+                        "• **Đơn giữ chỗ chưa thanh toán:** có thể tự hủy bất cứ lúc nào trước giờ thi đấu.\n" +
+                        "• **Thời tiết mưa bão bất khả kháng:** Đối với sân ngoài trời, nếu trời mưa to không thể thi đấu, ban quản lý sân sẽ hỗ trợ dời lịch sang ngày khác hoặc hoàn tiền cọc 100%.\n" +
+                        "• **Hỗ trợ tổng đài:** Mọi sự cố phát sinh bạn có thể gọi hotline **1900 8888** để nhân viên hỗ trợ xử lý tức thì.",
+                    ActionUrl = "/Booking/MyBookings",
+                    ActionText = "Quản lý vé của bạn",
+                    QuickSuggestions = new List<string> { "Cách đặt sân", "Chỉ đường đến sân", "Thanh toán VietQR" }
+                });
+            }
+
+            // =========================================================================
+>>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
             // 10. KÊNH CHỦ SÂN (FACILITY OWNER)
             // =========================================================================
             if (Has("chủ sân", "đăng ký sân", "hợp tác", "quản lý sân", "chủ cơ sở", "chu san", "dang ky san", "hop tac", "quan ly san"))
@@ -376,7 +450,11 @@ namespace DACN.Controllers
                 return Ok(new ChatResponse
                 {
                     Reply = "🏢 **DÀNH CHO CHỦ CƠ SỞ THỂ THAO & SÂN BÃI:**\n\n" +
+<<<<<<< HEAD
                         "DatSan247 cung cấp hệ thống quản trị chuyên nghiệp cho chủ sân:\n" +
+=======
+                        "SanBong.vn cung cấp hệ thống quản trị chuyên nghiệp cho chủ sân:\n" +
+>>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
                         "• **Đăng ký cụm sân mới:** Tự động tạo sân con và thiết lập sẵn bảng giá khung giờ hoạt động.\n" +
                         "• **Bảng Lịch Đặt (Schedule Board):** Dòng thời gian trực quan giúp nhân viên kiểm soát toàn bộ các sân theo thời gian thực.\n" +
                         "• **Quản lý dịch vụ tiện ích:** Thêm mới và cấu hình bảng giá thuê áo bib, bóng, vợt, nước uống.\n" +
@@ -388,6 +466,7 @@ namespace DACN.Controllers
             }
 
             // =========================================================================
+<<<<<<< HEAD
             // 10b. LIÊN HỆ / HOTLINE
             // =========================================================================
             if (Has("liên hệ", "hotline", "số điện thoại", "sđt", "tổng đài", "email", "gọi điện", "lien he", "so dien thoai", "sdt", "tong dai", "goi dien"))
@@ -405,13 +484,19 @@ namespace DACN.Controllers
             }
 
             // =========================================================================
+=======
+>>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
             // 11. MẶC ĐỊNH / CHÀO HỎI THÔNG MINH
             // =========================================================================
             var defaultFacilitiesText = string.Join(", ", allFacilities.Select(f => f.Name));
 
             return Ok(new ChatResponse
             {
+<<<<<<< HEAD
                 Reply = "🤖 Xin chào bạn! Tôi là **Trợ Lý Thể Thao AI** của DatSan247.\n\n" +
+=======
+                Reply = "🤖 Xin chào bạn! Tôi là **Trợ Lý Thể Thao AI** của SanBong.vn.\n\n" +
+>>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
                     "Tôi có thể hỗ trợ và giải đáp chi tiết cho bạn về:\n" +
                     "1️⃣ **Cách dùng hệ thống:** Hướng dẫn từ bước tìm sân, chọn khung giờ, thanh toán đến khi nhận vé.\n" +
                     "2️⃣ **Chỉ đường Google Maps:** Hướng dẫn đường đi và bật GPS dẫn đường đến bất kỳ cụm sân nào (*" + defaultFacilitiesText + "*).\n" +

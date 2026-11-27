@@ -43,7 +43,11 @@ namespace DACN.Controllers
 
             // Ẩn các kèo đã qua ngày thi đấu
             var todayDate = DateOnly.FromDateTime(DateTime.Today);
+<<<<<<< HEAD
             query = query.Where(p => p.MatchDate >= todayDate && p.Status != MatchPostStatus.Cancelled);
+=======
+            query = query.Where(p => p.MatchDate >= todayDate);
+>>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
 
             if (sportTypeId.HasValue && sportTypeId.Value > 0)
             {
@@ -174,7 +178,11 @@ namespace DACN.Controllers
                     .Include(b => b.Court)
                         .ThenInclude(c => c!.Facility)
                             .ThenInclude(f => f!.SportType)
+<<<<<<< HEAD
                     .FirstOrDefaultAsync(b => b.Id == bookingId.Value && b.CustomerId == me && b.Status != BookingStatus.Cancelled);
+=======
+                    .FirstOrDefaultAsync(b => b.Id == bookingId.Value && b.CustomerId == me);
+>>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
 
                 if (booking != null)
                 {
@@ -208,9 +216,14 @@ namespace DACN.Controllers
                 ModelState.AddModelError(nameof(model.CurrentSlots), "Số người hiện có phải nhỏ hơn tổng số người cần.");
             // Chỉ được gắn đơn đặt sân của chính mình
             if (model.BookingId.HasValue
+<<<<<<< HEAD
                 && !await _unitOfWork.Bookings.AnyAsync(b => b.Id == model.BookingId.Value && b.CustomerId == currentUser && b.Status != BookingStatus.Cancelled))
             {
                 ModelState.AddModelError(string.Empty, "Đơn đặt sân này không còn hiệu lực (đã hủy hoặc không phải của bạn) nên không thể tạo kèo từ đơn này.");
+=======
+                && !await _unitOfWork.Bookings.AnyAsync(b => b.Id == model.BookingId.Value && b.CustomerId == currentUser))
+            {
+>>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
                 model.BookingId = null;
                 model.FacilityId = null;
             }
@@ -297,16 +310,23 @@ namespace DACN.Controllers
                 return RedirectToAction(nameof(Detail), new { id = matchPostId });
             }
 
+<<<<<<< HEAD
             // Không nhập SĐT thì lấy số trong hồ sơ tài khoản (không tự điền số giả)
             if (string.IsNullOrWhiteSpace(contactPhone))
                 contactPhone = (await _unitOfWork.Context.Users.FindAsync(currentUserId))?.PhoneNumber;
 
+=======
+>>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
             var request = new MatchJoinRequest
             {
                 MatchPostId = matchPostId,
                 UserId = currentUserId,
                 PreferredPosition = preferredPosition,
+<<<<<<< HEAD
                 ContactPhone = string.IsNullOrWhiteSpace(contactPhone) ? null : contactPhone.Trim(),
+=======
+                ContactPhone = contactPhone ?? "0987654321",
+>>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
                 Message = message ?? "Xin chào Đội trưởng, cho mình đăng ký 1 slot nhé!",
                 Status = JoinRequestStatus.Pending,
                 CreatedAt = DateTime.UtcNow

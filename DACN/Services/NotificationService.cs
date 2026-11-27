@@ -149,10 +149,17 @@ namespace DACN.Services
         {
             static string enc(string s) => System.Net.WebUtility.HtmlEncode(s);
             return $@"<div style=""font-family:Segoe UI,Arial,sans-serif;max-width:520px;margin:auto;border:1px solid #e5e9f0;border-radius:12px;overflow:hidden"">
+<<<<<<< HEAD
 <div style=""background:#16a34a;color:#fff;padding:16px 20px;font-weight:700;font-size:18px"">DatSan247</div>
 <div style=""padding:20px;color:#0f172a""><h2 style=""font-size:18px;margin:0 0 8px"">{enc(title)}</h2>
 <p style=""color:#475569;line-height:1.6"">{enc(message ?? "")}</p>
 {(string.IsNullOrEmpty(url) ? "" : $@"<p style=""color:#64748b;font-size:13px"">Đăng nhập DatSan247 để xem chi tiết.</p>")}
+=======
+<div style=""background:#16a34a;color:#fff;padding:16px 20px;font-weight:700;font-size:18px"">SanBong.vn</div>
+<div style=""padding:20px;color:#0f172a""><h2 style=""font-size:18px;margin:0 0 8px"">{enc(title)}</h2>
+<p style=""color:#475569;line-height:1.6"">{enc(message ?? "")}</p>
+{(string.IsNullOrEmpty(url) ? "" : $@"<p style=""color:#64748b;font-size:13px"">Đăng nhập SanBong.vn để xem chi tiết.</p>")}
+>>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
 </div></div>";
         }
     }

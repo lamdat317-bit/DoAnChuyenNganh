@@ -10,6 +10,7 @@ namespace DACN.Data
 {
     public static class DbInitializer
     {
+<<<<<<< HEAD
         /// <summary>
         /// Đổi thương hiệu: chuyển email tài khoản demo cũ (@sanbong.vn) sang @datsan247.vn, giữ nguyên mật khẩu và dữ liệu.
         /// </summary>
@@ -32,6 +33,10 @@ namespace DACN.Data
         {
             await RenameLegacyDemoAccountsAsync(userManager);
 
+=======
+        public static async Task SeedAsync(ApplicationDbContext context, UserManager<ApplicationUser> userManager)
+        {
+>>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
             // Kiểm tra và seed CityProvinces nếu chưa có
             if (!context.CityProvinces.Any())
             {
@@ -130,14 +135,23 @@ namespace DACN.Data
                     }
                 }
 
+<<<<<<< HEAD
                 var existingAdmin = await userManager.FindByEmailAsync("admin@datsan247.vn");
+=======
+                var existingAdmin = await userManager.FindByEmailAsync("admin@sanbong.vn");
+>>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
                 if (existingAdmin == null)
                 {
                     var adminUser = new ApplicationUser
                     {
                         Id = "demo-admin-id",
+<<<<<<< HEAD
                         UserName = "admin@datsan247.vn",
                         Email = "admin@datsan247.vn",
+=======
+                        UserName = "admin@sanbong.vn",
+                        Email = "admin@sanbong.vn",
+>>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
                         FullName = "Quản Trị Viên Hệ Thống",
                         PhoneNumber = "0999888777",
                         Role = UserRole.Admin,
@@ -154,8 +168,13 @@ namespace DACN.Data
             var owner = new ApplicationUser
             {
                 Id = "demo-owner-id",
+<<<<<<< HEAD
                 UserName = "owner@datsan247.vn",
                 Email = "owner@datsan247.vn",
+=======
+                UserName = "owner@sanbong.vn",
+                Email = "owner@sanbong.vn",
+>>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
                 FullName = "Nguyễn Văn Chủ Sân",
                 PhoneNumber = "0901234567",
                 Role = UserRole.FacilityOwner,
@@ -178,8 +197,13 @@ namespace DACN.Data
             var admin = new ApplicationUser
             {
                 Id = "demo-admin-id",
+<<<<<<< HEAD
                 UserName = "admin@datsan247.vn",
                 Email = "admin@datsan247.vn",
+=======
+                UserName = "admin@sanbong.vn",
+                Email = "admin@sanbong.vn",
+>>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
                 FullName = "Quản Trị Viên Hệ Thống",
                 PhoneNumber = "0999888777",
                 Role = UserRole.Admin,

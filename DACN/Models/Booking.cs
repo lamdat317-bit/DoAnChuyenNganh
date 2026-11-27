@@ -106,6 +106,7 @@ namespace DACN.Models
         [Display(Name = "Thời gian hủy")]
         public DateTime? CancelledAt { get; set; }
 
+<<<<<<< HEAD
         // ===== Soát vé tại sân =====
         /// <summary>Mã vé ngẫu nhiên 8 ký tự (in trên vé + mã QR). Nhân viên sân quét / nhập mã này để check-in.</summary>
         [StringLength(12)]
@@ -118,6 +119,8 @@ namespace DACN.Models
         [StringLength(450)]
         public string? CheckedInBy { get; set; }
 
+=======
+>>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
         /// <summary>Đã gửi thông báo nhắc lịch trước giờ chơi (tránh nhắc lặp).</summary>
         public DateTime? ReminderSentAt { get; set; }
 

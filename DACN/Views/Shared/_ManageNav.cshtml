@@ -9,10 +9,16 @@
 <nav class="manage-nav">
     @if (area == "Owner")
     {
+<<<<<<< HEAD
         <a class="@A("Owner", "Facility", "Index", "CreateFacility", "EditFacility", "ManageTimeSlots", "ManageServices", "ManagePhotos")" asp-area="Owner" asp-controller="Facility" asp-action="Index"><i class="bi bi-buildings"></i> Cụm sân</a>
         <a class="@A("Owner", "Facility", "ScheduleBoard")" asp-area="Owner" asp-controller="Facility" asp-action="ScheduleBoard"><i class="bi bi-calendar3-range"></i> Bảng lịch</a>
         <a class="@A("Owner", "Facility", "Bookings")" asp-area="Owner" asp-controller="Facility" asp-action="Bookings"><i class="bi bi-receipt"></i> Đơn đặt sân</a>
         <a class="@A("Owner", "Facility", "CheckIn")" asp-area="Owner" asp-controller="Facility" asp-action="CheckIn"><i class="bi bi-qr-code-scan"></i> Soát vé</a>
+=======
+        <a class="@A("Owner", "Facility", "Index", "CreateFacility", "EditFacility", "ManageTimeSlots", "ManageServices")" asp-area="Owner" asp-controller="Facility" asp-action="Index"><i class="bi bi-buildings"></i> Cụm sân</a>
+        <a class="@A("Owner", "Facility", "ScheduleBoard")" asp-area="Owner" asp-controller="Facility" asp-action="ScheduleBoard"><i class="bi bi-calendar3-range"></i> Bảng lịch</a>
+        <a class="@A("Owner", "Facility", "Bookings")" asp-area="Owner" asp-controller="Facility" asp-action="Bookings"><i class="bi bi-receipt"></i> Đơn đặt sân</a>
+>>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
         <a class="@A("Owner", "Facility", "Statistics")" asp-area="Owner" asp-controller="Facility" asp-action="Statistics"><i class="bi bi-graph-up"></i> Thống kê</a>
         <a class="@A("Owner", "Facility", "Reviews")" asp-area="Owner" asp-controller="Facility" asp-action="Reviews"><i class="bi bi-star"></i> Đánh giá</a>
         <a class="@A("Owner", "Facility", "Refunds")" asp-area="Owner" asp-controller="Facility" asp-action="Refunds"><i class="bi bi-arrow-counterclockwise"></i> Hoàn tiền</a>

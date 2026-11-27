@@ -127,7 +127,11 @@
                                     <span class="avatar">@Ini(req.User?.FullName)</span>
                                     <div class="min-w-0">
                                         <div class="fw-semibold text-ink">@(req.User?.FullName ?? "Người chơi")</div>
+<<<<<<< HEAD
                                         <div class="small text-muted"><i class="bi bi-telephone me-1"></i>@(req.ContactPhone ?? "Chưa có SĐT") · @(req.PreferredPosition ?? "Chưa ghi vị trí")</div>
+=======
+                                        <div class="small text-muted"><i class="bi bi-telephone me-1"></i>@req.ContactPhone · @(req.PreferredPosition ?? "Chưa ghi vị trí")</div>
+>>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
                                         @if (!string.IsNullOrWhiteSpace(req.Message))
                                         {
                                             <div class="small fst-italic mt-1">“@req.Message”</div>

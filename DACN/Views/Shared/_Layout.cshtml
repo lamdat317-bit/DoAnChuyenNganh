@@ -17,6 +17,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<<<<<<< HEAD
     <meta name="color-scheme" content="light dark" />
     <script>
         // Áp theme trước khi vẽ trang để không bị nháy màu
@@ -30,6 +31,10 @@
     </script>
     <title>@ViewData["Title"] · DatSan247</title>
     <meta name="description" content="DatSan247 - Đặt sân bóng đá, pickleball, cầu lông, tennis trực tuyến và ghép đội thi đấu." />
+=======
+    <title>@ViewData["Title"] · SanBong.vn</title>
+    <meta name="description" content="SanBong.vn - Đặt sân bóng đá, pickleball, cầu lông, tennis trực tuyến và ghép đội thi đấu." />
+>>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -44,6 +49,7 @@
             <nav class="navbar navbar-expand-lg p-0 py-2">
                 <a class="brand-logo me-4" asp-area="" asp-controller="Home" asp-action="Index">
                     <span class="brand-mark"><i class="bi bi-dribbble"></i></span>
+<<<<<<< HEAD
                     <span>DatSan<span class="brand-tld">247</span></span>
                 </a>
 
@@ -52,6 +58,13 @@
                 </button>
                 <button class="navbar-toggler border-0 shadow-none px-1" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar" aria-label="Mở menu">
                     <i class="bi bi-list fs-2 text-ink"></i>
+=======
+                    <span>SanBong<span class="brand-tld">.vn</span></span>
+                </a>
+
+                <button class="navbar-toggler border-0 shadow-none px-1" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar" aria-label="Mở menu">
+                    <i class="bi bi-list fs-2 text-dark"></i>
+>>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
                 </button>
 
                 <div class="collapse navbar-collapse" id="mainNavbar">
@@ -90,9 +103,12 @@
                     </ul>
 
                     <div class="d-flex align-items-center gap-2 py-3 py-lg-0">
+<<<<<<< HEAD
                         <button type="button" class="theme-toggle d-none d-lg-inline-flex" data-theme-toggle aria-label="Đổi giao diện sáng / tối" title="Đổi giao diện sáng / tối">
                             <i class="bi bi-moon-stars theme-icon-light"></i><i class="bi bi-sun theme-icon-dark"></i>
                         </button>
+=======
+>>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
                         @if (isAuth)
                         {
                             @await Component.InvokeAsync("NotificationBell")
@@ -122,8 +138,11 @@
                                     <li><a class="dropdown-item" asp-area="" asp-controller="Account" asp-action="Profile"><i class="bi bi-person"></i> Hồ sơ cá nhân</a></li>
                                     <li><a class="dropdown-item" asp-area="" asp-controller="Booking" asp-action="MyBookings"><i class="bi bi-ticket-perforated"></i> Lịch đặt của tôi</a></li>
                                     <li><a class="dropdown-item" asp-area="" asp-controller="Teamwork" asp-action="MyMatches"><i class="bi bi-people"></i> Kèo của tôi</a></li>
+<<<<<<< HEAD
                                     <li><a class="dropdown-item" asp-area="" asp-controller="Booking" asp-action="Favorites"><i class="bi bi-heart"></i> Sân yêu thích</a></li>
                                     <li><a class="dropdown-item" asp-area="" asp-controller="Notifications" asp-action="Index"><i class="bi bi-bell"></i> Thông báo</a></li>
+=======
+>>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
                                     @if (isOwner || isAdmin)
                                     {
                                         <li><hr class="dropdown-divider"></li>
@@ -188,6 +207,7 @@
         }
     </div>
 
+<<<<<<< HEAD
     <a href="#main-content" class="skip-link">Bỏ qua tới nội dung chính</a>
     <main role="main" class="flex-grow-1" id="main-content">
         @RenderBody()
@@ -228,31 +248,54 @@
 
     <button type="button" class="back-to-top" id="backToTop" aria-label="Lên đầu trang" title="Lên đầu trang"><i class="bi bi-arrow-up"></i></button>
 
+=======
+    <main role="main" class="flex-grow-1">
+        @RenderBody()
+    </main>
+
+>>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
     <footer class="site-footer">
         <div class="container">
             <div class="row g-4">
                 <div class="col-lg-4 col-md-6">
                     <a class="brand-logo mb-3" asp-area="" asp-controller="Home" asp-action="Index">
                         <span class="brand-mark"><i class="bi bi-dribbble"></i></span>
+<<<<<<< HEAD
                         <span>DatSan<span class="brand-tld">247</span></span>
+=======
+                        <span>SanBong<span class="brand-tld">.vn</span></span>
+>>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
                     </a>
                     <p class="small mb-3 pe-lg-4">
                         Nền tảng đặt sân thể thao và kết nối người chơi. Xem lịch trống theo thời gian thực, thanh toán VietQR và tìm đồng đội chỉ trong vài bước.
                     </p>
                     <div class="d-flex gap-2">
+<<<<<<< HEAD
                         <a href="https://facebook.com" target="_blank" rel="noopener" class="social-btn" aria-label="Facebook"><i class="bi bi-facebook"></i></a>
                         <a href="https://youtube.com" target="_blank" rel="noopener" class="social-btn" aria-label="YouTube"><i class="bi bi-youtube"></i></a>
                         <a href="https://tiktok.com" target="_blank" rel="noopener" class="social-btn" aria-label="TikTok"><i class="bi bi-tiktok"></i></a>
                         <a href="mailto:hotro@datsan247.vn" class="social-btn" aria-label="Email"><i class="bi bi-envelope"></i></a>
+=======
+                        <a href="#" class="social-btn" aria-label="Facebook"><i class="bi bi-facebook"></i></a>
+                        <a href="#" class="social-btn" aria-label="YouTube"><i class="bi bi-youtube"></i></a>
+                        <a href="#" class="social-btn" aria-label="TikTok"><i class="bi bi-tiktok"></i></a>
+>>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
                     </div>
                 </div>
                 <div class="col-lg-2 col-md-3 col-6">
                     <h6>Môn thể thao</h6>
                     <ul class="list-unstyled small d-grid gap-2">
+<<<<<<< HEAD
                         <li><a asp-area="" asp-controller="Booking" asp-action="Index" asp-route-sport="bóng đá">Bóng đá mini</a></li>
                         <li><a asp-area="" asp-controller="Booking" asp-action="Index" asp-route-sport="pickleball">Pickleball</a></li>
                         <li><a asp-area="" asp-controller="Booking" asp-action="Index" asp-route-sport="cầu lông">Cầu lông</a></li>
                         <li><a asp-area="" asp-controller="Booking" asp-action="Index" asp-route-sport="tennis">Tennis</a></li>
+=======
+                        <li><a asp-area="" asp-controller="Booking" asp-action="Index" asp-route-keyword="">Bóng đá mini</a></li>
+                        <li><a asp-area="" asp-controller="Booking" asp-action="Index">Pickleball</a></li>
+                        <li><a asp-area="" asp-controller="Booking" asp-action="Index">Cầu lông</a></li>
+                        <li><a asp-area="" asp-controller="Booking" asp-action="Index">Tennis</a></li>
+>>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
                     </ul>
                 </div>
                 <div class="col-lg-2 col-md-3 col-6">
@@ -267,19 +310,30 @@
                 <div class="col-lg-4 col-md-12">
                     <h6>Liên hệ</h6>
                     <ul class="list-unstyled small d-grid gap-2">
+<<<<<<< HEAD
                         <li><i class="bi bi-geo-alt me-2 text-success"></i>Hà Nội · TP. Hồ Chí Minh</li>
                         <li><i class="bi bi-telephone me-2 text-success"></i>Hotline: <a href="tel:19006868">1900 6868</a></li>
                         <li><i class="bi bi-envelope me-2 text-success"></i><a href="mailto:hotro@datsan247.vn">hotro@datsan247.vn</a></li>
+=======
+                        <li><i class="bi bi-geo-alt me-2 text-success"></i>Đồ án chuyên ngành Công nghệ thông tin</li>
+                        <li><i class="bi bi-telephone me-2 text-success"></i>Hotline: 1900 6868</li>
+                        <li><i class="bi bi-envelope me-2 text-success"></i>hotro@sanbong.vn</li>
+>>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
                         <li><i class="bi bi-clock me-2 text-success"></i>Hỗ trợ 06:00 – 23:00 mỗi ngày</li>
                     </ul>
                 </div>
             </div>
             <div class="footer-bottom d-flex flex-wrap justify-content-between gap-2">
+<<<<<<< HEAD
                 <span>&copy; @DateTime.Now.Year DatSan247. Bảo lưu mọi quyền.</span>
                 <span class="d-flex gap-3">
                     <a asp-area="" asp-controller="Home" asp-action="Privacy">Chính sách &amp; quy định</a>
                     <a href="mailto:hotro@datsan247.vn">Liên hệ hợp tác</a>
                 </span>
+=======
+                <span>&copy; @DateTime.Now.Year SanBong.vn · Đồ án chuyên ngành</span>
+                <span>ASP.NET Core 8 · Entity Framework Core · SQL Server</span>
+>>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
             </div>
         </div>
     </footer>
@@ -288,7 +342,11 @@
     <div id="aiChatLauncher" class="ai-chat-launcher" onclick="toggleAiChat()" role="button" aria-label="Mở trợ lý AI">
         <span class="ai-pulse-dot"></span>
         <i class="bi bi-chat-dots-fill"></i>
+<<<<<<< HEAD
         <span class="fw-semibold small d-none d-sm-inline">Trợ lý DatSan247</span>
+=======
+        <span class="fw-semibold small d-none d-sm-inline">Trợ lý SanBong</span>
+>>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
     </div>
 
     <div id="aiChatWindow" class="ai-chat-window hidden" aria-live="polite">
@@ -296,7 +354,11 @@
             <div class="d-flex align-items-center gap-2">
                 <span class="icon-bubble sm green"><i class="bi bi-robot"></i></span>
                 <div>
+<<<<<<< HEAD
                     <div class="fw-bold text-ink" style="font-size: .95rem;">Trợ lý DatSan247 AI</div>
+=======
+                    <div class="fw-bold text-ink" style="font-size: .95rem;">Trợ lý SanBong AI</div>
+>>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
                     <div class="small text-muted" style="font-size: .74rem;"><span class="ai-pulse-dot" style="width:7px;height:7px;"></span> Trực tuyến · trả lời tức thì</div>
                 </div>
             </div>

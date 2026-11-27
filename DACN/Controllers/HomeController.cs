@@ -29,6 +29,7 @@ namespace DACN.Controllers
             return View();
         }
 
+<<<<<<< HEAD
         /// <summary>Trang hiển thị cho mã lỗi HTTP (404 không tìm thấy, 403 bị chặn...).</summary>
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
         public IActionResult HttpStatus(int code = 404)
@@ -38,6 +39,8 @@ namespace DACN.Controllers
             return View();
         }
 
+=======
+>>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
         public IActionResult Error()
         {

@@ -2,7 +2,11 @@
 @using DACN.Models.Enums
 @{
     ViewData["Title"] = "Vé điện tử #BK-" + Model.Id;
+<<<<<<< HEAD
     var qrTicketUrl = $"https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=0&data={Uri.EscapeDataString(DACN.Services.TicketCode.QrPayload(Model.CheckInCode ?? ""))}";
+=======
+    var qrTicketUrl = $"https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=SANBONG-PASS-BK{Model.Id}";
+>>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
     var isPaid = Model.PaymentStatus == PaymentStatus.Paid;
     var isCancelled = Model.Status == BookingStatus.Cancelled;
     var isVerifying = Model.PaymentStatus == PaymentStatus.AwaitingVerification && !isCancelled;
@@ -44,7 +48,11 @@
             <div class="d-flex align-items-center gap-2">
                 <span class="brand-mark d-inline-flex align-items-center justify-content-center rounded-3" style="width:36px;height:36px;background:rgba(255,255,255,.18)"><i class="bi bi-dribbble"></i></span>
                 <div>
+<<<<<<< HEAD
                     <div class="fw-bold">DatSan247</div>
+=======
+                    <div class="fw-bold">SanBong.vn</div>
+>>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
                     <div class="small" style="opacity:.8">VÉ VÀO SÂN · E-TICKET</div>
                 </div>
             </div>
@@ -70,6 +78,7 @@
                     </div>
                 </div>
                 <div class="col-sm-4 text-center">
+<<<<<<< HEAD
                     @if (isCancelled)
                     {
                         <div class="border rounded-3 p-3 text-muted small d-inline-block" style="width:150px;"><i class="bi bi-slash-circle fs-2 d-block mb-1"></i>Vé đã hủy</div>
@@ -88,6 +97,10 @@
                             <div class="small text-muted mt-1">Đưa mã này cho nhân viên sân khi đến</div>
                         }
                     }
+=======
+                    <img src="@qrTicketUrl" alt="Mã QR check-in" class="border rounded-3 p-2 bg-white" style="width:150px;height:150px;" />
+                    <div class="small text-muted mt-1">Mã check-in</div>
+>>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
                 </div>
             </div>
         </div>

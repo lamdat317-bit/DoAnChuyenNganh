@@ -61,7 +61,11 @@
                                     <td class="text-end">
                                         @if (s.IsActive)
                                         {
+<<<<<<< HEAD
                                             <form asp-action="DeleteService" method="post" class="m-0" data-confirm-message="Xóa (hoặc tạm ngưng) dịch vụ này?">
+=======
+                                            <form asp-action="DeleteService" method="post" class="m-0">
+>>>>>>> ffbb85a62983d539c74f270981df849bea20ac70
                                                 <input type="hidden" name="serviceId" value="@s.Id" />
                                                 <input type="hidden" name="facilityId" value="@Model.Id" />
                                                 <button type="submit" class="btn btn-light btn-sm text-danger" title="Xóa / tạm ngưng"><i class="bi bi-trash"></i></button>
