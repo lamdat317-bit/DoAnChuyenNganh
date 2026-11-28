@@ -60,7 +60,7 @@ namespace DACN.Areas.Admin.Controllers
         // POST: /Admin/User/CreateManager (Chỉ Admin mới có quyền tạo tài khoản Quản lý / Chủ sân)
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> CreateManager(CreateManagerViewModel model)
+        public async Task<IActionResult> CreateManager(CreateManagerViewModel model, [FromServices] IBankService bank)
         {
             if (!ModelState.IsValid)
             {
@@ -90,6 +90,7 @@ namespace DACN.Areas.Admin.Controllers
 
             if (result.Succeeded)
             {
+                await bank.EnsureAccountAsync(user.Id); // mỗi tài khoản có sẵn 1 ví ngân hàng ảo
                 var roleName = model.Role == UserRole.FacilityOwner ? "Chủ Sân / Quản Lý Cơ Sở" : "Quản Trị Viên (Admin)";
                 TempData["SuccessMessage"] = $"Đã cấp tài khoản [{roleName}] thành công cho: {user.FullName} ({user.Email})!";
             }

@@ -17,7 +17,7 @@
 </div>
 
 <div class="container" style="max-width: 900px;">
-    <form asp-action="CreateFacility" method="post">
+    <form asp-action="CreateFacility" method="post" enctype="multipart/form-data">
         <div asp-validation-summary="ModelOnly" class="alert alert-danger small" role="alert"></div>
 
         <div class="panel mb-4">
@@ -36,24 +36,20 @@
                     </div>
                     <div class="col-12">
                         <label asp-for="Address" class="form-label"></label>
-                        <input asp-for="Address" class="form-control" placeholder="Số nhà, đường, phường, quận, tỉnh/thành" />
+                        <div class="input-group">
+                            <input asp-for="Address" class="form-control" placeholder="Số nhà, đường, phường, quận, tỉnh/thành" />
+                            <a href="https://www.google.com/maps" target="_blank" rel="noopener noreferrer" class="btn btn-light" data-map-preview><i class="bi bi-map me-1"></i>Kiểm tra trên Google Maps</a>
+                        </div>
+                        <div class="form-text">Chỉ cần nhập đúng địa chỉ, khách sẽ xem bản đồ và chỉ đường theo địa chỉ này.</div>
                         <span asp-validation-for="Address" class="text-danger small"></span>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-6">
                         <label asp-for="CityId" class="form-label"></label>
                         <select asp-for="CityId" class="form-select" asp-items="ViewBag.Cities"><option value="">Chọn tỉnh/thành</option></select>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-6">
                         <label asp-for="DistrictName" class="form-label"></label>
                         <input asp-for="DistrictName" class="form-control" placeholder="VD: Cầu Giấy" />
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Tọa độ GPS</label>
-                        <div class="input-group">
-                            <input asp-for="Latitude" class="form-control" placeholder="Vĩ độ" />
-                            <input asp-for="Longitude" class="form-control" placeholder="Kinh độ" />
-                        </div>
-                        <div class="form-text">Dùng để hiển thị bản đồ. Có thể bỏ trống.</div>
                     </div>
                 </div>
             </div>
@@ -83,7 +79,7 @@
         </div>
 
         <div class="panel mb-4">
-            <div class="panel-header"><h5 class="panel-title"><span class="icon-bubble sm green">3</span> Sân con đầu tiên</h5></div>
+            <div class="panel-header"><h5 class="panel-title"><span class="icon-bubble sm green">3</span> Sân con đầu tiên &amp; bảng giá</h5></div>
             <div class="panel-body">
                 <div class="row g-3">
                     <div class="col-md-7">
@@ -97,9 +93,48 @@
                             <input asp-for="InitialPrice" type="number" step="10000" min="0" class="form-control" />
                             <span class="input-group-text">đ/giờ</span>
                         </div>
+                        <div class="form-text">Áp dụng cho mọi giờ không thuộc khung lên giá.</div>
                     </div>
                 </div>
-                <div class="form-text mt-2">Sau khi tạo, bạn có thể thêm sân con và chia khung giờ cao điểm trong trang quản lý.</div>
+
+                <div class="d-flex justify-content-between align-items-center mt-4 mb-2">
+                    <div>
+                        <div class="fw-semibold text-ink"><i class="bi bi-graph-up-arrow text-accent me-1"></i>Khung giờ lên giá</div>
+                        <div class="small text-muted">Giờ cao điểm (tối, cuối tuần...) có giá cao hơn giá thường. Để trống nếu không cần.</div>
+                    </div>
+                    <button type="button" class="btn btn-light btn-sm" id="addPeakRow"><i class="bi bi-plus-lg me-1"></i>Thêm khung</button>
+                </div>
+                <div id="peakRows" class="d-flex flex-column gap-2">
+                    @for (int i = 0; i < Model.PeakSlots.Count; i++)
+                    {
+                        <div class="row g-2 align-items-center peak-row">
+                            <div class="col-5 col-md-3"><input type="time" name="PeakSlots[@i].StartTime" value="@Model.PeakSlots[i].StartTime" class="form-control" aria-label="Từ giờ" /></div>
+                            <div class="col-5 col-md-3"><input type="time" name="PeakSlots[@i].EndTime" value="@Model.PeakSlots[i].EndTime" class="form-control" aria-label="Đến giờ" /></div>
+                            <div class="col-10 col-md-5">
+                                <div class="input-group">
+                                    <input type="number" step="10000" min="0" name="PeakSlots[@i].Price" value="@Model.PeakSlots[i].Price?.ToString("0")" class="form-control" placeholder="Giá" aria-label="Giá khung giờ" />
+                                    <span class="input-group-text">đ/giờ</span>
+                                </div>
+                            </div>
+                            <div class="col-2 col-md-1 text-end"><button type="button" class="btn btn-light btn-sm" data-remove-peak aria-label="Xóa khung"><i class="bi bi-trash"></i></button></div>
+                        </div>
+                    }
+                </div>
+                <div class="form-text mt-2">Giờ kết thúc 00:00 = nửa đêm. Sau khi tạo vẫn chỉnh được bảng giá và thêm sân con trong trang quản lý.</div>
+            </div>
+        </div>
+
+        <div class="panel mb-4">
+            <div class="panel-header"><h5 class="panel-title"><span class="icon-bubble sm green">4</span> Ảnh cụm sân</h5></div>
+            <div class="panel-body">
+                <label for="photoInput" class="photo-drop d-flex flex-column align-items-center justify-content-center text-center p-4 rounded-3 w-100" style="border: 2px dashed var(--line); cursor: pointer;">
+                    <i class="bi bi-cloud-arrow-up fs-2 text-success"></i>
+                    <span class="fw-semibold text-ink">Chọn ảnh từ máy</span>
+                    <span class="small text-muted">JPG, PNG, WebP · tối đa 5MB/ảnh · tối đa 12 ảnh. Ảnh đầu tiên làm ảnh bìa.</span>
+                </label>
+                <input type="file" id="photoInput" name="Photos" accept="image/jpeg,image/png,image/webp" multiple class="d-none" />
+                <div id="photoPreview" class="d-flex flex-wrap gap-2 mt-3"></div>
+                <div id="photoNote" class="small text-danger mt-1"></div>
             </div>
         </div>
 
@@ -112,4 +147,67 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script src="~/js/map-preview.js" asp-append-version="true"></script>
+    <script>
+    (function () {
+        // ----- Khung giờ lên giá: thêm / xóa dòng, đánh lại chỉ số để model binding đọc đúng -----
+        var rows = document.getElementById('peakRows');
+        function reindex() {
+            rows.querySelectorAll('.peak-row').forEach(function (row, i) {
+                row.querySelectorAll('input').forEach(function (inp) {
+                    inp.name = inp.name.replace(/PeakSlots\[\d+\]/, 'PeakSlots[' + i + ']');
+                });
+            });
+        }
+        function rowHtml() {
+            return '<div class="row g-2 align-items-center peak-row">' +
+                '<div class="col-5 col-md-3"><input type="time" name="PeakSlots[0].StartTime" class="form-control" aria-label="Từ giờ" /></div>' +
+                '<div class="col-5 col-md-3"><input type="time" name="PeakSlots[0].EndTime" class="form-control" aria-label="Đến giờ" /></div>' +
+                '<div class="col-10 col-md-5"><div class="input-group"><input type="number" step="10000" min="0" name="PeakSlots[0].Price" class="form-control" placeholder="Giá" aria-label="Giá khung giờ" /><span class="input-group-text">đ/giờ</span></div></div>' +
+                '<div class="col-2 col-md-1 text-end"><button type="button" class="btn btn-light btn-sm" data-remove-peak aria-label="Xóa khung"><i class="bi bi-trash"></i></button></div>' +
+                '</div>';
+        }
+        document.getElementById('addPeakRow').addEventListener('click', function () {
+            rows.insertAdjacentHTML('beforeend', rowHtml());
+            reindex();
+            rows.lastElementChild.querySelector('input').focus();
+        });
+        rows.addEventListener('click', function (e) {
+            var btn = e.target.closest('[data-remove-peak]');
+            if (!btn) return;
+            btn.closest('.peak-row').remove();
+            reindex();
+        });
+
+        // ----- Ảnh: xem trước ảnh đã chọn -----
+        var input = document.getElementById('photoInput');
+        var preview = document.getElementById('photoPreview');
+        var note = document.getElementById('photoNote');
+        input.addEventListener('change', function () {
+            preview.innerHTML = '';
+            var files = Array.prototype.slice.call(input.files || []);
+            var problems = [];
+            if (files.length > 12) problems.push('Chỉ được chọn tối đa 12 ảnh.');
+            files.forEach(function (f, i) {
+                if (f.size > 5 * 1024 * 1024) problems.push(f.name + ' lớn hơn 5MB');
+                var box = document.createElement('div');
+                box.className = 'position-relative';
+                var img = document.createElement('img');
+                img.src = URL.createObjectURL(f);
+                img.alt = f.name;
+                img.className = 'rounded-3 border';
+                img.style.cssText = 'width:110px;height:80px;object-fit:cover;';
+                box.appendChild(img);
+                if (i === 0) {
+                    var tag = document.createElement('span');
+                    tag.className = 'badge bg-success position-absolute top-0 start-0 m-1';
+                    tag.textContent = 'Ảnh bìa';
+                    box.appendChild(tag);
+                }
+                preview.appendChild(box);
+            });
+            note.textContent = problems.join(' · ');
+        });
+    })();
+    </script>
 }

@@ -29,6 +29,9 @@ namespace DACN.Data
         public DbSet<EmailMessage> EmailMessages => Set<EmailMessage>();
         public DbSet<FavoriteFacility> FavoriteFacilities => Set<FavoriteFacility>();
         public DbSet<FacilityImage> FacilityImages => Set<FacilityImage>();
+        public DbSet<RecentlyViewedFacility> RecentlyViewedFacilities => Set<RecentlyViewedFacility>();
+        public DbSet<BankAccount> BankAccounts => Set<BankAccount>();
+        public DbSet<BankTransaction> BankTransactions => Set<BankTransaction>();
 
         /// <summary>
         /// Cột SQL kiểu time chỉ lưu tối đa 23:59:59.9999999 nên mốc 24:00 (nửa đêm, dùng cho sân mở tới khuya)
@@ -188,6 +191,47 @@ namespace DACN.Data
                 entity.HasOne(f => f.User)
                       .WithMany()
                       .HasForeignKey(f => f.UserId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // ===== Ngân hàng ảo =====
+            builder.Entity<BankAccount>(entity =>
+            {
+                entity.HasIndex(a => a.AccountNo).IsUnique();
+                // Mỗi người dùng đúng 1 tài khoản (tài khoản SYSTEM có OwnerId = null)
+                entity.HasIndex(a => a.OwnerId).IsUnique().HasFilter("[OwnerId] IS NOT NULL");
+                entity.HasOne(a => a.Owner).WithMany().HasForeignKey(a => a.OwnerId).OnDelete(DeleteBehavior.Restrict);
+                // Không cho số dư âm ngay ở tầng database
+                entity.ToTable(t => t.HasCheckConstraint("CK_BankAccounts_Balance_NonNegative", "[Balance] >= 0"));
+            });
+
+            builder.Entity<BankTransaction>(entity =>
+            {
+                // Mỗi đơn chỉ thanh toán 1 lần và hoàn tiền 1 lần
+                entity.HasIndex(t => new { t.BookingId, t.Type }).IsUnique().HasFilter("[BookingId] IS NOT NULL");
+                entity.HasIndex(t => new { t.FromAccountId, t.CreatedAt });
+                entity.HasIndex(t => new { t.ToAccountId, t.CreatedAt });
+                entity.HasOne(t => t.FromAccount).WithMany().HasForeignKey(t => t.FromAccountId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(t => t.ToAccount).WithMany().HasForeignKey(t => t.ToAccountId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(t => t.Booking).WithMany().HasForeignKey(t => t.BookingId).OnDelete(DeleteBehavior.Restrict);
+                entity.ToTable(t =>
+                {
+                    t.HasCheckConstraint("CK_BankTransactions_Amount_Positive", "[Amount] > 0");
+                    t.HasCheckConstraint("CK_BankTransactions_From_Not_To", "[FromAccountId] IS NULL OR [FromAccountId] <> [ToAccountId]");
+                });
+            });
+
+            builder.Entity<RecentlyViewedFacility>(entity =>
+            {
+                entity.HasIndex(r => new { r.UserId, r.FacilityId }).IsUnique();
+                entity.HasIndex(r => new { r.UserId, r.ViewedAt });
+                entity.HasOne(r => r.Facility)
+                      .WithMany()
+                      .HasForeignKey(r => r.FacilityId)
+                      .OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(r => r.User)
+                      .WithMany()
+                      .HasForeignKey(r => r.UserId)
                       .OnDelete(DeleteBehavior.Cascade);
             });
 

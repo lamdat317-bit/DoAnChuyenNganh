@@ -52,47 +52,6 @@ namespace DACN.Controllers
                 && (b.CustomerId == userId || (b.Court != null && b.Court.Facility != null && b.Court.Facility.OwnerId == userId)));
         }
 
-        // ===== Ảnh biên lai chuyển khoản: lưu trong SQL (bảng BookingPaymentProofs) =====
-        private const long MaxProofBytes = 5 * 1024 * 1024;
-
-        /// <summary>Ghi (hoặc thay) ảnh biên lai của đơn vào SQL, trả về URL để hiển thị ảnh.</summary>
-        private async Task<string> SaveProofToDbAsync(int bookingId, byte[] data, string contentType, string? fileName)
-        {
-            var proof = await _unitOfWork.PaymentProofs.FirstOrDefaultAsync(p => p.BookingId == bookingId);
-            if (proof == null)
-            {
-                proof = new BookingPaymentProof { BookingId = bookingId };
-                await _unitOfWork.PaymentProofs.AddAsync(proof);
-            }
-            proof.Data = data;
-            proof.ContentType = contentType;
-            proof.OriginalFileName = fileName;
-            proof.CreatedAt = DateTime.UtcNow;
-            await _unitOfWork.CompleteAsync();
-            return Url.Action(nameof(ProofImage), new { bookingId, v = DateTime.Now.Ticks })!;
-        }
-
-        /// <summary>Giải mã "data:image/...;base64,..." hoặc "data:image/svg+xml;charset=utf-8,..." thành byte[].</summary>
-        private static bool TryDecodeDataUri(string? dataUri, out byte[] bytes, out string contentType)
-        {
-            bytes = Array.Empty<byte>();
-            contentType = "image/png";
-            if (string.IsNullOrEmpty(dataUri) || !dataUri.StartsWith("data:image/")) return false;
-            var comma = dataUri.IndexOf(',');
-            if (comma < 0) return false;
-            var header = dataUri.Substring(5, comma - 5); // vd: image/png;base64
-            var payload = dataUri[(comma + 1)..];
-            contentType = header.Split(';')[0];
-            try
-            {
-                bytes = header.Contains(";base64")
-                    ? Convert.FromBase64String(payload)
-                    : System.Text.Encoding.UTF8.GetBytes(Uri.UnescapeDataString(payload));
-            }
-            catch (FormatException) { return false; }
-            return bytes.Length > 0 && bytes.Length <= MaxProofBytes;
-        }
-
         // Trả ảnh biên lai từ SQL — chỉ người đặt, chủ sân hoặc Admin xem được
         [Authorize]
         [HttpGet]
@@ -150,7 +109,7 @@ namespace DACN.Controllers
 
             // Dữ liệu cho chế độ xem bản đồ: toàn bộ kết quả lọc có tọa độ GPS
             ViewBag.MapData = facilities
-                .Where(f => f.Latitude.HasValue && f.Longitude.HasValue && f.Latitude.Value != 0)
+                .Where(f => FacilityMap.HasCoordinates(f.Latitude, f.Longitude))
                 .Select(f => new
                 {
                     id = f.Id,
@@ -338,7 +297,7 @@ namespace DACN.Controllers
         // 4. Màn hình thanh toán đơn đặt sân
         [Authorize]
         [HttpGet]
-        public async Task<IActionResult> Checkout(int bookingId)
+        public async Task<IActionResult> Checkout(int bookingId, [FromServices] IBankService bank)
         {
             if (!await CanAccessBookingAsync(bookingId)) return Forbid();
             var booking = await _bookingService.GetBookingByIdAsync(bookingId);
@@ -361,131 +320,67 @@ namespace DACN.Controllers
                 return RedirectToAction(nameof(Matrix), new { courtId = booking.CourtId, date = booking.BookingDate.ToString("yyyy-MM-dd") });
             }
 
+            // Ví của người xem (chỉ khách đặt đơn mới thanh toán được)
+            ViewBag.Wallet = await bank.EnsureAccountAsync(CurrentUserId);
+            ViewBag.IsOwnBooking = booking.CustomerId == CurrentUserId && !booking.IsCounterBooking;
             return View(booking);
         }
 
-        /// <summary>
-        /// Điều hướng khi đơn không thể thanh toán: đã trả tiền → vé xác nhận; không tồn tại → trang tìm sân;
-        /// còn lại (đã hủy / quá hạn giữ chỗ) → về ma trận giờ để khách chọn lại khung giờ.
-        /// </summary>
-        private IActionResult RedirectForUnpayable(BookingResult check, int bookingId)
-        {
-            if (check.Booking == null)
-            {
-                TempData["ErrorMessage"] = check.Message;
-                return RedirectToAction(nameof(Index));
-            }
-
-            if (check.Booking.PaymentStatus != PaymentStatus.Unpaid)
-            {
-                TempData["SuccessMessage"] = check.Message;
-                return RedirectToAction(nameof(Confirmation), new { bookingId });
-            }
-
-            TempData["ErrorMessage"] = check.Message;
-            return RedirectToAction(nameof(Matrix), new { courtId = check.Booking.CourtId, date = check.Booking.BookingDate.ToString("yyyy-MM-dd") });
-        }
-
-        // 5a. Hỗ trợ GET cho SubmitVirtualTransfer (chống lỗi 405 Method Not Allowed khi F5 hoặc gõ URL trực tiếp)
-        [HttpGet]
-        public IActionResult SubmitVirtualTransfer(int? bookingId)
-        {
-            if (bookingId.HasValue && bookingId.Value > 0)
-            {
-                return RedirectToAction(nameof(Checkout), new { bookingId = bookingId.Value });
-            }
-            return RedirectToAction(nameof(MyBookings));
-        }
-
-        // 5b. Xử lý chuyển khoản Ngân Hàng Ảo kèm tải ảnh minh chứng chuyển khoản (Proof of Payment)
+        // 5a. Thanh toán bằng ví - bước 1: xin mã OTP (giả lập: hiện trên màn hình + in ra console)
         [Authorize]
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> SubmitVirtualTransfer(
-            int bookingId,
-            IFormFile? proofImage,
-            string? senderAccount,
-            string? transactionRef,
-            string? note,
-            string? sampleProofBill)
+        public async Task<IActionResult> RequestPaymentOtp(int bookingId, [FromServices] IPaymentService payments)
         {
-            if (!await CanAccessBookingAsync(bookingId)) return Forbid();
-            try
+            var result = await payments.RequestPaymentOtpAsync(bookingId, CurrentUserId);
+            if (result.Success)
             {
-                // Kiểm tra đơn còn thanh toán được (chưa trả tiền, chưa hủy, còn hạn giữ chỗ) TRƯỚC khi lưu file
-                var check = await _bookingService.CheckPayableAsync(bookingId);
-                if (!check.IsSuccess)
-                {
-                    return RedirectForUnpayable(check, bookingId);
-                }
-
-                // Kiểm tra xem khách đã gửi ảnh minh chứng chưa
-                if ((proofImage == null || proofImage.Length == 0) && string.IsNullOrEmpty(sampleProofBill))
-                {
-                    TempData["ErrorMessage"] = "Vui lòng đính kèm ảnh chụp màn hình biên lai chuyển khoản thành công trước khi xác nhận.";
-                    return RedirectToAction(nameof(Checkout), new { bookingId });
-                }
-
-                string? savedProofPath = null;
-
-                // 1. Nếu khách tải file ảnh minh chứng thật từ điện thoại / máy tính -> lưu thẳng vào SQL
-                if (proofImage != null && proofImage.Length > 0)
-                {
-                    var allowedTypes = new Dictionary<string, string>
-                    {
-                        [".jpg"] = "image/jpeg", [".jpeg"] = "image/jpeg", [".png"] = "image/png",
-                        [".webp"] = "image/webp", [".gif"] = "image/gif"
-                    };
-                    var ext = Path.GetExtension(proofImage.FileName).ToLowerInvariant();
-                    if (!allowedTypes.TryGetValue(ext, out var contentType))
-                    {
-                        TempData["ErrorMessage"] = "Định dạng file ảnh không hợp lệ (chỉ chấp nhận JPG, PNG, WEBP).";
-                        return RedirectToAction(nameof(Checkout), new { bookingId });
-                    }
-                    if (proofImage.Length > MaxProofBytes)
-                    {
-                        TempData["ErrorMessage"] = "Ảnh biên lai quá lớn (tối đa 5 MB).";
-                        return RedirectToAction(nameof(Checkout), new { bookingId });
-                    }
-
-                    using var ms = new MemoryStream();
-                    await proofImage.CopyToAsync(ms);
-                    savedProofPath = await SaveProofToDbAsync(bookingId, ms.ToArray(), contentType, Path.GetFileName(proofImage.FileName));
-                }
-                // 2. Dự phòng hỗ trợ dữ liệu ảnh Base64 / SVG từ API hoặc kiểm thử
-                else if (TryDecodeDataUri(sampleProofBill, out var billBytes, out var billType))
-                {
-                    savedProofPath = await SaveProofToDbAsync(bookingId, billBytes, billType, null);
-                }
-
-                var txnRef = string.IsNullOrEmpty(transactionRef)
-                    ? $"VTB-{DateTime.UtcNow:yyyyMMddHHmmss}-{bookingId}"
-                    : transactionRef;
-
-                var fullNote = !string.IsNullOrEmpty(senderAccount)
-                    ? $"Người chuyển: {senderAccount}. {note}"
-                    : (string.IsNullOrEmpty(note) ? "Chuyển khoản VietQR" : note);
-
-                var result = await _bookingService.SubmitBankTransferProofAsync(
-                    bookingId,
-                    savedProofPath,
-                    txnRef,
-                    "VietQR (VietinBank 24/7)",
-                    fullNote);
-
-                if (result.IsSuccess)
-                {
-                    TempData["SuccessMessage"] = result.Message;
-                    return RedirectToAction(nameof(Confirmation), new { bookingId });
-                }
-
-                return RedirectForUnpayable(result, bookingId);
+                TempData["PaymentOtp"] = result.Otp;
+                TempData["PaymentOtpExpires"] = result.OtpExpiresAtUtc!.Value.ToString("o");
+                TempData["SuccessMessage"] = result.Message;
             }
-            catch (Exception ex)
+            else
             {
-                TempData["ErrorMessage"] = $"Lỗi xử lý chuyển khoản: {ex.Message}";
-                return RedirectToAction(nameof(Checkout), new { bookingId });
+                TempData["ErrorMessage"] = result.Message;
+                if (result.InsufficientFunds) TempData["PaymentShortfall"] = result.Shortfall.ToString();
             }
+            return RedirectToAction(nameof(Checkout), new { bookingId });
+        }
+
+        // 5b. Thanh toán bằng ví - bước 2: nhập OTP → trừ ví khách, cộng ví chủ sân, đơn chuyển sang ĐÃ THANH TOÁN
+        [Authorize]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ConfirmPayment(int bookingId, string? otp, [FromServices] IPaymentService payments)
+        {
+            var result = await payments.ConfirmPaymentAsync(bookingId, CurrentUserId, otp);
+            if (result.Success)
+            {
+                TempData["SuccessMessage"] = result.Message;
+                return RedirectToAction(nameof(Confirmation), new { bookingId });
+            }
+            TempData["ErrorMessage"] = result.Message;
+            if (result.InsufficientFunds) TempData["PaymentShortfall"] = result.Shortfall.ToString();
+            return RedirectToAction(nameof(Checkout), new { bookingId });
+        }
+
+        // Xem trước số tiền được hoàn nếu hủy ngay (popup xác nhận hủy gọi bằng AJAX)
+        [Authorize]
+        [HttpGet]
+        public async Task<IActionResult> CancelPreview(int bookingId, [FromServices] IPaymentService payments)
+        {
+            var p = await payments.PreviewCancelAsync(bookingId, CurrentUserId);
+            return Json(new
+            {
+                canCancel = p.CanCancel,
+                blockReason = p.BlockReason,
+                isPaid = p.IsPaid,
+                percent = p.RefundPercent,
+                paid = p.PaidAmount,
+                refund = p.RefundAmount,
+                paidText = Money.Vnd(p.PaidAmount),
+                refundText = Money.Vnd(p.RefundAmount)
+            });
         }
 
         // 5d. Cổng Sao Kê / Quản Lý Ngân Hàng Ảo (Chỉ dành riêng cho Quản Trị Viên Admin)
@@ -563,11 +458,12 @@ namespace DACN.Controllers
         [Authorize]
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Cancel(int bookingId, string? reason)
+        public async Task<IActionResult> Cancel(int bookingId, string? reason, [FromServices] IPaymentService payments)
         {
-            var result = await _bookingService.CancelBookingAsync(bookingId, CurrentUserId, reason);
+            // Hủy + hoàn tiền tự động vào ví theo chính sách (PaymentService kiểm tra quyền: chỉ đơn của chính mình)
+            var result = await payments.CancelBookingAsync(bookingId, CurrentUserId, reason);
 
-            TempData[result.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = result.Message;
+            TempData[result.Success ? "SuccessMessage" : "ErrorMessage"] = result.Message;
 
             return RedirectToAction(nameof(MyBookings));
         }
@@ -580,12 +476,19 @@ namespace DACN.Controllers
         {
             var userId = CurrentUserId;
             var booking = await _unitOfWork.Bookings.Query()
-                .Include(b => b.Court)
-                .FirstOrDefaultAsync(b => b.Id == model.BookingId && b.CustomerId == userId);
+                .Include(b => b.Court).ThenInclude(c => c!.Facility)
+                .FirstOrDefaultAsync(b => b.Id == model.BookingId && b.CustomerId == userId && !b.IsCounterBooking);
 
             if (booking == null || booking.Court == null)
             {
                 TempData["ErrorMessage"] = "Không tìm thấy đơn đặt sân của bạn.";
+                return RedirectToAction(nameof(MyBookings));
+            }
+
+            // Chủ sân không được tự đánh giá cụm sân của mình
+            if (booking.Court.Facility?.OwnerId == userId)
+            {
+                TempData["ErrorMessage"] = "Bạn là chủ cụm sân này nên không thể tự đánh giá.";
                 return RedirectToAction(nameof(MyBookings));
             }
 
@@ -652,7 +555,83 @@ namespace DACN.Controllers
                 .Select(i => i.Id)
                 .ToListAsync();
 
+            await TrackRecentViewAsync(facility.Id);
             return View(facility);
+        }
+
+        // ===== Sân đã xem gần đây (theo tài khoản) =====
+        private const int RecentViewsKept = 8;
+
+        /// <summary>Ghi nhận tài khoản vừa xem cụm sân; chỉ giữ <see cref="RecentViewsKept"/> sân mới nhất.</summary>
+        private async Task TrackRecentViewAsync(int facilityId)
+        {
+            if (User.Identity?.IsAuthenticated != true) return;
+            var uid = CurrentUserId;
+            var db = _unitOfWork.Context;
+            try
+            {
+                var row = await db.RecentlyViewedFacilities.FirstOrDefaultAsync(r => r.UserId == uid && r.FacilityId == facilityId);
+                if (row != null) row.ViewedAt = DateTime.UtcNow;
+                else db.RecentlyViewedFacilities.Add(new RecentlyViewedFacility { UserId = uid, FacilityId = facilityId });
+                await db.SaveChangesAsync();
+
+                var old = await db.RecentlyViewedFacilities.Where(r => r.UserId == uid)
+                    .OrderByDescending(r => r.ViewedAt).Skip(RecentViewsKept).ToListAsync();
+                if (old.Count > 0)
+                {
+                    db.RecentlyViewedFacilities.RemoveRange(old);
+                    await db.SaveChangesAsync();
+                }
+            }
+            catch (DbUpdateException)
+            {
+                // Mở 2 tab cùng lúc có thể trùng khóa (UserId, FacilityId): bỏ qua, lịch sử xem không quan trọng tới mức chặn trang
+                db.ChangeTracker.Clear();
+            }
+        }
+
+        /// <summary>Danh sách sân tài khoản đã xem gần đây (trang chủ gọi bằng AJAX).</summary>
+        [HttpGet]
+        public async Task<IActionResult> RecentViews()
+        {
+            if (User.Identity?.IsAuthenticated != true) return Json(Array.Empty<object>());
+            var uid = CurrentUserId;
+            var db = _unitOfWork.Context;
+            var rows = await db.RecentlyViewedFacilities
+                .Where(r => r.UserId == uid && r.Facility != null && r.Facility.ApprovalStatus == FacilityApprovalStatus.Approved)
+                .OrderByDescending(r => r.ViewedAt)
+                .Take(RecentViewsKept)
+                .Select(r => new
+                {
+                    r.FacilityId,
+                    r.Facility!.Name,
+                    Sport = r.Facility.SportType != null ? r.Facility.SportType.Name : null,
+                    MinPrice = r.Facility.Courts.SelectMany(c => c.TimeSlots).Select(s => (decimal?)s.Price).Min(),
+                    CoverId = db.FacilityImages.Where(i => i.FacilityId == r.FacilityId)
+                        .OrderByDescending(i => i.IsCover).ThenBy(i => i.SortOrder).ThenBy(i => i.Id)
+                        .Select(i => (int?)i.Id).FirstOrDefault()
+                })
+                .ToListAsync();
+
+            return Json(rows.Select(r => new
+            {
+                id = r.FacilityId.ToString(),
+                name = r.Name,
+                sport = r.Sport ?? "Thể thao",
+                price = (r.MinPrice ?? BookingRules.DefaultPricePerHour).ToString("N0"),
+                img = r.CoverId.HasValue ? DACN.Services.FacilityService.PhotoUrl(r.CoverId.Value) : DACN.Services.FacilityService.GetSportCoverImage(r.Sport, r.FacilityId)
+            }));
+        }
+
+        /// <summary>Xóa lịch sử sân đã xem của tài khoản.</summary>
+        [HttpPost]
+        [Authorize]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ClearRecentViews()
+        {
+            var uid = CurrentUserId;
+            await _unitOfWork.Context.RecentlyViewedFacilities.Where(r => r.UserId == uid).ExecuteDeleteAsync();
+            return Json(new { ok = true });
         }
 
         /// <summary>Ảnh cụm sân lưu trong SQL. Cụm sân chưa duyệt thì chỉ chủ sân / Admin xem được.</summary>

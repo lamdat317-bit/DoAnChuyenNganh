@@ -189,7 +189,7 @@
         {
             <div class="table-responsive">
                 <table class="table align-middle mb-0">
-                    <thead><tr><th>Lúc</th><th>Mã vé</th><th>Khách</th><th>Sân</th><th>Giờ chơi</th></tr></thead>
+                    <thead><tr><th>Lúc</th><th>Mã vé</th><th>Khách</th><th>Sân</th><th>Ngày · Giờ chơi</th></tr></thead>
                     <tbody>
                         @foreach (var b in todayCheckIns)
                         {
@@ -198,7 +198,7 @@
                                 <td><a asp-action="CheckIn" asp-route-code="@b.CheckInCode" class="font-monospace">@TicketCode.Pretty(b.CheckInCode)</a></td>
                                 <td>@(b.CustomerName ?? "Khách")</td>
                                 <td>@b.Court?.Facility?.Name · @b.Court?.Name</td>
-                                <td>@BookingRules.Hm(b.StartTime)–@BookingRules.Hm(b.EndTime)</td>
+                                <td>@b.BookingDate.ToString("dd/MM") · @BookingRules.Hm(b.StartTime)–@BookingRules.Hm(b.EndTime)</td>
                             </tr>
                         }
                     </tbody>

@@ -15,7 +15,7 @@ namespace DACN.Services
     public static class BookingRules
     {
         /// <summary>Thời gian giữ chỗ tối đa cho đơn chưa thanh toán (phút).</summary>
-        public const int HoldMinutes = 5;
+        public const int HoldMinutes = PaymentPolicy.HoldMinutes; // 15 phút, chỉnh ở PaymentPolicy
 
         /// <summary>Đơn giá mặc định (VNĐ/giờ) cho phần thời gian chưa được cấu hình bảng giá.</summary>
         public const decimal DefaultPricePerHour = 150000m;
@@ -44,18 +44,21 @@ namespace DACN.Services
             booking.Status != BookingStatus.Cancelled && !IsHoldExpired(booking, utcNow);
 
         /// <summary>
-        /// Khách tự hủy đơn đã thanh toán khi còn ít nhất ngần này giờ trước giờ thi đấu thì được hoàn 100%.
-        /// Hủy sát giờ hơn (nhưng chưa tới giờ) vẫn được, hoàn <see cref="LateCancelRefundPercent"/>%.
-        /// Chủ sân / Admin hủy thì luôn hoàn 100%.
+        /// Chính sách hoàn tiền khi khách tự hủy (số liệu ở <see cref="PaymentPolicy"/>):
+        /// trước giờ chơi ≥ 12h hoàn 100%, từ 6h tới dưới 12h hoàn 50%, dưới 6h không hoàn. Chủ sân / Admin hủy luôn hoàn 100%.
         /// </summary>
-        public const int FreeCancelHours = 6;
+        public const int FreeCancelHours = PaymentPolicy.FullRefundHours;
 
-        /// <summary>Phần trăm tiền hoàn khi khách hủy trong vòng <see cref="FreeCancelHours"/> tiếng trước giờ thi đấu.</summary>
-        public const int LateCancelRefundPercent = 50;
+        /// <summary>Phần trăm hoàn khi khách hủy trong khoảng [<see cref="PaymentPolicy.PartialRefundHours"/>h, <see cref="FreeCancelHours"/>h) trước giờ chơi.</summary>
+        public const int LateCancelRefundPercent = PaymentPolicy.PartialRefundPercent;
+
+        /// <summary>Câu mô tả chính sách hoàn tiền (dùng chung cho các trang).</summary>
+        public static string RefundPolicyText =>
+            $"Hủy trước giờ chơi ≥ {PaymentPolicy.FullRefundHours} tiếng hoàn 100%, từ {PaymentPolicy.PartialRefundHours} tới dưới {PaymentPolicy.FullRefundHours} tiếng hoàn {PaymentPolicy.PartialRefundPercent}%, dưới {PaymentPolicy.PartialRefundHours} tiếng không hoàn tiền. Chủ sân hủy đơn: hoàn 100%.";
 
         /// <summary>Phần trăm tiền được hoàn nếu khách tự hủy vào thời điểm <paramref name="nowLocal"/>.</summary>
         public static int CustomerRefundPercent(Booking booking, DateTime nowLocal) =>
-            StartsAt(booking) - nowLocal >= TimeSpan.FromHours(FreeCancelHours) ? 100 : LateCancelRefundPercent;
+            PaymentPolicy.RefundPercent((StartsAt(booking) - nowLocal).TotalHours);
 
         /// <summary>
         /// Doanh thu thực chủ sân giữ lại từ một đơn:
@@ -65,14 +68,16 @@ namespace DACN.Services
         public static decimal RevenueOf(Booking b)
         {
             if (b.PaymentStatus == PaymentStatus.Paid && b.Status != BookingStatus.Cancelled) return b.TotalAmount;
+            // Hủy sát giờ (dưới 6h) đơn trả bằng ví: không hoàn, chủ sân giữ toàn bộ tiền
+            if (b.PaymentStatus == PaymentStatus.Paid && b.Status == BookingStatus.Cancelled) return Math.Max(0, b.TotalAmount - (b.RefundAmount ?? 0));
             if (b.PaymentStatus is PaymentStatus.RefundPending or PaymentStatus.Refunded && b.RefundAmount.HasValue)
                 return Math.Max(0, b.TotalAmount - b.RefundAmount.Value);
             return 0;
         }
 
-        /// <summary>Số tiền hoàn theo phần trăm, làm tròn đến nghìn đồng.</summary>
+        /// <summary>Số tiền hoàn theo phần trăm (làm tròn xuống tới đồng, giống <see cref="PaymentPolicy.RefundAmount"/>).</summary>
         public static decimal RefundAmountFor(decimal total, int percent) =>
-            percent >= 100 ? total : Math.Round(total * percent / 100m / 1000m, MidpointRounding.AwayFromZero) * 1000m;
+            percent >= 100 ? total : Math.Floor(total * percent / 100m);
 
         /// <summary>Thời điểm bắt đầu trận (giờ địa phương).</summary>
         public static DateTime StartsAt(Booking booking) =>
@@ -87,7 +92,8 @@ namespace DACN.Services
         /// (đã hoàn thành, hoặc đã xác nhận + thanh toán). Đơn hủy không được đánh giá.
         /// </summary>
         public static bool CanReview(Booking booking, DateTime nowLocal) =>
-            booking.Status != BookingStatus.Cancelled
+            !booking.IsCounterBooking // đơn chủ sân đặt hộ tại quầy: không phải khách thật nên không được đánh giá
+            && booking.Status != BookingStatus.Cancelled
             && EndsAt(booking) <= nowLocal
             && (booking.Status == BookingStatus.Completed
                 || (booking.Status == BookingStatus.Confirmed && booking.PaymentStatus == PaymentStatus.Paid));

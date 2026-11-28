@@ -92,7 +92,7 @@
 </section>
 
 <!-- RECENTLY VIEWED (localStorage) -->
-<section class="pt-4" id="recentVenues" hidden data-detail-url="@Url.Action("FacilityDetail", "Booking", new { id = "" })/">
+<section class="pt-4" id="recentVenues" hidden data-detail-url="@Url.Action("FacilityDetail", "Booking", new { id = "" })/" data-recent-url="@Url.Action("RecentViews", "Booking")" data-recent-clear-url="@Url.Action("ClearRecentViews", "Booking")">
     <div class="container">
         <div class="panel panel-body">
             <div class="d-flex justify-content-between align-items-center mb-3">

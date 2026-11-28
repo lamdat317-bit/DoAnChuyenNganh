@@ -168,41 +168,67 @@
         }
     });
 
-    // ---------- Sân đã xem gần đây (lưu trên trình duyệt) ----------
-    var RECENT_KEY = 'sb.recent';
-    function readRecent() { try { return JSON.parse(localStorage.getItem(RECENT_KEY) || '[]'); } catch (e) { return []; } }
+    // ---------- Sân đã xem gần đây ----------
+    // Đã đăng nhập: lưu theo tài khoản trên server (mỗi tài khoản 1 lịch sử, đăng nhập máy nào cũng thấy).
+    // Khách chưa đăng nhập: lưu tạm trên trình duyệt.
+    var GUEST_RECENT_KEY = 'sb.recent.guest';
+    try {
+        // Dọn các khóa cũ: 'sb.recent' (dùng chung mọi tài khoản) và 'sb.recent.<mã tài khoản>' (bản trước khi lưu lên server)
+        Object.keys(localStorage).forEach(function (k) {
+            if (k === 'sb.recent' || (k.indexOf('sb.recent.') === 0 && k !== GUEST_RECENT_KEY)) localStorage.removeItem(k);
+        });
+    } catch (e) { }
+    function readGuestRecent() { try { return JSON.parse(localStorage.getItem(GUEST_RECENT_KEY) || '[]'); } catch (e) { return []; } }
     var track = document.querySelector('[data-track-recent]');
-    if (track) {
+    if (track && !isAuth) {
         var item = {
             id: track.dataset.venueId, name: track.dataset.venueName, img: track.dataset.venueImg,
-            addr: track.dataset.venueAddr, price: track.dataset.venuePrice, sport: track.dataset.venueSport
+            price: track.dataset.venuePrice, sport: track.dataset.venueSport
         };
-        var list = readRecent().filter(function (x) { return x.id !== item.id; });
+        var list = readGuestRecent().filter(function (x) { return x.id !== item.id; });
         list.unshift(item);
-        try { localStorage.setItem(RECENT_KEY, JSON.stringify(list.slice(0, 8))); } catch (e) { }
+        try { localStorage.setItem(GUEST_RECENT_KEY, JSON.stringify(list.slice(0, 8))); } catch (e) { }
     }
     var recentBox = document.getElementById('recentVenues');
+    function renderRecent(items) {
+        if (!items || !items.length) { recentBox.hidden = true; return; }
+        var row = recentBox.querySelector('[data-recent-list]');
+        var base = recentBox.dataset.detailUrl || '/Booking/FacilityDetail/';
+        row.innerHTML = '';
+        items.slice(0, 4).forEach(function (x) {
+            var a = document.createElement('a');
+            a.className = 'recent-item';
+            a.href = base + encodeURIComponent(x.id);
+            var img = document.createElement('img'); img.src = x.img; img.alt = ''; img.loading = 'lazy';
+            var body = document.createElement('div'); body.className = 'min-w-0';
+            var n = document.createElement('div'); n.className = 'name text-truncate'; n.textContent = x.name;
+            var m = document.createElement('div'); m.className = 'meta text-truncate'; m.textContent = x.sport + ' · từ ' + x.price + 'đ/giờ';
+            body.appendChild(n); body.appendChild(m);
+            a.appendChild(img); a.appendChild(body);
+            row.appendChild(a);
+        });
+        recentBox.hidden = false;
+    }
     if (recentBox) {
-        var items = readRecent();
-        if (items.length) {
-            var row = recentBox.querySelector('[data-recent-list]');
-            var base = recentBox.dataset.detailUrl || '/Booking/FacilityDetail/';
-            items.slice(0, 4).forEach(function (x) {
-                var a = document.createElement('a');
-                a.className = 'recent-item';
-                a.href = base + encodeURIComponent(x.id);
-                var img = document.createElement('img'); img.src = x.img; img.alt = ''; img.loading = 'lazy';
-                var body = document.createElement('div'); body.className = 'min-w-0';
-                var n = document.createElement('div'); n.className = 'name text-truncate'; n.textContent = x.name;
-                var m = document.createElement('div'); m.className = 'meta text-truncate'; m.textContent = x.sport + ' · từ ' + x.price + 'đ/giờ';
-                body.appendChild(n); body.appendChild(m);
-                a.appendChild(img); a.appendChild(body);
-                row.appendChild(a);
-            });
-            recentBox.hidden = false;
-            var clear = recentBox.querySelector('[data-recent-clear]');
-            if (clear) clear.addEventListener('click', function () { localStorage.removeItem(RECENT_KEY); recentBox.hidden = true; });
+        if (isAuth) {
+            fetch(recentBox.dataset.recentUrl, { credentials: 'same-origin' })
+                .then(function (r) { return r.ok ? r.json() : []; })
+                .then(renderRecent)
+                .catch(function () { });
+        } else {
+            renderRecent(readGuestRecent());
         }
+        var clear = recentBox.querySelector('[data-recent-clear]');
+        if (clear) clear.addEventListener('click', function () {
+            recentBox.hidden = true;
+            if (!isAuth) { localStorage.removeItem(GUEST_RECENT_KEY); return; }
+            var body = new URLSearchParams();
+            body.append('__RequestVerificationToken', token());
+            fetch(recentBox.dataset.recentClearUrl, {
+                method: 'POST', credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: body
+            }).catch(function () { });
+        });
     }
 
     // ---------- Giao diện sáng / tối ----------

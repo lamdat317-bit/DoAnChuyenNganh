@@ -1,86 +1,80 @@
-@model List<DACN.Models.Booking>
+@using DACN.Services
+@using DACN.Models.Enums
+@model DACN.Areas.Admin.Controllers.AdminBankViewModel
 @{
-    ViewData["Title"] = "Sổ cái giao dịch";
-    var paid = Model.Where(b => b.PaymentStatus == PaymentStatus.Paid).ToList();
-    var totalIncome = paid.Sum(b => b.TotalAmount);
-    var today = DateTime.Today;
-    var todayIncome = paid.Where(b => (b.PaidAt ?? b.CreatedAt).ToLocalTime().Date == today).Sum(b => b.TotalAmount);
-    var withProof = Model.Count(b => !string.IsNullOrEmpty(b.PaymentProofImage));
+    ViewData["Title"] = "Sổ cái ngân hàng ảo";
+    // Tổng tiền đang nằm trong hệ thống phải đúng bằng tổng đã nạp (tiền chỉ chuyển qua lại giữa các ví)
+    var totalHeld = Model.System.Balance + Model.TotalUserBalance + Model.TotalOwnerBalance;
+    bool balanced = totalHeld == Model.TotalDeposits;
 }
 
 <div class="page-header">
     <div class="container">
         <span class="eyebrow">Quản trị hệ thống</span>
-        <h1>Sổ cái giao dịch</h1>
-        <p class="sub">100 giao dịch chuyển khoản gần nhất vào tài khoản DATSAN247 · VietinBank 10287462828.</p>
+        <h1>Sổ cái ngân hàng ảo</h1>
+        <p class="sub">Số dư tài khoản hệ thống, các ví và toàn bộ giao dịch nạp tiền / thanh toán / hoàn tiền.</p>
         <partial name="_ManageNav" />
     </div>
 </div>
 
 <div class="container">
     <div class="row g-3 mb-4">
-        <div class="col-6 col-lg-3"><div class="card stat-card"><span class="icon-bubble green"><i class="bi bi-wallet2"></i></span><div><div class="label">Tổng tiền vào</div><div class="value">@totalIncome.ToString("N0")<small class="fs-6">đ</small></div></div></div></div>
-        <div class="col-6 col-lg-3"><div class="card stat-card"><span class="icon-bubble blue"><i class="bi bi-calendar-day"></i></span><div><div class="label">Hôm nay</div><div class="value">@todayIncome.ToString("N0")<small class="fs-6">đ</small></div></div></div></div>
-        <div class="col-6 col-lg-3"><div class="card stat-card"><span class="icon-bubble amber"><i class="bi bi-arrow-left-right"></i></span><div><div class="label">Số giao dịch</div><div class="value">@Model.Count</div></div></div></div>
-        <div class="col-6 col-lg-3"><div class="card stat-card"><span class="icon-bubble violet"><i class="bi bi-image"></i></span><div><div class="label">Có biên lai</div><div class="value">@withProof</div></div></div></div>
+        <div class="col-6 col-lg-3"><div class="card stat-card"><span class="icon-bubble green"><i class="bi bi-bank"></i></span><div><div class="label">Tài khoản hệ thống</div><div class="value">@Money.Vnd(Model.System.Balance)</div><div class="small text-muted font-monospace">@Model.System.AccountNo</div></div></div></div>
+        <div class="col-6 col-lg-3"><div class="card stat-card"><span class="icon-bubble blue"><i class="bi bi-people"></i></span><div><div class="label">Ví khách hàng</div><div class="value">@Money.Vnd(Model.TotalUserBalance)</div><div class="small text-muted">@Model.AccountCount tài khoản</div></div></div></div>
+        <div class="col-6 col-lg-3"><div class="card stat-card"><span class="icon-bubble amber"><i class="bi bi-buildings"></i></span><div><div class="label">Ví chủ sân</div><div class="value">@Money.Vnd(Model.TotalOwnerBalance)</div><div class="small text-muted">Tiền khách đã thanh toán</div></div></div></div>
+        <div class="col-6 col-lg-3"><div class="card stat-card"><span class="icon-bubble @(balanced ? "green" : "red")"><i class="bi @(balanced ? "bi-check2-circle" : "bi-exclamation-triangle")"></i></span><div><div class="label">Đối soát</div><div class="value fs-6">@(balanced ? "Khớp" : "LỆCH")</div><div class="small text-muted">Tổng số dư @Money.Vnd(totalHeld) / tổng nạp @Money.Vnd(Model.TotalDeposits)</div></div></div></div>
     </div>
 
-    <div class="panel">
-        <div class="panel-header"><h5 class="panel-title"><i class="bi bi-journal-text"></i> Nhật ký giao dịch</h5></div>
-        @if (!Model.Any())
-        {
-            <div class="empty-state"><span class="icon-bubble lg slate"><i class="bi bi-inbox"></i></span><p class="mb-0">Chưa có giao dịch nào.</p></div>
-        }
-        else
-        {
-            <div class="table-wrap">
-                <table class="table table-hover">
-                    <thead><tr><th>Mã GD</th><th>Đơn</th><th>Người gửi</th><th class="text-end">Số tiền</th><th>Phương thức</th><th>Biên lai</th><th>Trạng thái</th></tr></thead>
-                    <tbody>
-                        @foreach (var bk in Model)
-                        {
-                            var t = (bk.PaidAt ?? bk.CreatedAt).ToLocalTime();
-                            var isPaid = bk.PaymentStatus == PaymentStatus.Paid;
-                            <tr>
-                                <td><div class="kbd-tag d-inline-block">@(string.IsNullOrEmpty(bk.PaymentTransactionRef) ? $"TXN-{bk.Id}" : bk.PaymentTransactionRef)</div><div class="small text-muted mt-1">@t.ToString("dd/MM/yyyy HH:mm")</div></td>
-                                <td><a asp-area="" asp-controller="Booking" asp-action="Confirmation" asp-route-bookingId="@bk.Id" target="_blank" class="fw-semibold">#BK-@bk.Id</a><div class="small text-muted text-truncate" style="max-width: 200px;">@(bk.Court?.Facility?.Name) · @(bk.Court?.Name)</div></td>
-                                <td><div class="fw-semibold text-ink">@(bk.CustomerName ?? bk.Customer?.FullName ?? "Khách hàng")</div><div class="small text-muted">@(bk.CustomerPhone ?? bk.Customer?.PhoneNumber)</div></td>
-                                <td class="text-end fw-bold text-success">+@bk.TotalAmount.ToString("N0")đ</td>
-                                <td><span class="badge-soft neutral">@(bk.PaymentMethod ?? "Chuyển khoản")</span></td>
-                                <td>
-                                    @if (!string.IsNullOrEmpty(bk.PaymentProofImage))
-                                    {
-                                        <button type="button" class="btn btn-light btn-sm" data-bs-toggle="modal" data-bs-target="#modalProofView" data-src="@bk.PaymentProofImage" data-title="#BK-@bk.Id"><i class="bi bi-image me-1"></i>Xem</button>
-                                    }
-                                    else
-                                    {
-                                        <span class="small text-muted">—</span>
-                                    }
-                                </td>
-                                <td><span class="badge-soft @(isPaid ? "success" : "warning")">@(isPaid ? "Đã nhận tiền" : "Chờ xác nhận")</span></td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
+    <div class="row g-4 mb-4">
+        <div class="col-lg-4">
+            <div class="panel h-100">
+                <div class="panel-header"><h5 class="panel-title"><i class="bi bi-pie-chart"></i> Tổng theo loại</h5></div>
+                <div class="panel-body">
+                    <div class="summary-row"><span class="k"><span class="badge-soft success"><i class="bi bi-box-arrow-in-down"></i> Nạp tiền</span></span><span class="v">@Money.Vnd(Model.TotalDeposits)</span></div>
+                    <div class="summary-row"><span class="k"><span class="badge-soft info"><i class="bi bi-credit-card"></i> Thanh toán</span></span><span class="v">@Money.Vnd(Model.TotalPayments)</span></div>
+                    <div class="summary-row"><span class="k"><span class="badge-soft warning"><i class="bi bi-arrow-counterclockwise"></i> Hoàn tiền</span></span><span class="v">@Money.Vnd(Model.TotalRefunds)</span></div>
+                </div>
             </div>
-        }
-    </div>
-</div>
-
-<div class="modal fade" id="modalProofView" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content">
-            <div class="modal-header"><h5 class="modal-title">Biên lai <span id="modalProofTitle"></span></h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button></div>
-            <div class="modal-body text-center"><img id="modalProofImg" src="" alt="Biên lai" class="img-fluid rounded-3" style="max-height: 70vh;" /></div>
+        </div>
+        <div class="col-lg-8">
+            <div class="panel h-100 overflow-hidden">
+                <div class="panel-header"><h5 class="panel-title"><i class="bi bi-wallet2"></i> Ví có số dư lớn nhất</h5></div>
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0 small">
+                        <thead><tr><th>Số tài khoản</th><th>Chủ tài khoản</th><th>Loại</th><th class="text-end">Số dư</th></tr></thead>
+                        <tbody>
+                            @foreach (var a in Model.TopAccounts)
+                            {
+                                <tr>
+                                    <td class="font-monospace">@a.AccountNo</td>
+                                    <td>@(a.Owner?.FullName ?? "—")<div class="text-muted">@a.Owner?.Email</div></td>
+                                    <td><span class="badge-soft @(a.OwnerType == BankOwnerType.CourtOwner ? "warning" : "neutral")">@Money.OwnerTypeLabel(a.OwnerType)</span></td>
+                                    <td class="text-end fw-bold">@Money.Vnd(a.Balance)</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
-</div>
 
-@section Scripts {
-    <script>
-        document.getElementById('modalProofView').addEventListener('show.bs.modal', function (e) {
-            document.getElementById('modalProofImg').src = e.relatedTarget.dataset.src;
-            document.getElementById('modalProofTitle').textContent = e.relatedTarget.dataset.title;
-        });
-    </script>
-}
+    <div class="panel overflow-hidden">
+        <div class="panel-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <h5 class="panel-title"><i class="bi bi-journal-text"></i> Toàn bộ giao dịch <span class="text-muted small fw-normal">(@Model.TransactionCount)</span></h5>
+            <form method="get" class="d-flex flex-wrap gap-2">
+                <select name="type" class="form-select form-select-sm" style="width:auto" onchange="this.form.submit()">
+                    <option value="">Tất cả loại</option>
+                    @foreach (var t in Enum.GetValues<BankTransactionType>())
+                    {
+                        <option value="@t" selected="@(Model.Type == t)">@Money.TypeBadge(t).Label</option>
+                    }
+                </select>
+                <input type="search" name="q" value="@Model.Query" class="form-control form-control-sm" style="width: 220px" placeholder="Mã đơn, số TK, email" />
+                <button type="submit" class="btn btn-light btn-sm"><i class="bi bi-search"></i></button>
+            </form>
+        </div>
+        <partial name="_BankTransactionTable" model="Model.Transactions" />
+    </div>
+    <partial name="_Pager" model='new PagerModel(Model.Page, Model.TotalPages, Url.Action("Index", new { type = Model.Type, q = Model.Query, page = "__page__" })!)' />
+</div>

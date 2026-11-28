@@ -39,17 +39,30 @@ namespace DACN.Models.ViewModels
         public string? Description { get; set; }
 
         [Display(Name = "Tọa độ Vĩ độ (Latitude)")]
-        public double? Latitude { get; set; } = 21.0285;
+        public double? Latitude { get; set; }
 
         [Display(Name = "Tọa độ Kinh độ (Longitude)")]
-        public double? Longitude { get; set; } = 105.8542;
+        public double? Longitude { get; set; }
 
         [Required(ErrorMessage = "Tên sân con ban đầu không được để trống")]
         [Display(Name = "Tên sân con khởi tạo")]
         public string InitialCourtName { get; set; } = "Sân 1 (Sân tiêu chuẩn)";
 
-        [Display(Name = "Đơn giá mặc định (VNĐ/giờ)")]
+        [Display(Name = "Giá thường (VNĐ/giờ)")]
         public decimal InitialPrice { get; set; } = 180000m;
+
+        /// <summary>Các khung giờ lên giá (cao điểm / cuối giờ...) áp cho sân con đầu tiên.</summary>
+        public List<PeakSlotInput> PeakSlots { get; set; } = new();
+
+        /// <summary>Ảnh tải lên từ máy (JPG/PNG/WebP, tối đa 5MB/ảnh).</summary>
+        public List<Microsoft.AspNetCore.Http.IFormFile>? Photos { get; set; }
+    }
+
+    public class PeakSlotInput
+    {
+        public string? StartTime { get; set; }
+        public string? EndTime { get; set; }
+        public decimal? Price { get; set; }
     }
 
     public class EditFacilityViewModel

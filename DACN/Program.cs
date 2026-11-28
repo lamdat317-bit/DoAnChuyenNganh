@@ -30,6 +30,11 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
     options.Password.RequireNonAlphanumeric = false;
     options.Password.RequireUppercase = false;
     options.Password.RequireLowercase = false;
+
+    // Chống dò mật khẩu: sai 5 lần liên tiếp thì tạm khóa đăng nhập 5 phút
+    options.Lockout.MaxFailedAccessAttempts = 5;
+    options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
+    options.Lockout.AllowedForNewUsers = true;
 })
 .AddEntityFrameworkStores<ApplicationDbContext>()
 .AddDefaultTokenProviders()
@@ -59,6 +64,15 @@ builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 builder.Services.AddScoped<IBookingService, BookingService>();
 builder.Services.AddScoped<IFacilityService, DACN.Services.FacilityService>();
 
+// Ngân hàng ảo: ví người dùng, chuyển tiền có khóa dòng + transaction
+builder.Services.AddScoped<IBankService, BankService>();
+builder.Services.AddScoped<IPaymentService, PaymentService>();
+builder.Services.AddMemoryCache(); // lưu mã OTP giả lập
+builder.Services.AddSingleton(TimeProvider.System);
+
+// Trợ lý đặt sân trong khung chat (chạy offline, trả lời bằng dữ liệu thật trong DB)
+builder.Services.AddScoped<DACN.Services.Assistant.SportAssistant>();
+
 // Thông báo (trong app + Telegram chủ sân + email SMTP) và vòng đời đơn (tự hoàn thành, nhắc lịch)
 builder.Services.AddHttpClient("telegram", c => c.Timeout = TimeSpan.FromSeconds(8));
 builder.Services.AddScoped<IAppEmailSender, SmtpEmailSender>();
@@ -70,6 +84,16 @@ builder.Services.Configure<DataProtectionTokenProviderOptions>(o => o.TokenLifes
 
 // Job nền: hủy giữ chỗ quá hạn, tự hoàn thành đơn đã chơi, nhắc lịch trước giờ chơi
 builder.Services.AddHostedService<ExpiredBookingCleanupService>();
+
+// Job nền: tự đổi địa chỉ cụm sân sang tọa độ GPS (OpenStreetMap Nominatim) để hiện ghim trên bản đồ Tìm sân
+builder.Services.AddHttpClient(FacilityGeocodingService.HttpClientName, c =>
+{
+    c.BaseAddress = new Uri("https://nominatim.openstreetmap.org/");
+    c.Timeout = TimeSpan.FromSeconds(10);
+    // Nominatim yêu cầu User-Agent nhận diện ứng dụng
+    c.DefaultRequestHeaders.UserAgent.ParseAdd("DatSan247/1.0 (facility-map)");
+});
+builder.Services.AddHostedService<FacilityGeocodingService>();
 
 // 4. Thêm MVC Controllers & Views
 builder.Services.AddControllersWithViews();
@@ -116,30 +140,39 @@ using (var scope = app.Services.CreateScope())
         // Tự động tạo / cập nhật database qua EF Core Migrations
         await context.Database.MigrateAsync();
 
-        // Nạp dữ liệu mẫu
-        await DbInitializer.SeedAsync(context, userManager);
+        var seedLogger = services.GetRequiredService<ILogger<Program>>();
+
+        if (app.Environment.IsDevelopment())
+        {
+            // Dữ liệu mẫu (tài khoản demo mật khẩu Password@123, sân, đơn, kèo): CHỈ ở Development (demo / chấm đồ án)
+            await DbInitializer.SeedAsync(context, userManager);
+
+            // Lịch sử đặt sân & đánh giá mẫu cho trang Thống kê
+            await DemoHistorySeeder.SeedAsync(context, userManager);
+
+            // Cụm sân mẫu ở nhiều tỉnh / môn (bỏ qua sân đã có, chạy lại an toàn)
+            var addedFacilities = await SampleFacilitySeeder.SeedAsync(context, userManager);
+            if (addedFacilities > 0) seedLogger.LogInformation("Đã thêm {Count} cụm sân mẫu.", addedFacilities);
+        }
+        else
+        {
+            // Chạy thật: chỉ tạo danh mục + Admin từ cấu hình, không có tài khoản mật khẩu mặc định
+            await ProductionSeeder.SeedAsync(context, userManager, app.Configuration, seedLogger);
+        }
+
+        // Ngân hàng ảo: tạo tài khoản SYSTEM + tạo bù ví cho người dùng cũ chưa có
+        var bank = services.GetRequiredService<IBankService>();
+        var newWallets = await bank.BackfillAccountsAsync();
+        if (newWallets > 0) seedLogger.LogInformation("Đã tạo {Count} ví ngân hàng ảo cho người dùng cũ.", newWallets);
+        if (app.Environment.IsDevelopment())
+        {
+            var funded = await DemoWalletSeeder.SeedAsync(context, bank);
+            if (funded > 0) seedLogger.LogInformation("Đã nạp tiền mẫu cho {Count} ví.", funded);
+        }
 
         // Chuyển ảnh biên lai cũ (file trong wwwroot/uploads) vào SQL
         var importedProofs = await PaymentProofImporter.ImportAsync(context, app.Environment.WebRootPath);
-        if (importedProofs > 0)
-        {
-            services.GetRequiredService<ILogger<Program>>()
-                .LogInformation("Đã chuyển {Count} ảnh biên lai vào SQL.", importedProofs);
-        }
-
-        // Lịch sử đặt sân & đánh giá mẫu cho trang Thống kê (chỉ ở môi trường Development)
-        if (app.Environment.IsDevelopment())
-        {
-            await DemoHistorySeeder.SeedAsync(context, userManager);
-        }
-
-        // Cụm sân mẫu ở nhiều tỉnh / môn (bỏ qua sân đã có, chạy lại an toàn)
-        var addedFacilities = await SampleFacilitySeeder.SeedAsync(context, userManager);
-        if (addedFacilities > 0)
-        {
-            services.GetRequiredService<ILogger<Program>>()
-                .LogInformation("Đã thêm {Count} cụm sân mẫu.", addedFacilities);
-        }
+        if (importedProofs > 0) seedLogger.LogInformation("Đã chuyển {Count} ảnh biên lai vào SQL.", importedProofs);
     }
     catch (Exception ex)
     {

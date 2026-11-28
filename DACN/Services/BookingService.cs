@@ -31,6 +31,9 @@ namespace DACN.Services
         /// <summary>Thời lượng tối đa của 1 đơn khách đặt online (giờ).</summary>
         public const int MaxHoursPerBooking = 6;
 
+        /// <summary>Số đơn giữ chỗ chưa thanh toán tối đa 1 tài khoản được có cùng lúc (chống giữ hết khung giờ).</summary>
+        public const int MaxActiveHoldsPerCustomer = 2;
+
         public BookingService(IUnitOfWork unitOfWork, ILogger<BookingService> logger, INotificationService notifications)
         {
             _unitOfWork = unitOfWork;
@@ -102,6 +105,21 @@ namespace DACN.Services
                 return BookingResult.Failure($"Chỉ nhận đặt trước tối đa {MaxAdvanceDays} ngày.");
             }
 
+            // Chống 1 tài khoản đặt liên tục để khóa hết khung giờ: giới hạn số đơn đang giữ chỗ chưa thanh toán
+            if (!isCounterBooking)
+            {
+                var holdThreshold = BookingRules.HoldThreshold(DateTime.UtcNow);
+                var activeHolds = await _unitOfWork.Bookings.Query().CountAsync(b =>
+                    b.CustomerId == dto.CustomerId
+                    && b.Status == BookingStatus.Pending
+                    && b.PaymentStatus == PaymentStatus.Unpaid
+                    && b.CreatedAt >= holdThreshold);
+                if (activeHolds >= MaxActiveHoldsPerCustomer)
+                {
+                    return BookingResult.Failure($"Bạn đang có {activeHolds} đơn giữ chỗ chưa thanh toán. Vui lòng thanh toán hoặc hủy bớt (vào Lịch đặt của tôi) trước khi đặt thêm.");
+                }
+            }
+
             // Kiểm tra khung giờ nằm trong giờ hoạt động (hỗ trợ sân mở qua nửa đêm; một đơn không vắt qua 24:00)
             if (court.Facility != null && !BookingRules.IsWithinOpenHours(court.Facility, dto.StartTime, dto.EndTime))
             {
@@ -171,6 +189,7 @@ namespace DACN.Services
                     PaymentMethod = isPaid ? "Tiền mặt tại quầy" : null,
                     PaidAt = isPaid ? DateTime.UtcNow : null,
                     CreatedAt = DateTime.UtcNow,
+                    IsCounterBooking = isCounterBooking,
                     ServiceDetails = serviceDetails
                 };
 
@@ -824,6 +843,7 @@ namespace DACN.Services
                          && b.CreatedAt < threshold)
                 .ExecuteUpdateAsync(s => s
                     .SetProperty(b => b.Status, BookingStatus.Cancelled)
+                    .SetProperty(b => b.CancelledAt, DateTime.UtcNow)
                     .SetProperty(b => b.PaymentNote, b => b.PaymentNote ?? note),
                     cancellationToken);
 

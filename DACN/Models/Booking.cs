@@ -118,6 +118,12 @@ namespace DACN.Models
         [StringLength(450)]
         public string? CheckedInBy { get; set; }
 
+        /// <summary>
+        /// Đơn chủ sân / Admin đặt hộ khách tại quầy. CustomerId lúc này là tài khoản người nhập đơn,
+        /// nên đơn không hiện trong "Lịch đặt của tôi" của họ và không dùng để đánh giá sân.
+        /// </summary>
+        public bool IsCounterBooking { get; set; }
+
         /// <summary>Đã gửi thông báo nhắc lịch trước giờ chơi (tránh nhắc lặp).</summary>
         public DateTime? ReminderSentAt { get; set; }
 

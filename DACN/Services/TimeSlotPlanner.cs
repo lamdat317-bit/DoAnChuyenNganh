@@ -20,6 +20,39 @@ namespace DACN.Services
                 .ToList();
 
         /// <summary>
+        /// Đặt giá riêng cho khoảng [start, end) trên danh sách khung giá chưa lưu (vd khung giờ cao điểm lúc tạo sân).
+        /// Khoảng giờ được cắt theo giờ hoạt động; các khung cũ bị chồng lấn được cắt / tách đôi / bỏ
+        /// để mỗi thời điểm chỉ thuộc 1 khung giá. Trả về false nếu khoảng giờ nằm ngoài giờ hoạt động.
+        /// </summary>
+        public static bool ApplyPriceRange(List<TimeSlot> slots, int courtId, Facility facility,
+            TimeSpan start, TimeSpan end, decimal price, bool isPeakHour)
+        {
+            bool applied = false;
+            foreach (var (segStart, segEnd) in BookingRules.OpenSegments(facility))
+            {
+                var s = start > segStart ? start : segStart;
+                var e = end < segEnd ? end : segEnd;
+                if (e <= s) continue;
+                applied = true;
+
+                foreach (var old in slots.Where(x => x.StartTime < e && x.EndTime > s).ToList())
+                {
+                    bool keepsLeft = old.StartTime < s, keepsRight = old.EndTime > e;
+                    if (keepsLeft && keepsRight)
+                    {
+                        slots.Add(new TimeSlot { CourtId = courtId, StartTime = e, EndTime = old.EndTime, Price = old.Price, IsPeakHour = old.IsPeakHour });
+                        old.EndTime = s;
+                    }
+                    else if (keepsLeft) old.EndTime = s;
+                    else if (keepsRight) old.StartTime = e;
+                    else slots.Remove(old);
+                }
+                slots.Add(new TimeSlot { CourtId = courtId, StartTime = s, EndTime = e, Price = price, IsPeakHour = isPeakHour });
+            }
+            return applied;
+        }
+
+        /// <summary>
         /// Điều chỉnh các khung giá của 1 sân theo giờ hoạt động mới.
         /// Trả về (số khung bị xóa/cắt, số khung được thêm). Thay đổi được ghi thẳng vào <paramref name="slots"/>
         /// (khung cần xóa nằm trong <paramref name="toRemove"/>, khung mới trong <paramref name="toAdd"/>).

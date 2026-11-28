@@ -71,7 +71,7 @@
                                 <i class="bi bi-people"></i> Ghép đội <span class="nav-badge-hot">HOT</span>
                             </a>
                         </li>
-                        @if (isOwner || isAdmin)
+                        @if (isOwner && !isAdmin)
                         {
                             <li class="nav-item">
                                 <a class="nav-link @Active(area == "Owner")" asp-area="Owner" asp-controller="Facility" asp-action="Index">
@@ -101,7 +101,7 @@
                                     <span class="avatar">@initials</span>
                                     <span class="d-inline-block text-truncate" style="max-width: 140px;">@fullName</span>
                                 </a>
-                                <ul class="dropdown-menu dropdown-menu-end mt-2" style="min-width: 240px;">
+                                <ul class="dropdown-menu dropdown-menu-end mt-2" style="min-width: 240px; max-height: calc(100vh - 90px); overflow-y: auto;">
                                     <li class="px-3 pt-2 pb-2">
                                         <div class="fw-bold text-ink text-truncate">@fullName</div>
                                         <div class="small text-muted text-truncate">@User.Identity?.Name</div>
@@ -120,30 +120,30 @@
                                     </li>
                                     <li><hr class="dropdown-divider"></li>
                                     <li><a class="dropdown-item" asp-area="" asp-controller="Account" asp-action="Profile"><i class="bi bi-person"></i> Hồ sơ cá nhân</a></li>
-                                    <li><a class="dropdown-item" asp-area="" asp-controller="Booking" asp-action="MyBookings"><i class="bi bi-ticket-perforated"></i> Lịch đặt của tôi</a></li>
-                                    <li><a class="dropdown-item" asp-area="" asp-controller="Teamwork" asp-action="MyMatches"><i class="bi bi-people"></i> Kèo của tôi</a></li>
-                                    <li><a class="dropdown-item" asp-area="" asp-controller="Booking" asp-action="Favorites"><i class="bi bi-heart"></i> Sân yêu thích</a></li>
-                                    <li><a class="dropdown-item" asp-area="" asp-controller="Notifications" asp-action="Index"><i class="bi bi-bell"></i> Thông báo</a></li>
-                                    @if (isOwner || isAdmin)
-                                    {
-                                        <li><hr class="dropdown-divider"></li>
-                                        <li class="dropdown-header">Quản lý sân</li>
-                                        <li><a class="dropdown-item" asp-area="Owner" asp-controller="Facility" asp-action="Index"><i class="bi bi-buildings"></i> Cụm sân của tôi</a></li>
-                                        <li><a class="dropdown-item" asp-area="Owner" asp-controller="Facility" asp-action="ScheduleBoard"><i class="bi bi-calendar3-range"></i> Bảng lịch đặt</a></li>
-                                        <li><a class="dropdown-item" asp-area="Owner" asp-controller="Facility" asp-action="Bookings"><i class="bi bi-receipt"></i> Đơn đặt sân</a></li>
-                                        <li><a class="dropdown-item" asp-area="Owner" asp-controller="Facility" asp-action="CheckIn"><i class="bi bi-qr-code-scan"></i> Soát vé</a></li>
-                                        <li><a class="dropdown-item" asp-area="Owner" asp-controller="Facility" asp-action="Statistics"><i class="bi bi-graph-up"></i> Thống kê doanh thu</a></li>
-                                        <li><a class="dropdown-item" asp-area="Owner" asp-controller="Facility" asp-action="Refunds"><i class="bi bi-arrow-counterclockwise"></i> Hoàn tiền</a></li>
-                                    }
+                                    <li><a class="dropdown-item" asp-area="" asp-controller="Wallet" asp-action="Index"><i class="bi bi-wallet2"></i> Internet Banking</a></li>
                                     @if (isAdmin)
                                     {
-                                        <li><hr class="dropdown-divider"></li>
-                                        <li class="dropdown-header">Quản trị hệ thống</li>
-                                        <li><a class="dropdown-item" asp-area="Admin" asp-controller="Dashboard" asp-action="Index"><i class="bi bi-speedometer2"></i> Tổng quan</a></li>
-                                        <li><a class="dropdown-item" asp-area="Admin" asp-controller="User" asp-action="Index"><i class="bi bi-people"></i> Người dùng</a></li>
-                                        <li><a class="dropdown-item" asp-area="Admin" asp-controller="Facilities" asp-action="Index"><i class="bi bi-patch-check"></i> Duyệt cụm sân</a></li>
-                                        <li><a class="dropdown-item" asp-area="Admin" asp-controller="Bank" asp-action="Index"><i class="bi bi-bank"></i> Sổ cái giao dịch</a></li>
-                                        <li><a class="dropdown-item" asp-area="Admin" asp-controller="Facilities" asp-action="Emails"><i class="bi bi-envelope"></i> Hộp thư hệ thống</a></li>
+                                        @* Các chức năng quản trị đã có ở tab "Quản trị" và thanh tab trong trang quản trị, menu này chỉ giữ lối tắt *@
+                                        <li><a class="dropdown-item" asp-area="" asp-controller="Notifications" asp-action="Index"><i class="bi bi-bell"></i> Thông báo</a></li>
+                                        <li><a class="dropdown-item" asp-area="Admin" asp-controller="Dashboard" asp-action="Index"><i class="bi bi-speedometer2"></i> Trang quản trị</a></li>
+                                    }
+                                    else
+                                    {
+                                        <li><a class="dropdown-item" asp-area="" asp-controller="Booking" asp-action="MyBookings"><i class="bi bi-ticket-perforated"></i> Lịch đặt của tôi</a></li>
+                                        <li><a class="dropdown-item" asp-area="" asp-controller="Teamwork" asp-action="MyMatches"><i class="bi bi-people"></i> Kèo của tôi</a></li>
+                                        <li><a class="dropdown-item" asp-area="" asp-controller="Booking" asp-action="Favorites"><i class="bi bi-heart"></i> Sân yêu thích</a></li>
+                                        <li><a class="dropdown-item" asp-area="" asp-controller="Notifications" asp-action="Index"><i class="bi bi-bell"></i> Thông báo</a></li>
+                                        @if (isOwner)
+                                        {
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li class="dropdown-header">Quản lý sân</li>
+                                            <li><a class="dropdown-item" asp-area="Owner" asp-controller="Facility" asp-action="Index"><i class="bi bi-buildings"></i> Cụm sân của tôi</a></li>
+                                            <li><a class="dropdown-item" asp-area="Owner" asp-controller="Facility" asp-action="ScheduleBoard"><i class="bi bi-calendar3-range"></i> Bảng lịch đặt</a></li>
+                                            <li><a class="dropdown-item" asp-area="Owner" asp-controller="Facility" asp-action="Bookings"><i class="bi bi-receipt"></i> Đơn đặt sân</a></li>
+                                            <li><a class="dropdown-item" asp-area="Owner" asp-controller="Facility" asp-action="CheckIn"><i class="bi bi-qr-code-scan"></i> Soát vé</a></li>
+                                            <li><a class="dropdown-item" asp-area="Owner" asp-controller="Facility" asp-action="Statistics"><i class="bi bi-graph-up"></i> Thống kê doanh thu</a></li>
+                                            <li><a class="dropdown-item" asp-area="Owner" asp-controller="Facility" asp-action="Refunds"><i class="bi bi-arrow-counterclockwise"></i> Hoàn tiền</a></li>
+                                        }
                                     }
                                     <li><hr class="dropdown-divider"></li>
                                     <li>
@@ -307,22 +307,22 @@
         <div class="ai-chat-body" id="aiChatBody">
             <div class="ai-msg bot">
                 <div class="ai-msg-bubble">
-                    👋 <strong>Xin chào!</strong> Mình có thể giúp bạn:
+                    👋 <strong>Xin chào!</strong> Mình hiểu cả tiếng Việt không dấu, bạn cứ hỏi tự nhiên:
                     <ul class="ps-3 my-2 small">
-                        <li>Tìm sân bóng đá, pickleball, tennis, cầu lông</li>
-                        <li>Xem khung giờ trống và cách giữ chỗ</li>
-                        <li>Hướng dẫn thanh toán VietQR</li>
-                        <li>Tìm kèo và ghép đội</li>
+                        <li>Tìm sân theo môn, khu vực, giá</li>
+                        <li>Kiểm tra giờ trống, vd <em>"cầu lông Tân Bình tối mai"</em></li>
+                        <li>Xem đơn của bạn, số dư ví, tiền hoàn nếu hủy</li>
+                        <li>Chỉ đường, giờ mở cửa, đánh giá, ghép đội</li>
                     </ul>
                     Bạn cần hỗ trợ gì?
                 </div>
             </div>
             <div class="d-flex flex-wrap gap-1 my-1" id="aiSuggestionChips">
-                <span class="ai-suggestion-chip" onclick="askAiQuestion('Sân bóng đá nào gần đây?')">⚽ Sân bóng đá</span>
-                <span class="ai-suggestion-chip" onclick="askAiQuestion('Có sân Pickleball không?')">🏓 Pickleball</span>
-                <span class="ai-suggestion-chip" onclick="askAiQuestion('Làm sao để đặt sân không trùng lịch?')">🛡️ Chống trùng lịch</span>
-                <span class="ai-suggestion-chip" onclick="askAiQuestion('Cách thanh toán qua VietQR?')">💳 Thanh toán VietQR</span>
-                <span class="ai-suggestion-chip" onclick="askAiQuestion('Làm sao để tìm kèo ghép đội?')">👥 Ghép đội</span>
+                <span class="ai-suggestion-chip" onclick="askAiQuestion('Sân trống tối nay')">🗓️ Sân trống tối nay</span>
+                <span class="ai-suggestion-chip" onclick="askAiQuestion('Sân bóng đá giá rẻ')">⚽ Bóng đá giá rẻ</span>
+                <span class="ai-suggestion-chip" onclick="askAiQuestion('Đơn của tôi')">📅 Đơn của tôi</span>
+                <span class="ai-suggestion-chip" onclick="askAiQuestion('Số dư ví')">💳 Số dư ví</span>
+                <span class="ai-suggestion-chip" onclick="askAiQuestion('Hủy đơn được hoàn bao nhiêu?')">🔄 Chính sách hủy</span>
             </div>
         </div>
 
@@ -348,6 +348,7 @@
             if (!win.classList.contains('hidden')) document.getElementById('aiUserInput').focus();
         }
         function handleAiInputKey(e) { if (e.key === 'Enter') { e.preventDefault(); sendAiMessage(); } }
+        var aiContext = null;
         function askAiQuestion(text) { document.getElementById('aiUserInput').value = text; sendAiMessage(); }
 
         async function sendAiMessage() {
@@ -372,9 +373,10 @@
                 const response = await fetch('/api/ai/ask', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message: message })
+                    body: JSON.stringify({ message: message, context: aiContext })
                 });
                 const data = await response.json();
+                aiContext = data.context || null; // nhớ sân / ngày đang nói tới cho câu hỏi tiếp theo
                 chatBody.removeChild(typingMsg);
 
                 var botMsg = document.createElement('div');

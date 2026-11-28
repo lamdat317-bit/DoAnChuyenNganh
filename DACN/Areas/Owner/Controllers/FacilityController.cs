@@ -501,14 +501,22 @@ namespace DACN.Areas.Owner.Controllers
         // 7. Cập nhật trạng thái đơn đặt sân (Duyệt / Xác nhận thanh toán tiền mặt / Hủy)
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> UpdateBookingStatus(int bookingId, BookingStatus status, PaymentStatus? paymentStatus, string? returnAction = "Bookings", int? facilityId = null, string? date = null)
+        public async Task<IActionResult> UpdateBookingStatus(int bookingId, BookingStatus status, PaymentStatus? paymentStatus, [FromServices] IPaymentService payments, string? returnAction = "Bookings", int? facilityId = null, string? date = null)
         {
             var booking = await _unitOfWork.Bookings.Query().FirstOrDefaultAsync(b => b.Id == bookingId);
             if (booking == null || !await CanManageCourtAsync(booking.CourtId)) return DenyAccess();
 
-            var result = await _bookingService.UpdateBookingStatusAsync(bookingId, status, paymentStatus);
-
-            TempData[result.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = result.Message;
+            if (status == BookingStatus.Cancelled && booking.Status != BookingStatus.Cancelled)
+            {
+                // Chủ sân / Admin hủy: hoàn 100% tự động vào ví khách (đơn trả bằng ví)
+                var cancel = await payments.CancelBookingAsync(bookingId, GetCurrentUserId(), null);
+                TempData[cancel.Success ? "SuccessMessage" : "ErrorMessage"] = cancel.Message;
+            }
+            else
+            {
+                var result = await _bookingService.UpdateBookingStatusAsync(bookingId, status, paymentStatus);
+                TempData[result.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = result.Message;
+            }
 
             if (returnAction == "ScheduleBoard" && facilityId.HasValue)
             {
@@ -642,7 +650,7 @@ namespace DACN.Areas.Owner.Controllers
                 try
                 {
                     await _unitOfWork.CompleteAsync();
-                    TempData["SuccessMessage"] = $"Đã check-in vé #BK-{booking.Id} · {booking.CustomerName ?? "Khách"} · {booking.Court.Name} {BookingRules.Hm(booking.StartTime)}–{BookingRules.Hm(booking.EndTime)}.";
+                    TempData["SuccessMessage"] = $"Đã check-in vé #BK-{booking.Id} · {booking.CustomerName ?? "Khách"} · {booking.Court.Name} · {booking.BookingDate:dd/MM/yyyy} {BookingRules.Hm(booking.StartTime)}–{BookingRules.Hm(booking.EndTime)}.";
                 }
                 catch (DbUpdateConcurrencyException)
                 {
@@ -697,14 +705,27 @@ namespace DACN.Areas.Owner.Controllers
                 return RedirectToAction(nameof(ManagePhotos), new { facilityId });
             }
 
-            var existing = await db.FacilityImages.Where(i => i.FacilityId == facilityId)
-                .Select(i => new { i.SortOrder, i.IsCover }).ToListAsync();
-            int slots = MaxPhotosPerFacility - existing.Count;
-            if (slots <= 0)
+            var existingCount = await db.FacilityImages.CountAsync(i => i.FacilityId == facilityId);
+            if (existingCount >= MaxPhotosPerFacility)
             {
                 TempData["ErrorMessage"] = $"Mỗi cụm sân tối đa {MaxPhotosPerFacility} ảnh. Hãy xóa bớt ảnh cũ trước.";
                 return RedirectToAction(nameof(ManagePhotos), new { facilityId });
             }
+
+            var (added, skipped) = await SavePhotosAsync(facilityId, files);
+
+            if (added > 0) TempData["SuccessMessage"] = $"Đã tải lên {added} ảnh." + (skipped.Count > 0 ? $" Bỏ qua {skipped.Count} file." : "");
+            if (skipped.Count > 0) TempData["ErrorMessage"] = "Không tải được: " + string.Join("; ", skipped.Take(5)) + (skipped.Count > 5 ? "…" : "");
+            return RedirectToAction(nameof(ManagePhotos), new { facilityId });
+        }
+
+        /// <summary>Lưu ảnh tải lên cho cụm sân (kiểm tra số lượng, dung lượng, định dạng). Ảnh đầu tiên thành ảnh bìa nếu chưa có.</summary>
+        private async Task<(int Added, List<string> Skipped)> SavePhotosAsync(int facilityId, IEnumerable<IFormFile> files)
+        {
+            var db = _unitOfWork.Context;
+            var existing = await db.FacilityImages.Where(i => i.FacilityId == facilityId)
+                .Select(i => new { i.SortOrder, i.IsCover }).ToListAsync();
+            int slots = MaxPhotosPerFacility - existing.Count;
 
             int nextOrder = existing.Count == 0 ? 0 : existing.Max(e => e.SortOrder) + 1;
             bool hasCover = existing.Any(e => e.IsCover);
@@ -735,10 +756,7 @@ namespace DACN.Areas.Owner.Controllers
                 added++;
             }
             await db.SaveChangesAsync();
-
-            if (added > 0) TempData["SuccessMessage"] = $"Đã tải lên {added} ảnh." + (skipped.Count > 0 ? $" Bỏ qua {skipped.Count} file." : "");
-            if (skipped.Count > 0) TempData["ErrorMessage"] = "Không tải được: " + string.Join("; ", skipped.Take(5)) + (skipped.Count > 5 ? "…" : "");
-            return RedirectToAction(nameof(ManagePhotos), new { facilityId });
+            return (added, skipped);
         }
 
         [HttpPost]
@@ -1023,13 +1041,35 @@ namespace DACN.Areas.Owner.Controllers
             ViewBag.SportTypes = new SelectList(sportTypes, "Id", "Name");
             ViewBag.Cities = new SelectList(cities, "Id", "Name");
 
-            return View(new CreateFacilityViewModel());
+            // Gợi ý sẵn 1 khung giờ cao điểm buổi tối, chủ sân có thể sửa hoặc xóa
+            return View(new CreateFacilityViewModel
+            {
+                PeakSlots = { new PeakSlotInput { StartTime = "17:00", EndTime = "22:00", Price = 250000m } }
+            });
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [RequestSizeLimit(80 * 1024 * 1024)]
+        [RequestFormLimits(MultipartBodyLengthLimit = 80 * 1024 * 1024)]
         public async Task<IActionResult> CreateFacility(CreateFacilityViewModel model)
         {
+            // Khung giờ lên giá: bỏ qua dòng để trống, báo lỗi dòng nhập dở / sai
+            var peakRanges = new List<(TimeSpan Start, TimeSpan End, decimal Price)>();
+            var peakRows = (model.PeakSlots ?? new()).Where(p => !string.IsNullOrWhiteSpace(p.StartTime) || !string.IsNullOrWhiteSpace(p.EndTime) || p.Price.HasValue).ToList();
+            for (int i = 0; i < peakRows.Count; i++)
+            {
+                var p = peakRows[i];
+                if (!TryParseRange(p.StartTime, p.EndTime, out var ps, out var pe) || ps >= pe)
+                    ModelState.AddModelError(string.Empty, $"Khung giờ lên giá #{i + 1}: giờ bắt đầu phải nhỏ hơn giờ kết thúc.");
+                else if (p.Price is not > 0)
+                    ModelState.AddModelError(string.Empty, $"Khung giờ lên giá #{i + 1}: vui lòng nhập giá.");
+                else
+                    peakRanges.Add((ps, pe, p.Price.Value));
+            }
+            if (model.Photos?.Count(f => f != null && f.Length > 0) > MaxPhotosPerFacility)
+                ModelState.AddModelError(string.Empty, $"Mỗi cụm sân tối đa {MaxPhotosPerFacility} ảnh.");
+
             // Giờ đóng cửa nhỏ hơn giờ mở cửa = mở qua nửa đêm (vd 16:00 → 02:00); bằng nhau = mở cửa 24/24.
             if (!ModelState.IsValid)
             {
@@ -1053,8 +1093,7 @@ namespace DACN.Areas.Owner.Controllers
                 OpeningTime = model.OpeningTime,
                 ClosingTime = model.ClosingTime,
                 Description = model.Description?.Trim(),
-                Latitude = model.Latitude,
-                Longitude = model.Longitude,
+                // Không nhập tọa độ: Google Maps tìm theo địa chỉ (xem FacilityMap)
                 // Cụm sân của chủ sân phải chờ Admin duyệt; Admin tự tạo thì duyệt luôn
                 ApprovalStatus = IsAdmin ? FacilityApprovalStatus.Approved : FacilityApprovalStatus.Pending,
                 ApprovedAt = IsAdmin ? DateTime.UtcNow : null
@@ -1074,8 +1113,16 @@ namespace DACN.Areas.Owner.Controllers
             await _unitOfWork.Courts.AddAsync(court);
             await _unitOfWork.CompleteAsync();
 
-            // Tự động tạo khung giờ mặc định (sân mở qua đêm: 2 khung trước / sau 24:00)
-            foreach (var slot in TimeSlotPlanner.DefaultSlots(court.Id, facility, model.InitialPrice > 0 ? model.InitialPrice : TimeSlotPlanner.DefaultPrice))
+            // Khung giá: giá thường phủ toàn bộ giờ hoạt động (sân mở qua đêm: 2 khung trước / sau 24:00),
+            // sau đó áp các khung giờ lên giá chủ sân nhập (khung nhập sau được ưu tiên nếu chồng lấn)
+            var slots = TimeSlotPlanner.DefaultSlots(court.Id, facility, model.InitialPrice > 0 ? model.InitialPrice : TimeSlotPlanner.DefaultPrice);
+            var outsideHours = new List<string>();
+            foreach (var (ps, pe, price) in peakRanges)
+            {
+                if (!TimeSlotPlanner.ApplyPriceRange(slots, court.Id, facility, ps, pe, price, isPeakHour: true))
+                    outsideHours.Add($"{BookingRules.Hm(ps)}–{BookingRules.Hm(pe)}");
+            }
+            foreach (var slot in slots.OrderBy(s => s.StartTime))
             {
                 await _unitOfWork.TimeSlots.AddAsync(slot);
             }
@@ -1101,6 +1148,14 @@ namespace DACN.Areas.Owner.Controllers
             await _unitOfWork.FacilityServices.AddAsync(defaultBibs);
             await _unitOfWork.CompleteAsync();
 
+            // Ảnh tải lên từ máy
+            var photoFiles = (model.Photos ?? new()).Where(f => f != null && f.Length > 0).ToList();
+            var (photosAdded, photosSkipped) = photoFiles.Count > 0 ? await SavePhotosAsync(facility.Id, photoFiles) : (0, new List<string>());
+            var warnings = new List<string>();
+            if (photosSkipped.Count > 0) warnings.Add("Không tải được ảnh: " + string.Join("; ", photosSkipped.Take(5)) + (photosSkipped.Count > 5 ? "…" : ""));
+            if (outsideHours.Count > 0) warnings.Add($"Bỏ qua khung giờ lên giá nằm ngoài giờ hoạt động: {string.Join(", ", outsideHours)}.");
+            if (warnings.Count > 0) TempData["ErrorMessage"] = string.Join(" ", warnings);
+
             if (facility.ApprovalStatus == FacilityApprovalStatus.Pending)
             {
                 await _notifications.NotifyAdminsAsync($"Cụm sân mới chờ duyệt: {facility.Name}",
@@ -1112,6 +1167,10 @@ namespace DACN.Areas.Owner.Controllers
             {
                 TempData["SuccessMessage"] = $"Tạo cụm sân \"{facility.Name}\" thành công kèm sân con và bảng giá ban đầu!";
             }
+            var extras = new List<string>();
+            if (photosAdded > 0) extras.Add($"{photosAdded} ảnh");
+            if (peakRanges.Count > outsideHours.Count) extras.Add($"{peakRanges.Count - outsideHours.Count} khung giờ lên giá");
+            if (extras.Count > 0) TempData["SuccessMessage"] += $" Đã lưu {string.Join(" và ", extras)}.";
             return RedirectToAction(nameof(Index));
         }
 
@@ -1193,6 +1252,11 @@ namespace DACN.Areas.Owner.Controllers
                 return DenyAccess();
             }
 
+            // Đổi địa chỉ thì tọa độ cũ (nếu có) không còn đúng: bỏ đi để Google Maps tìm theo địa chỉ mới
+            bool locationChanged = facility.CityId != model.CityId
+                || !string.Equals(facility.DistrictName ?? "", model.DistrictName?.Trim() ?? "", StringComparison.OrdinalIgnoreCase)
+                || !string.Equals(facility.Address ?? "", model.Address.Trim(), StringComparison.OrdinalIgnoreCase);
+
             facility.Name = model.Name.Trim();
             facility.SportTypeId = model.SportTypeId;
             facility.CityId = model.CityId;
@@ -1201,8 +1265,11 @@ namespace DACN.Areas.Owner.Controllers
             facility.OpeningTime = model.OpeningTime;
             facility.ClosingTime = model.ClosingTime;
             facility.Description = model.Description?.Trim();
-            facility.Latitude = model.Latitude;
-            facility.Longitude = model.Longitude;
+            if (locationChanged || !FacilityMap.HasCoordinates(facility))
+            {
+                facility.Latitude = null;
+                facility.Longitude = null;
+            }
 
             // Cụm sân bị từ chối: chỉnh sửa xong sẽ được gửi duyệt lại
             bool resubmitted = facility.ApprovalStatus == FacilityApprovalStatus.Rejected && !IsAdmin;

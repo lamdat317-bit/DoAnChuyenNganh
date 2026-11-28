@@ -75,7 +75,8 @@ namespace DACN.Controllers
                 return View(model);
             }
 
-            var result = await _signInManager.PasswordSignInAsync(user, model.Password, model.RememberMe, lockoutOnFailure: false);
+            // Đếm số lần sai mật khẩu: quá giới hạn (cấu hình trong Program.cs) thì tạm khóa đăng nhập
+            var result = await _signInManager.PasswordSignInAsync(user, model.Password, model.RememberMe, lockoutOnFailure: true);
 
             if (result.Succeeded)
             {
@@ -89,11 +90,20 @@ namespace DACN.Controllers
 
             if (result.IsLockedOut)
             {
-                ModelState.AddModelError(string.Empty, "Tài khoản này đã bị khóa. Vui lòng liên hệ quản trị viên.");
+                // Admin khóa tài khoản = khóa vô thời hạn; còn lại là tạm khóa do nhập sai mật khẩu nhiều lần
+                var lockoutEnd = await _userManager.GetLockoutEndDateAsync(user);
+                var minutesLeft = lockoutEnd.HasValue ? (int)Math.Ceiling((lockoutEnd.Value - DateTimeOffset.UtcNow).TotalMinutes) : 0;
+                ModelState.AddModelError(string.Empty, lockoutEnd.HasValue && lockoutEnd.Value > DateTimeOffset.UtcNow.AddDays(1)
+                    ? "Tài khoản này đã bị khóa. Vui lòng liên hệ quản trị viên."
+                    : $"Bạn đã nhập sai mật khẩu quá nhiều lần. Vui lòng thử lại sau {Math.Max(1, minutesLeft)} phút hoặc dùng \"Quên mật khẩu\".");
                 return View(model);
             }
 
-            ModelState.AddModelError(string.Empty, "Tài khoản hoặc mật khẩu không chính xác.");
+            var failed = await _userManager.GetAccessFailedCountAsync(user);
+            var remaining = _userManager.Options.Lockout.MaxFailedAccessAttempts - failed;
+            ModelState.AddModelError(string.Empty, remaining > 0 && remaining <= 2
+                ? $"Tài khoản hoặc mật khẩu không chính xác. Còn {remaining} lần thử trước khi bị tạm khóa."
+                : "Tài khoản hoặc mật khẩu không chính xác.");
             return View(model);
         }
 
@@ -109,7 +119,7 @@ namespace DACN.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Register(RegisterViewModel model)
+        public async Task<IActionResult> Register(RegisterViewModel model, [FromServices] DACN.Services.IBankService bank)
         {
             if (!ModelState.IsValid)
             {
@@ -140,13 +150,8 @@ namespace DACN.Controllers
 
             if (result.Succeeded)
             {
-                if (await _userManager.IsLockedOutAsync(user))
-            {
-                TempData["ErrorMessage"] = "Tài khoản mẫu này đang bị khóa.";
-                return RedirectToAction(nameof(Login));
-            }
-
-            await _signInManager.SignInAsync(user, isPersistent: true);
+                await bank.EnsureAccountAsync(user.Id); // tạo ví ngân hàng ảo cho tài khoản mới
+                await _signInManager.SignInAsync(user, isPersistent: true);
                 TempData["SuccessMessage"] = "Đăng ký tài khoản thành công! Bạn đã được đăng nhập.";
                 return RedirectToAction("Index", "Home");
             }
@@ -244,6 +249,11 @@ namespace DACN.Controllers
             }
 
             await _userManager.UpdateSecurityStampAsync(user!);
+            // Đã đổi mật khẩu qua email: gỡ tạm khóa do nhập sai (khóa vô thời hạn của Admin thì giữ nguyên)
+            await _userManager.ResetAccessFailedCountAsync(user!);
+            var lockoutEnd = await _userManager.GetLockoutEndDateAsync(user!);
+            if (lockoutEnd.HasValue && lockoutEnd.Value <= DateTimeOffset.UtcNow.AddDays(1))
+                await _userManager.SetLockoutEndDateAsync(user!, null);
             TempData["SuccessMessage"] = "Đặt lại mật khẩu thành công! Hãy đăng nhập bằng mật khẩu mới.";
             return RedirectToAction(nameof(Login));
         }
@@ -303,7 +313,7 @@ namespace DACN.Controllers
 
             var bookings = await _unitOfWork.Bookings.Query()
                 .Include(b => b.Court).ThenInclude(c => c!.Facility)
-                .Where(b => b.CustomerId == userId)
+                .Where(b => b.CustomerId == userId && !b.IsCounterBooking)
                 .OrderByDescending(b => b.CreatedAt)
                 .ToListAsync();
 

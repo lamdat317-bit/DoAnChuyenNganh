@@ -1,12 +1,26 @@
-﻿@model DACN.Models.Booking
+@model DACN.Models.Booking
+@using DACN.Services
 @{
     ViewData["Title"] = "Thanh toán đơn #BK-" + Model.Id;
-    var transferCode = $"BK{Model.Id}";
-    var vietQrUrl = $"https://img.vietqr.io/image/VietinBank-10287462828-compact2.png?amount={(long)Model.TotalAmount}&addInfo={transferCode}&accountName=DATSAN247";
-    var defaultTxnRef = $"VTB-{DateTime.UtcNow:yyyyMMddHHmmss}-{Model.Id}";
     var remainingSeconds = DACN.Services.BookingRules.HoldRemainingSeconds(Model, DateTime.UtcNow);
     var initialTimerDisplay = $"{remainingSeconds / 60:D2}:{remainingSeconds % 60:D2}";
     var vi = new System.Globalization.CultureInfo("vi-VN");
+
+    // Ví ngân hàng ảo
+    var wallet = (DACN.Models.BankAccount)ViewBag.Wallet;
+    var isOwnBooking = ViewBag.IsOwnBooking == true;
+    var amount = Money.ToVnd(Model.TotalAmount);
+    var enough = wallet.Balance >= amount;
+    var shortfall = Math.Max(0, amount - wallet.Balance);
+    var otp = TempData["PaymentOtp"] as string;
+    // TempData tự đổi chuỗi ngày giờ thành DateTime khi đọc lại → chấp nhận cả 2 kiểu
+    DateTime? otpExpires = TempData["PaymentOtpExpires"] switch
+    {
+        DateTime d => d.ToUniversalTime(),
+        string s when DateTime.TryParse(s, null, System.Globalization.DateTimeStyles.RoundtripKind, out var oe) => oe.ToUniversalTime(),
+        _ => null
+    };
+    var otpSeconds = otpExpires.HasValue ? Math.Max(0, (int)(otpExpires.Value - DateTime.UtcNow).TotalSeconds) : 0;
 }
 
 <div class="page-header">
@@ -21,7 +35,7 @@
         <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
             <div>
                 <h1>Thanh toán đơn #BK-@Model.Id</h1>
-                <p class="sub">Chuyển khoản qua VietQR rồi gửi ảnh biên lai để hoàn tất giữ chỗ.</p>
+                <p class="sub">Thanh toán bằng ví DatSan247, xác nhận bằng mã OTP. Tiền chuyển thẳng cho chủ sân.</p>
             </div>
             <div class="countdown-badge fs-6" title="Thời gian giữ chỗ còn lại">
                 <i class="bi bi-stopwatch"></i> Còn <span id="countdownTimer">@initialTimerDisplay</span>
@@ -33,87 +47,80 @@
 <div class="container" style="max-width: 1080px;">
     <div class="row g-4">
         <div class="col-lg-7">
+            @if (!isOwnBooking)
+            {
+                <div class="panel">
+                    <div class="panel-body text-center p-4">
+                        <span class="icon-bubble lg slate mb-3"><i class="bi bi-person-lock"></i></span>
+                        <h5 class="fw-bold">Chỉ khách đặt đơn mới thanh toán được</h5>
+                        <p class="text-muted small mb-0">Đơn này thuộc tài khoản khác. Bạn có thể xem chi tiết đơn ở trang quản lý.</p>
+                    </div>
+                </div>
+            }
+            else
+            {
             <div class="panel mb-4">
                 <div class="panel-header">
-                    <h5 class="panel-title"><i class="bi bi-qr-code-scan"></i> Bước 1 · Quét mã VietQR</h5>
-                    <span class="badge-soft success"><i class="bi bi-shield-check"></i> NAPAS 24/7</span>
+                    <h5 class="panel-title"><i class="bi bi-wallet2"></i> Thanh toán bằng ví DatSan247</h5>
+                    <a asp-controller="Wallet" asp-action="Index" class="small">Internet Banking <i class="bi bi-box-arrow-up-right"></i></a>
                 </div>
                 <div class="panel-body">
-                    <div class="row g-4 align-items-center">
-                        <div class="col-md-6 text-center">
-                            <img src="@vietQrUrl" alt="Mã VietQR thanh toán" class="vietqr-img" id="vietQrImg" />
-                            <div class="d-flex justify-content-center gap-2 mt-2">
-                                <a href="@vietQrUrl" target="_blank" rel="noopener" class="btn btn-light btn-sm"><i class="bi bi-arrows-fullscreen me-1"></i>Phóng to</a>
-                            </div>
+                    <div class="summary-row"><span class="k">Tài khoản</span><span class="v font-monospace">@wallet.AccountNo</span></div>
+                    <div class="summary-row"><span class="k">Số dư hiện tại</span><span class="v fw-bold @(enough ? "text-success" : "text-danger")">@Money.Vnd(wallet.Balance)</span></div>
+                    <div class="summary-row"><span class="k">Cần thanh toán</span><span class="v text-accent fw-bold">@Money.Vnd(amount)</span></div>
+                    <div class="summary-row"><span class="k">Số dư sau thanh toán</span><span class="v">@(enough ? Money.Vnd(wallet.Balance - amount) : "—")</span></div>
+
+                    @if (!enough)
+                    {
+                        <div class="alert alert-danger small mt-3 mb-0 d-flex flex-wrap align-items-center gap-2">
+                            <i class="bi bi-exclamation-octagon"></i>
+                            <span class="flex-grow-1">Số dư không đủ. Bạn cần nạp thêm ít nhất <strong>@Money.Vnd(shortfall)</strong>.</span>
+                            <a asp-controller="Wallet" asp-action="Index" asp-route-returnUrl="@Url.Action("Checkout", new { bookingId = Model.Id })" class="btn btn-sm btn-danger"><i class="bi bi-plus-circle me-1"></i>Nạp tiền</a>
                         </div>
-                        <div class="col-md-6">
-                            <div class="summary-row"><span class="k">Ngân hàng</span><span class="v">VietinBank</span></div>
-                            <div class="summary-row align-items-center">
-                                <span class="k">Số tài khoản</span>
-                                <span class="v"><span id="stkValue">10287462828</span>
-                                    <button type="button" class="btn btn-light btn-sm py-0 px-2 ms-1" onclick="copyText('10287462828', this)" title="Sao chép"><i class="bi bi-clipboard"></i></button></span>
-                            </div>
-                            <div class="summary-row"><span class="k">Chủ tài khoản</span><span class="v">DATSAN247</span></div>
-                            <div class="summary-row align-items-center">
-                                <span class="k">Số tiền</span>
-                                <span class="v text-accent">@Model.TotalAmount.ToString("N0")đ
-                                    <button type="button" class="btn btn-light btn-sm py-0 px-2 ms-1" onclick="copyText('@((long)Model.TotalAmount)', this)" title="Sao chép"><i class="bi bi-clipboard"></i></button></span>
-                            </div>
-                            <div class="summary-row align-items-center rounded-3 px-2" style="background: var(--warning-50);">
-                                <span class="k fw-semibold" style="color:#92400e">Nội dung CK</span>
-                                <span class="v"><span class="kbd-tag">@transferCode</span>
-                                    <button type="button" class="btn btn-light btn-sm py-0 px-2 ms-1" onclick="copyText('@transferCode', this)" title="Sao chép"><i class="bi bi-clipboard"></i></button></span>
-                            </div>
-                            <div class="small text-muted mt-2"><i class="bi bi-info-circle me-1"></i>Giữ nguyên nội dung chuyển khoản để hệ thống đối soát.</div>
-                        </div>
-                    </div>
+                    }
                 </div>
             </div>
 
             <div class="panel">
                 <div class="panel-header">
-                    <h5 class="panel-title"><i class="bi bi-cloud-arrow-up"></i> Bước 2 · Gửi ảnh biên lai</h5>
+                    <h5 class="panel-title"><i class="bi bi-shield-lock"></i> Xác nhận bằng mã OTP</h5>
+                    <span class="badge-soft neutral">OTP giả lập · @PaymentPolicy.OtpMinutes phút</span>
                 </div>
                 <div class="panel-body">
-                    <form asp-action="SubmitVirtualTransfer" method="post" enctype="multipart/form-data" id="formUploadProof">
-                        <input type="hidden" name="bookingId" value="@Model.Id" />
-                        <input type="hidden" name="transactionRef" value="@defaultTxnRef" />
-
-                        <div class="upload-zone mb-3" id="dropzoneBox" onclick="document.getElementById('proofImageInput').click()" role="button" tabindex="0">
-                            <i class="bi bi-image fs-1 text-success d-block mb-1"></i>
-                            <div class="fw-semibold text-ink" id="uploadPromptText">Bấm để chọn ảnh chụp màn hình biên lai</div>
-                            <div class="small text-muted">JPG, PNG, WEBP · tối đa 5MB</div>
+                    @if (otp == null)
+                    {
+                        <p class="small text-muted">Bấm gửi mã, hệ thống sinh mã OTP 6 số (giả lập SMS: hiện ngay trên màn hình và in ra console server). Mã hết hạn sau @PaymentPolicy.OtpMinutes phút.</p>
+                        <form asp-action="RequestPaymentOtp" method="post" data-once>
+                            <input type="hidden" name="bookingId" value="@Model.Id" />
+                            <button type="submit" class="btn btn-primary btn-lg w-100" @(enough ? "" : "disabled")>
+                                <i class="bi bi-send me-1"></i> Gửi mã OTP
+                            </button>
+                        </form>
+                    }
+                    else
+                    {
+                        <div class="rounded-3 p-3 mb-3 text-center" style="background: var(--warning-50); border: 1px dashed #f59e0b;">
+                            <div class="small text-muted"><i class="bi bi-phone me-1"></i>Tin nhắn OTP (giả lập)</div>
+                            <div class="font-monospace fw-bold" style="font-size: 2rem; letter-spacing: .4em;">@otp</div>
+                            <div class="small">Hết hạn sau <strong id="otpTimer">--:--</strong></div>
                         </div>
-                        <input type="file" name="proofImage" id="proofImageInput" class="d-none" accept="image/*" onchange="previewProofImage(event)" />
-
-                        <div id="proofPreviewContainer" class="border rounded-3 p-3 mb-3 text-center" style="display:none;">
-                            <div class="d-flex justify-content-between align-items-center mb-2 small">
-                                <span class="text-success fw-semibold text-truncate"><i class="bi bi-check-circle-fill me-1"></i><span id="fileNameDisplay"></span></span>
-                                <button type="button" class="btn btn-light btn-sm" onclick="clearProofPreview()">Đổi ảnh</button>
-                            </div>
-                            <img id="proofPreviewImg" src="" alt="Ảnh biên lai" class="img-fluid rounded" style="max-height: 220px; object-fit: contain;" />
-                        </div>
-
-                        <div class="row g-2 mb-3">
-                            <div class="col-sm-6">
-                                <label class="form-label small">Tên người chuyển</label>
-                                <input type="text" name="senderAccount" class="form-control" value="@(Model.CustomerName ?? Model.Customer?.FullName ?? "")" placeholder="Nguyen Van A" />
-                            </div>
-                            <div class="col-sm-6">
-                                <label class="form-label small">Mã giao dịch / ghi chú</label>
-                                <input type="text" name="note" class="form-control" placeholder="Không bắt buộc" />
-                            </div>
-                        </div>
-
-                        <div id="proofError" class="alert alert-danger py-2 small d-none"></div>
-
-                        <div class="small text-muted mb-2"><i class="bi bi-info-circle me-1"></i>Sau khi gửi, khung giờ được giữ cho bạn; chủ sân kiểm tra tài khoản và xác nhận thanh toán.</div>
-                        <button type="submit" id="btnSubmitProof" class="btn btn-primary btn-lg w-100">
-                            <i class="bi bi-shield-check me-1"></i> Tôi đã chuyển khoản · Gửi biên lai
-                        </button>
-                    </form>
+                        <form asp-action="ConfirmPayment" method="post" data-once>
+                            <input type="hidden" name="bookingId" value="@Model.Id" />
+                            <label class="form-label" for="otpInput">Nhập mã OTP</label>
+                            <input type="text" id="otpInput" name="otp" class="form-control form-control-lg text-center font-monospace mb-3"
+                                   inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" required autofocus placeholder="••••••" />
+                            <button type="submit" class="btn btn-primary btn-lg w-100" id="btnConfirmPay">
+                                <i class="bi bi-check2-circle me-1"></i> Xác nhận thanh toán @Money.Vnd(amount)
+                            </button>
+                        </form>
+                        <form asp-action="RequestPaymentOtp" method="post" class="text-center mt-2">
+                            <input type="hidden" name="bookingId" value="@Model.Id" />
+                            <button type="submit" class="btn btn-link btn-sm">Gửi lại mã</button>
+                        </form>
+                    }
                 </div>
             </div>
+            }
         </div>
 
         <div class="col-lg-5">
@@ -156,15 +163,15 @@
 
 @section Scripts {
     <script>
+        // Đếm ngược thời gian giữ chỗ
         let timeLeft = @remainingSeconds;
         const timerDisplay = document.getElementById('countdownTimer');
         const expiredUrl = '@Html.Raw(Url.Action("Matrix", "Booking", new { courtId = Model.CourtId, date = Model.BookingDate.ToString("yyyy-MM-dd") }))';
-        const interval = setInterval(function () {
+        const holdInterval = setInterval(function () {
             if (timeLeft <= 0) {
-                clearInterval(interval);
+                clearInterval(holdInterval);
                 timerDisplay.textContent = '00:00';
-                document.getElementById('btnSubmitProof').disabled = true;
-                showProofError('Đã hết thời gian giữ chỗ. Khung giờ đã được mở lại, đang chuyển về trang chọn giờ...');
+                document.querySelectorAll('form[data-once] button[type=submit]').forEach(function (b) { b.disabled = true; });
                 setTimeout(function () { window.location.href = expiredUrl; }, 2500);
                 return;
             }
@@ -172,60 +179,30 @@
             timeLeft--;
         }, 1000);
 
-        function copyText(text, btn) {
-            navigator.clipboard.writeText(text).then(function () {
-                const old = btn.innerHTML;
-                btn.innerHTML = '<i class="bi bi-check2 text-success"></i>';
-                setTimeout(function () { btn.innerHTML = old; }, 1500);
-            });
-        }
-
-        function showProofError(msg) {
-            const box = document.getElementById('proofError');
-            box.textContent = msg;
-            box.classList.remove('d-none');
-        }
-
-        function previewProofImage(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            if (file.size > 10 * 1024 * 1024) {
-                showProofError('Ảnh vượt quá 10MB. Vui lòng chọn ảnh nhỏ hơn.');
-                clearProofPreview();
-                return;
-            }
-            document.getElementById('proofError').classList.add('d-none');
-            const reader = new FileReader();
-            reader.onload = function (e) {
-                document.getElementById('proofPreviewImg').src = e.target.result;
-                document.getElementById('proofPreviewContainer').style.display = 'block';
-                document.getElementById('dropzoneBox').style.display = 'none';
-                document.getElementById('fileNameDisplay').textContent = file.name + ' (' + (file.size / 1024).toFixed(0) + ' KB)';
+        // Đếm ngược hạn OTP
+        let otpLeft = @otpSeconds;
+        const otpTimer = document.getElementById('otpTimer');
+        if (otpTimer) {
+            const tick = function () {
+                if (otpLeft <= 0) {
+                    otpTimer.textContent = 'đã hết hạn, bấm "Gửi lại mã"';
+                    const btn = document.getElementById('btnConfirmPay');
+                    if (btn) btn.disabled = true;
+                    return;
+                }
+                otpTimer.textContent = String(Math.floor(otpLeft / 60)).padStart(2, '0') + ':' + String(otpLeft % 60).padStart(2, '0');
+                otpLeft--;
+                setTimeout(tick, 1000);
             };
-            reader.readAsDataURL(file);
+            tick();
         }
 
-        function clearProofPreview() {
-            document.getElementById('proofImageInput').value = '';
-            document.getElementById('proofPreviewContainer').style.display = 'none';
-            document.getElementById('dropzoneBox').style.display = '';
-            document.getElementById('proofPreviewImg').src = '';
-        }
-
-        document.getElementById('dropzoneBox').addEventListener('keydown', function (e) {
-            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); document.getElementById('proofImageInput').click(); }
-        });
-
-        document.getElementById('formUploadProof').addEventListener('submit', function (e) {
-            const fileInput = document.getElementById('proofImageInput');
-            if (!fileInput.files || fileInput.files.length === 0) {
-                e.preventDefault();
-                showProofError('Vui lòng chọn ảnh chụp biên lai chuyển khoản trước khi hoàn tất.');
-                return;
-            }
-            const btn = document.getElementById('btnSubmitProof');
-            btn.disabled = true;
-            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Đang xác nhận...';
+        // Chống bấm 2 lần ở phía giao diện (server vẫn khóa dòng + idempotent)
+        document.querySelectorAll('form[data-once]').forEach(function (form) {
+            form.addEventListener('submit', function () {
+                const btn = form.querySelector('button[type=submit]');
+                if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Đang xử lý...'; }
+            });
         });
     </script>
 }

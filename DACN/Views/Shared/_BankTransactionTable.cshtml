@@ -1,0 +1,73 @@
+@using DACN.Services
+@using DACN.Models.Enums
+@*
+    Bảng giao dịch ngân hàng ảo dùng chung.
+    ViewData["PerspectiveAccountId"] (int?): có → hiện +/− theo tài khoản đó (sao kê cá nhân);
+    không có → hiện "Từ → Đến" (sổ cái admin).
+*@
+@model List<DACN.Models.BankTransaction>
+@{
+    var perspective = ViewData["PerspectiveAccountId"] as int?;
+    string Party(DACN.Models.BankAccount? a) => a == null ? "Nạp tiền"
+        : a.OwnerType == BankOwnerType.System ? $"Hệ thống · {a.AccountNo}"
+        : $"{a.Owner?.FullName ?? "Tài khoản"} · {a.AccountNo}";
+}
+@if (!Model.Any())
+{
+    <div class="panel-body text-muted small">Chưa có giao dịch nào.</div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>Thời gian</th>
+                    <th>Loại</th>
+                    <th>Nội dung</th>
+                    <th>Mã đơn</th>
+                    @if (perspective == null) { <th>Từ → Đến</th> }
+                    <th class="text-end">Số tiền</th>
+                    @if (perspective != null) { <th class="text-end">Số dư sau</th> }
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var t in Model)
+                {
+                    var (label, tone, icon) = Money.TypeBadge(t.Type);
+                    bool incoming = perspective == null || t.ToAccountId == perspective;
+                    long? after = perspective == null ? null : (incoming ? t.ToBalanceAfter : t.FromBalanceAfter);
+                    <tr>
+                        <td class="small text-nowrap">@t.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss")<div class="text-muted">GD #@t.Id</div></td>
+                        <td><span class="badge-soft @tone"><i class="bi @icon"></i> @label</span></td>
+                        <td class="small" style="max-width: 280px;">
+                            @(t.Note ?? "—")
+                            @if (perspective != null && t.Type != BankTransactionType.Deposit)
+                            {
+                                <div class="text-muted">@(incoming ? "Từ" : "Đến"): @Party(incoming ? t.FromAccount : t.ToAccount)</div>
+                            }
+                        </td>
+                        <td>
+                            @if (t.BookingId.HasValue)
+                            {
+                                <a asp-area="" asp-controller="Booking" asp-action="Confirmation" asp-route-bookingId="@t.BookingId" class="kbd-tag">#BK-@t.BookingId</a>
+                            }
+                            else { <span class="text-muted">—</span> }
+                        </td>
+                        @if (perspective == null)
+                        {
+                            <td class="small">@Party(t.FromAccount) <i class="bi bi-arrow-right mx-1"></i> @Party(t.ToAccount)</td>
+                        }
+                        <td class="text-end fw-bold text-nowrap @(perspective == null ? "text-ink" : incoming ? "text-success" : "text-danger")">
+                            @(perspective == null ? "" : incoming ? "+" : "−")@Money.Vnd(t.Amount)
+                        </td>
+                        @if (perspective != null)
+                        {
+                            <td class="text-end small text-muted text-nowrap">@(after.HasValue ? Money.Vnd(after.Value) : "—")</td>
+                        }
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

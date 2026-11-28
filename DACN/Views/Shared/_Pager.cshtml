@@ -1,0 +1,28 @@
+@*
+    Phân trang đơn giản: UrlTemplate chứa "__page__" sẽ được thay bằng số trang.
+*@
+@model DACN.Services.PagerModel
+@if (Model.TotalPages > 1)
+{
+    <nav class="d-flex justify-content-center mt-3" aria-label="Phân trang">
+        <ul class="pagination pagination-modern mb-0">
+            <li class="page-item @(Model.Page <= 1 ? "disabled" : "")">
+                <a class="page-link" href="@Model.UrlFor(Math.Max(1, Model.Page - 1))" aria-label="Trang trước"><i class="bi bi-chevron-left"></i></a>
+            </li>
+            @for (int i = 1; i <= Model.TotalPages; i++)
+            {
+                if (i == 1 || i == Model.TotalPages || Math.Abs(i - Model.Page) <= 1)
+                {
+                    <li class="page-item @(i == Model.Page ? "active" : "")"><a class="page-link" href="@Model.UrlFor(i)">@i</a></li>
+                }
+                else if (Math.Abs(i - Model.Page) == 2)
+                {
+                    <li class="page-item disabled"><span class="page-link">…</span></li>
+                }
+            }
+            <li class="page-item @(Model.Page >= Model.TotalPages ? "disabled" : "")">
+                <a class="page-link" href="@Model.UrlFor(Math.Min(Model.TotalPages, Model.Page + 1))" aria-label="Trang sau"><i class="bi bi-chevron-right"></i></a>
+            </li>
+        </ul>
+    </nav>
+}

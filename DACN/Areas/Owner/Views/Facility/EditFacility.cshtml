@@ -37,23 +37,20 @@
                     </div>
                     <div class="col-12">
                         <label asp-for="Address" class="form-label"></label>
-                        <input asp-for="Address" class="form-control" />
+                        <div class="input-group">
+                            <input asp-for="Address" class="form-control" placeholder="Số nhà, đường, phường, quận, tỉnh/thành" />
+                            <a href="https://www.google.com/maps" target="_blank" rel="noopener noreferrer" class="btn btn-light" data-map-preview><i class="bi bi-map me-1"></i>Kiểm tra trên Google Maps</a>
+                        </div>
+                        <div class="form-text">Chỉ cần nhập đúng địa chỉ, khách sẽ xem bản đồ và chỉ đường theo địa chỉ này.</div>
                         <span asp-validation-for="Address" class="text-danger small"></span>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-6">
                         <label asp-for="CityId" class="form-label"></label>
                         <select asp-for="CityId" class="form-select" asp-items="ViewBag.Cities"><option value="">Chọn tỉnh/thành</option></select>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-6">
                         <label asp-for="DistrictName" class="form-label"></label>
                         <input asp-for="DistrictName" class="form-control" />
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Tọa độ GPS</label>
-                        <div class="input-group">
-                            <input asp-for="Latitude" class="form-control" placeholder="Vĩ độ" />
-                            <input asp-for="Longitude" class="form-control" placeholder="Kinh độ" />
-                        </div>
                     </div>
                 </div>
             </div>
@@ -91,4 +88,5 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script src="~/js/map-preview.js" asp-append-version="true"></script>
 }

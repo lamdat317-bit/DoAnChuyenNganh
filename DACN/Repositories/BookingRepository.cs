@@ -77,7 +77,7 @@ namespace DACN.Repositories
                         .ThenInclude(f => f!.SportType)
                 .Include(b => b.ServiceDetails)
                     .ThenInclude(sd => sd.FacilityService)
-                .Where(b => b.CustomerId == customerId)
+                .Where(b => b.CustomerId == customerId && !b.IsCounterBooking)
                 .OrderByDescending(b => b.BookingDate)
                 .ThenByDescending(b => b.StartTime)
                 .ToListAsync();

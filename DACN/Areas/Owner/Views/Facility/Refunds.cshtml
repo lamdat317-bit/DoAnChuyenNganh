@@ -21,7 +21,7 @@
 <div class="container">
     <div class="row g-3 mb-4">
         <div class="col-md-6"><div class="card stat-card"><span class="icon-bubble amber"><i class="bi bi-arrow-counterclockwise"></i></span><div><div class="label">Tổng tiền đang chờ hoàn</div><div class="value">@pendingTotal.ToString("N0")<small class="fs-6">đ</small></div></div></div></div>
-        <div class="col-md-6"><div class="card stat-card"><span class="icon-bubble blue"><i class="bi bi-info-circle"></i></span><div><div class="label">Chính sách</div><div class="small text-ink">Khách hủy trước giờ chơi ≥ @BookingRules.FreeCancelHours tiếng hoặc chủ sân hủy → hoàn 100%. Khách hủy sát giờ hơn → hoàn @BookingRules.LateCancelRefundPercent% (số tiền đã tính sẵn ở từng đơn).</div></div></div></div>
+        <div class="col-md-6"><div class="card stat-card"><span class="icon-bubble blue"><i class="bi bi-info-circle"></i></span><div><div class="label">Chính sách</div><div class="small text-ink">@BookingRules.RefundPolicyText Đơn trả bằng ví được hoàn tự động; đơn trả bằng hình thức cũ hiện ở đây để bạn hoàn tay.</div></div></div></div>
     </div>
 
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">

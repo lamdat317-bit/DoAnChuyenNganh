@@ -60,6 +60,11 @@ namespace DACN.Services
                 {
                     _logger.LogInformation("Đã tự chuyển {Count} đơn đã chơi xong sang Hoàn thành.", completed);
                 }
+                var unverified = await lifecycle.ExpireUnverifiedTransfersAsync(stoppingToken);
+                if (unverified > 0)
+                {
+                    _logger.LogInformation("Đã tự hủy {Count} đơn hết giờ chơi mà chủ sân chưa xác nhận chuyển khoản.", unverified);
+                }
                 await lifecycle.SendRemindersAsync(stoppingToken);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)

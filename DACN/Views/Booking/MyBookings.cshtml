@@ -91,6 +91,7 @@
                             <div class="fw-bold text-ink text-truncate">@facilityName</div>
                             <div class="small text-muted mb-2 text-truncate">@(booking.Court?.Name ?? "Sân") · <i class="bi bi-geo-alt"></i> @(booking.Court?.Facility?.Address ?? "")</div>
                             <div class="d-flex flex-wrap gap-3 small mb-2">
+                                <span><i class="bi bi-calendar3 text-success me-1"></i><strong class="text-ink">@booking.BookingDate.ToString("ddd, dd/MM/yyyy", vi)</strong></span>
                                 <span><i class="bi bi-clock text-success me-1"></i><strong class="text-ink">@DACN.Services.BookingRules.Hm(booking.StartTime) – @DACN.Services.BookingRules.Hm(booking.EndTime)</strong></span>
                                 <span class="fw-bold text-accent">@booking.TotalAmount.ToString("N0")đ</span>
                             </div>
@@ -145,8 +146,7 @@
                                 {
                                     <button type="button" class="btn btn-light btn-sm text-danger ms-auto" data-bs-toggle="modal" data-bs-target="#cancelModal"
                                             data-booking-id="@booking.Id"
-                                            data-summary="@facilityName · @(booking.Court?.Name) · @booking.BookingDate.ToString("dd/MM/yyyy") @DACN.Services.BookingRules.Hm(booking.StartTime)–@DACN.Services.BookingRules.Hm(booking.EndTime)"
-                                            data-paid="@(booking.PaymentStatus is PaymentStatus.Paid or PaymentStatus.AwaitingVerification ? "1" : "0")" data-amount="@booking.TotalAmount.ToString("N0")" data-percent="@refundPercent" data-refund="@DACN.Services.BookingRules.RefundAmountFor(booking.TotalAmount, refundPercent).ToString("N0")"><i class="bi bi-x-circle me-1"></i>Hủy</button>
+                                            data-summary="@facilityName · @(booking.Court?.Name) · @booking.BookingDate.ToString("dd/MM/yyyy") @DACN.Services.BookingRules.Hm(booking.StartTime)–@DACN.Services.BookingRules.Hm(booking.EndTime)"><i class="bi bi-x-circle me-1"></i>Hủy</button>
                                 }
                                 else if (isLateForFreeCancel)
                                 {
@@ -171,15 +171,15 @@
                     <span class="icon-bubble lg red mb-3"><i class="bi bi-exclamation-triangle"></i></span>
                     <h5 class="fw-bold">Hủy đơn đặt sân?</h5>
                     <p class="text-muted small mb-2" id="cancelSummary"></p>
-                    <div class="alert alert-warning small text-start mb-0">
-                        Khung giờ sẽ được mở lại ngay cho người khác.
-                        <span id="cancelPaidNote" class="d-none"><br />Đơn đã thanh toán: bạn được hoàn <strong id="cancelRefundAmount"></strong> <span id="cancelRefundRule"></span>. Chủ sân sẽ chuyển khoản lại và bạn theo dõi trạng thái ngay tại đây.</span>
+                    <div class="alert alert-warning small text-start mb-0" id="cancelInfo">
+                        <span class="spinner-border spinner-border-sm me-1"></span> Đang tính số tiền được hoàn...
                     </div>
+                    <div class="small text-muted text-start mt-2">@DACN.Services.BookingRules.RefundPolicyText</div>
                     <textarea name="reason" class="form-control mt-3" rows="2" maxlength="200" placeholder="Lý do hủy (không bắt buộc)"></textarea>
                 </div>
                 <div class="modal-footer justify-content-center">
                     <button type="button" class="btn btn-light" data-bs-dismiss="modal">Giữ lại</button>
-                    <button type="submit" class="btn btn-danger">Xác nhận hủy</button>
+                    <button type="submit" class="btn btn-danger" id="cancelSubmit">Xác nhận hủy</button>
                 </div>
             </form>
         </div>
@@ -229,11 +229,36 @@
             const btn = e.relatedTarget;
             document.getElementById('cancelBookingId').value = btn.dataset.bookingId;
             document.getElementById('cancelSummary').textContent = '#BK-' + btn.dataset.bookingId + ' · ' + btn.dataset.summary;
-            document.getElementById('cancelPaidNote').classList.toggle('d-none', btn.dataset.paid !== '1');
-            document.getElementById('cancelRefundAmount').textContent = (btn.dataset.refund || btn.dataset.amount || '') + 'đ';
-            document.getElementById('cancelRefundRule').textContent = btn.dataset.percent === '100'
-                ? '(100%, hủy trước giờ chơi ít nhất @DACN.Services.BookingRules.FreeCancelHours tiếng)'
-                : '(' + btn.dataset.percent + '% của ' + btn.dataset.amount + 'đ, vì hủy trong vòng @DACN.Services.BookingRules.FreeCancelHours tiếng trước giờ chơi)';
+
+            // Hỏi server số tiền được hoàn nếu hủy ngay lúc này (cùng công thức với lúc hủy thật)
+            const info = document.getElementById('cancelInfo');
+            const submit = document.getElementById('cancelSubmit');
+            info.className = 'alert alert-warning small text-start mb-0';
+            info.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Đang tính số tiền được hoàn...';
+            submit.disabled = true;
+            fetch('@Url.Action("CancelPreview")?bookingId=' + encodeURIComponent(btn.dataset.bookingId), { credentials: 'same-origin' })
+                .then(function (r) { if (!r.ok) throw new Error(); return r.json(); })
+                .then(function (p) {
+                    if (!p.canCancel) {
+                        info.className = 'alert alert-danger small text-start mb-0';
+                        info.textContent = p.blockReason;
+                        return;
+                    }
+                    submit.disabled = false;
+                    if (!p.isPaid) {
+                        info.textContent = 'Đơn chưa thanh toán: hủy để mở lại khung giờ cho người khác, không phát sinh tiền.';
+                    } else if (p.refund > 0) {
+                        info.className = 'alert alert-success small text-start mb-0';
+                        info.innerHTML = 'Bạn được hoàn <strong>' + p.refundText + '</strong> (' + p.percent + '% của ' + p.paidText + ') vào ví ngay sau khi hủy.';
+                    } else {
+                        info.className = 'alert alert-danger small text-start mb-0';
+                        info.innerHTML = 'Hủy sát giờ chơi: <strong>không được hoàn tiền</strong> (đã thanh toán ' + p.paidText + ').';
+                    }
+                })
+                .catch(function () {
+                    submit.disabled = false;
+                    info.textContent = 'Không tính được số tiền hoàn. Bạn vẫn có thể hủy, số tiền hoàn sẽ hiện trong thông báo.';
+                });
         });
         document.getElementById('reviewModal').addEventListener('show.bs.modal', function (e) {
             const btn = e.relatedTarget;

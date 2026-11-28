@@ -1,0 +1,90 @@
+@using DACN.Services
+@model DACN.Services.BankStatement
+@{
+    ViewData["Title"] = "Internet Banking";
+    var a = Model.Account;
+    var returnUrl = ViewBag.ReturnUrl as string;
+    string Pretty(string no) => string.Join(" ", Enumerable.Range(0, (no.Length + 3) / 4).Select(i => no.Substring(i * 4, Math.Min(4, no.Length - i * 4))));
+}
+
+<div class="page-header">
+    <div class="container" style="max-width: 980px;">
+        <h1>Internet Banking</h1>
+        <p class="sub">Ví ngân hàng ảo DatSan247: nạp tiền, thanh toán đặt sân và nhận tiền hoàn ngay vào ví.</p>
+    </div>
+</div>
+
+<div class="container" style="max-width: 980px;">
+    <div class="row g-4 mb-4">
+        <div class="col-lg-7">
+            <div class="panel h-100 p-4" style="background: linear-gradient(135deg, var(--brand-600, #16a34a), var(--brand-700, #15803d)); color: #fff; border: 0;">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="small" style="opacity:.85">DatSan247 Bank · @Money.OwnerTypeLabel(a.OwnerType)</div>
+                        <div class="fw-bold fs-5">@(a.Owner?.FullName ?? "Tài khoản")</div>
+                    </div>
+                    <i class="bi bi-bank fs-2" style="opacity:.8"></i>
+                </div>
+                <div class="mt-4 small" style="opacity:.85">Số tài khoản</div>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="fs-4 fw-bold font-monospace" id="accNo">@Pretty(a.AccountNo)</span>
+                    <button type="button" class="btn btn-sm btn-light py-0" data-copy="@a.AccountNo" title="Sao chép số tài khoản"><i class="bi bi-copy"></i></button>
+                </div>
+                <div class="mt-3 small" style="opacity:.85">Số dư khả dụng</div>
+                <div class="fw-bold" style="font-size: 2rem; letter-spacing: -.02em;">@Money.Vnd(a.Balance)</div>
+            </div>
+        </div>
+        <div class="col-lg-5">
+            <div class="panel h-100">
+                <div class="panel-header"><h5 class="panel-title"><i class="bi bi-box-arrow-in-down"></i> Nạp tiền (giả lập)</h5></div>
+                <div class="panel-body">
+                    <form asp-action="Deposit" method="post">
+                        <input type="hidden" name="returnUrl" value="@returnUrl" />
+                        <label class="form-label" for="amount">Số tiền</label>
+                        <div class="input-group mb-2">
+                            <input type="number" class="form-control" id="amount" name="amount" required
+                                   min="@PaymentPolicy.MinDeposit" max="@PaymentPolicy.MaxDeposit" step="1000" placeholder="VD: 200000" />
+                            <span class="input-group-text">₫</span>
+                        </div>
+                        <div class="d-flex flex-wrap gap-2 mb-3">
+                            @foreach (var preset in new long[] { 100_000, 200_000, 500_000, 1_000_000 })
+                            {
+                                <button type="button" class="btn btn-light btn-sm" data-amount="@preset">@Money.Vnd(preset)</button>
+                            }
+                        </div>
+                        <div class="form-text mb-3">Từ @Money.Vnd(PaymentPolicy.MinDeposit) đến @Money.Vnd(PaymentPolicy.MaxDeposit) mỗi lần. Đây là tiền ảo để demo, không liên quan ngân hàng thật.</div>
+                        <button type="submit" class="btn btn-primary w-100"><i class="bi bi-plus-circle me-1"></i>Nạp tiền</button>
+                        @if (!string.IsNullOrEmpty(returnUrl))
+                        {
+                            <a href="@returnUrl" class="btn btn-light w-100 mt-2"><i class="bi bi-arrow-left me-1"></i>Quay lại thanh toán</a>
+                        }
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="panel overflow-hidden">
+        <div class="panel-header d-flex justify-content-between align-items-center">
+            <h5 class="panel-title"><i class="bi bi-clock-history"></i> Lịch sử giao dịch</h5>
+            <span class="small text-muted">@Model.TotalCount giao dịch</span>
+        </div>
+        <partial name="_BankTransactionTable" model="Model.Items" view-data='new ViewDataDictionary(ViewData) { ["PerspectiveAccountId"] = a.Id }' />
+    </div>
+    <partial name="_Pager" model='new PagerModel(Model.Page, Model.TotalPages, Url.Action("Index", new { page = "__page__" })!)' />
+</div>
+
+@section Scripts {
+<script>
+    document.querySelectorAll('[data-amount]').forEach(function (b) {
+        b.addEventListener('click', function () { document.getElementById('amount').value = b.dataset.amount; });
+    });
+    document.querySelectorAll('[data-copy]').forEach(function (b) {
+        b.addEventListener('click', function () {
+            if (navigator.clipboard) navigator.clipboard.writeText(b.dataset.copy);
+            b.innerHTML = '<i class="bi bi-check2"></i>';
+            setTimeout(function () { b.innerHTML = '<i class="bi bi-copy"></i>'; }, 1200);
+        });
+    });
+</script>
+}
